@@ -150,7 +150,7 @@
   <div class="hero-inner">
     <span class="tag">pi-wiki-agent · Workflow Engine · 源码级深度解析</span>
     <h1>Workflow 多智能体编排引擎<br>架构设计、完整源码走读与设计哲学</h1>
-    <p>从"为什么需要它"到"每一行代码怎么写的"——涵盖 <strong>AST 沙箱解析、YAML→Python 编译器、三大编排原语、WorkflowAgent 子会话管理、结构化输出契约、SSE 实时推送</strong>，以及从 TypeScript 到 Python 的完整移植历程。</p>
+    <p>从"为什么需要它"到"每一行代码怎么写的"——涵盖 <strong>AST 沙箱解析、YAML→Python 编译器、三大编排原语、WorkflowAgent 子会话管理、结构化输出契约、SSE 实时推送</strong>。</p>
     <div class="meta">适合需要理解整个系统如何构建的开发者 · 基于 pi-wiki-agent 源码</div>
   </div>
 </header>
@@ -1391,7 +1391,7 @@ Workflow 脚本由用户编写甚至由 LLM 生成——必须假设它不可信
 <div class="grid2">
 <div class="card">
 <h4>决策 1：脚本用 Python 而非 JavaScript</h4>
-<p style="font-size:14px">TS 原版工作流脚本是 JS。移植时做了关键决断——改用 Python 语法（<code class="inline">meta = {...}</code> 替代 <code class="inline">export const meta = {...}</code>）。</p>
+<p style="font-size:14px">工作流脚本直接使用 Python 语法（<code class="inline">meta = {...}</code>），无需引入 JS 解释器。</p>
 <p style="font-size:13px;color:var(--muted)"><b>理由</b>：工作流脚本语法极简单（变量赋值、函数调用、await），JS 和 Python 在这个子集中几乎完全相同。用 Python 可以原生 exec()，无需嵌入 JS 解释器。模型生成 Python 和生成 JS 一样熟练。</p>
 </div>
 
@@ -1419,11 +1419,6 @@ Workflow 脚本由用户编写甚至由 LLM 生成——必须假设它不可信
 <p style="font-size:13px;color:var(--muted)"><b>理由</b>：虽然格式相同，但两者的上下文和职责不同。Workflow 的 diff-analyzer 需要处理 per-file diff，Chain 的需要处理整体 diff——它们提示词有差异。隔离避免耦合。</p>
 </div>
 
-<div class="card">
-<h4>决策 6：从 TypeScript 到 Python 的 1:1 移植</h4>
-<p style="font-size:14px">核心数据结构、原语语义、沙箱概念——完全从 <code class="inline">pi-dynamic-workflows</code> TS 项目移植。</p>
-<p style="font-size:13px;color:var(--muted)"><b>映射</b>：acorn → ast / vm → exec() / createLimiter → Semaphore / terminate:true 工具 → StructuredOutputCapture / SessionManager.inMemory() → in_memory()</p>
-</div>
 </div>
 
 <!-- ============ 12. 速查表 ============ -->
