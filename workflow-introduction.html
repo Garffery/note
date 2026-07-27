@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow 多智能体编排引擎 — 架构设计与实现详解</title>
+<style>
+  :root{
+    --bg:#fbfbfc; --card:#ffffff; --ink:#1f2330; --muted:#6b7280;
+    --line:#e7e9ee; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --code-bg:#1e1e2e; --code-ink:#e6e6e6;
+    --ok:#059669; --ok-soft:#ecfdf5; --warn:#d97706; --warn-soft:#fffbeb;
+    --bad:#dc2626; --bad-soft:#fef2f2; --hi:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",-apple-system,sans-serif;
+    line-height:1.75; font-size:15.5px;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+  header.hero{
+    background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#9333ea 100%);
+    color:#fff; padding:54px 24px 46px; margin-bottom:8px;
+  }
+  .hero-inner{max-width:980px; margin:0 auto}
+  header.hero .tag{
+    display:inline-block; background:rgba(255,255,255,.18); padding:4px 12px;
+    border-radius:999px; font-size:12.5px; letter-spacing:.5px; margin-bottom:14px;
+  }
+  header.hero h1{margin:0 0 10px; font-size:30px; line-height:1.3}
+  header.hero p{margin:0; opacity:.92; font-size:15px; max-width:680px}
+  header.hero .meta{margin-top:18px; font-size:12.5px; opacity:.82}
+
+  h2{
+    font-size:23px; margin:52px 0 6px; padding-bottom:10px;
+    border-bottom:2px solid var(--accent); color:var(--ink);
+    display:flex; align-items:center; gap:10px;
+  }
+  h2 .num{
+    background:var(--accent); color:#fff; font-size:15px; width:30px; height:30px;
+    border-radius:8px; display:inline-flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  h3{font-size:18px; margin:30px 0 6px; color:#2d3548}
+  h4{font-size:15.5px; margin:22px 0 4px; color:#3b4256}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0; padding-left:22px}
+  li{margin:4px 0}
+
+  .lead{
+    background:var(--accent-soft); border-left:4px solid var(--accent);
+    padding:14px 18px; border-radius:0 10px 10px 0; margin:16px 0;
+  }
+  .callout{
+    border-radius:10px; padding:12px 16px; margin:14px 0; font-size:14.5px;
+  }
+  .callout.ok{background:var(--ok-soft); border-left:4px solid var(--ok)}
+  .callout.warn{background:var(--warn-soft); border-left:4px solid var(--warn)}
+  .callout.bad{background:var(--bad-soft); border-left:4px solid var(--bad)}
+  .callout b{display:block; margin-bottom:2px}
+
+  table{border-collapse:collapse; width:100%; margin:14px 0; font-size:14px}
+  th,td{border:1px solid var(--line); padding:9px 12px; text-align:left; vertical-align:top}
+  th{background:#f3f4f8; font-weight:600}
+  tr:nth-child(even) td{background:#fafafd}
+  code.inline{
+    background:#f1f2f7; padding:1.5px 6px; border-radius:5px;
+    font-family:"JetBrains Mono","Consolas",monospace; font-size:13px; color:#be185d;
+  }
+  pre{
+    background:var(--code-bg); color:var(--code-ink); padding:16px 18px;
+    border-radius:12px; overflow-x:auto; margin:14px 0; font-size:13.3px;
+    line-height:1.65; font-family:"JetBrains Mono","Consolas","Courier New",monospace;
+    position:relative;
+  }
+  pre .label{
+    position:absolute; top:8px; right:12px; font-size:11px; color:#9ca3af;
+    background:rgba(255,255,255,.08); padding:2px 8px; border-radius:5px;
+  }
+  pre .c{color:#7c8a9c; font-style:italic}
+  pre .k{color:#c792ea}
+  pre .s{color:#c3e88d}
+  pre .f{color:#82aaff}
+  pre .n{color:#f78c6c}
+  pre .r{color:#ffcb6b}
+  .code-out{
+    background:#0f1117; color:#9ca3af; padding:10px 16px; border-radius:0 0 12px 12px;
+    margin-top:-14px; margin-bottom:14px; font-family:"JetBrains Mono",monospace;
+    font-size:12.5px; border-top:1px solid #2a2d3a;
+  }
+  .code-out::before{content:"▶ 输出："; color:#f59e0b; font-weight:bold}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.04);
+  }
+  .card h4{margin-top:0}
+
+  .toc{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 24px; margin:20px 0; columns:2; column-gap:32px;
+  }
+  .toc h4{margin:0 0 8px; color:var(--accent)}
+  .toc ol{margin:0; padding-left:18px; font-size:14px}
+  .toc li{margin:3px 0; break-inside:avoid}
+  .toc a{color:var(--ink); text-decoration:none}
+  .toc a:hover{color:var(--accent)}
+
+  .diagram{margin:18px 0; text-align:center}
+  .diagram svg{max-width:100%; height:auto}
+  .diagram .cap{font-size:13px; color:var(--muted); margin-top:6px}
+
+  .pit{
+    display:flex; gap:12px; background:#fff; border:1px solid var(--line);
+    border-radius:12px; padding:14px 18px; margin:12px 0;
+  }
+  .pit .ico{
+    flex:none; width:28px; height:28px; border-radius:8px; display:flex;
+    align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:14px;
+  }
+  .pit.bad .ico{background:var(--bad)}
+  .pit.fix .ico{background:var(--ok)}
+  .pit .body{flex:1; font-size:14.5px}
+  .pit .body b{color:#2d3548}
+
+  .cheat{
+    background:#0f1117; color:#e6e6e6; border-radius:12px; padding:18px 22px;
+    font-family:"JetBrains Mono",monospace; font-size:13px; line-height:1.7; margin:14px 0;
+  }
+  .cheat .h{color:#f59e0b; font-weight:bold}
+
+  footer{
+    text-align:center; color:var(--muted); font-size:13px; margin-top:60px; padding-top:24px;
+    border-top:1px solid var(--line);
+  }
+  .anchor{display:block; position:relative; top:-80px; visibility:hidden}
+  @media(max-width:640px){
+    header.hero h1{font-size:22px}
+    .toc{columns:1}
+    .grid2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="tag">pi-wiki-agent · Workflow Engine · 源码级深度解析</span>
+    <h1>Workflow 多智能体编排引擎<br>架构设计、完整源码走读与设计哲学</h1>
+    <p>从"为什么需要它"到"每一行代码怎么写的"——涵盖 <strong>AST 沙箱解析、YAML→Python 编译器、三大编排原语、WorkflowAgent 子会话管理、结构化输出契约、SSE 实时推送</strong>，以及从 TypeScript 到 Python 的完整移植历程。</p>
+    <div class="meta">适合需要理解整个系统如何构建的开发者 · 基于 pi-wiki-agent 源码</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ TOC ============ -->
+<div class="toc">
+  <h4>📑 目录</h4>
+  <ol>
+    <li><a href="#s0">开篇：旧 Chain 方案的三个痛点</a></li>
+    <li><a href="#s1">架构总览：三层分离 + 文件布局</a></li>
+    <li><a href="#s2">核心引擎 workflow.py 深度走读</a></li>
+    <li><a href="#s3">三大编排原语：agent / parallel / pipeline</a></li>
+    <li><a href="#s4">WorkflowAgent：子会话的完整生命周期</a></li>
+    <li><a href="#s5">结构化输出：从回调捕获到类型契约</a></li>
+    <li><a href="#s6">YAML 编译器：声明式 → Python 脚本</a></li>
+    <li><a href="#s7">YAML 编写指南：从零写一个 Workflow</a></li>
+    <li><a href="#s8">Agent 定义：.md Frontmatter 配置化</a></li>
+    <li><a href="#s9">API 集成：SSE 流式端点 + 进度回调</a></li>
+    <li><a href="#s10">三层沙箱安全设计</a></li>
+    <li><a href="#s11">完整执行流程：从 HTTP 请求到子 Agent 返回</a></li>
+    <li><a href="#s12">设计哲学与关键决策</a></li>
+    <li><a href="#s13">速查表：核心数据结构</a></li>
+  </ol>
+</div>
+
+<!-- ============ 0. 开篇 ============ -->
+<span class="anchor" id="s0"></span>
+<h2><span class="num">0</span>开篇：旧 Chain 方案的三个痛点</h2>
+
+<div class="lead">
+Workflow 引擎不是凭空设计的——它诞生于旧 Chain 模式（<code class="inline">wiki_chain.py</code>）的三个真实痛点：<strong>串行瓶颈</strong>（N 个文件 = N 次串行 LLM 调用）、<strong>流程硬编码</strong>（三步固定链改不动）、<strong>数据传递脆弱</strong>（全靠 <code class="inline">{previous}</code> 纯文本拼接）。下面逐条展开。
+</div>
+
+<h3>痛点一：wiki-writer 逐文件串行</h3>
+<p>旧 Chain 的 wiki-writer 阶段，一个 commit 改了几个文件就要串行调用几次 LLM：</p>
+<table>
+<tr><th>场景</th><th>旧 Chain 耗时</th><th>Workflow 优化后</th></tr>
+<tr><td>commit 改 1 个文件</td><td>≈ 1 × 单次 LLM 延迟（~15s）</td><td>≈ 1 × 单次 LLM 延迟</td></tr>
+<tr><td style="background:#fff5f5">commit 改 10 个文件</td><td style="background:#fff5f5">≈ 10 × 单次 LLM 延迟（~150s）</td><td style="background:#ecfdf5">≈ 1 × 单次 LLM 延迟（~15s，全部并发）</td></tr>
+<tr><td>commit 改 30 个文件</td><td>≈ 30 × 单次 LLM 延迟（~450s）</td><td>受 Semaphore 限流，但仍远快于串行</td></tr>
+</table>
+<p>根因是 <code class="inline">ChainStep</code> 列表按顺序执行，每个 step 的 <code class="inline">{previous}</code> 只能是前一歩的结果字符串——没有并发能力。</p>
+
+<h3>痛点二：流程编排硬编码在 Python 中</h3>
+<pre><span class="label">旧 Chain 模式 — 流程与代码耦合</span>
+<span class="c"># wiki_chain.py 中硬编码的三步链</span>
+chain_steps = [
+    <span class="r">ChainStep</span>(agent=<span class="s">"diff-analyzer"</span>,  prompt=<span class="s">"..."</span>),
+    <span class="r">ChainStep</span>(agent=<span class="s">"wiki-planner"</span>,  prompt=<span class="s">"..."</span>),
+    <span class="r">ChainStep</span>(agent=<span class="s">"wiki-writer"</span>,   prompt=<span class="s">"..."</span>),
+]
+<span class="c"># 想加一个安全检查步骤？想跳过某个阶段？都要改 Python 源码</span></pre>
+
+<h3>痛点三：跨 Agent 数据传递靠字符串</h3>
+<p>旧 Chain 中上游输出全文作为 <code class="inline">{previous}</code> 注入下游 prompt。没有 Schema 约束——planner 输出可能是 Markdown、可能是 JSON、可能混在一起，writer 靠正则提取信息，脆弱且不可靠。</p>
+
+<!-- ============ 1. 架构总览 ============ -->
+<span class="anchor" id="s1"></span>
+<h2><span class="num">1</span>架构总览：三层分离 + 文件布局</h2>
+
+<div class="lead">
+Workflow 引擎的核心理念是<strong>关注点分离</strong>：<strong>脚本</strong>描述"做什么"（编排逻辑）、<strong>Agent 定义</strong>配置"怎么做"（工具/提示词/技能）、<strong>引擎</strong>负责"跑起来"（沙箱执行/并发调度/进度推送）。三层各自独立演化。
+</div>
+
+<h3>1.1 三层架构图</h3>
+<div class="diagram">
+<svg viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4f46e5"/></marker>
+    <marker id="a2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"/></marker>
+    <marker id="a3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#059669"/></marker>
+  </defs>
+
+  <!-- 第 1 层：定义层 -->
+  <rect x="20" y="10" width="720" height="120" rx="14" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+  <text x="380" y="36" text-anchor="middle" font-size="14" font-weight="bold" fill="#4f46e5">第 1 层 · 定义层 — 描述"做什么"和"怎么做"</text>
+
+  <rect x="45" y="52" width="200" height="62" rx="8" fill="#fff" stroke="#a5b4fc" stroke-width="1"/>
+  <text x="145" y="74" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">📜 YAML / Python 脚本</text>
+  <text x="145" y="92" text-anchor="middle" font-size="10" fill="#6b7280">phases → steps → agent()</text>
+  <text x="145" y="106" text-anchor="middle" font-size="10" fill="#6b7280">编排逻辑：谁先谁后、谁并发</text>
+
+  <rect x="270" y="52" width="200" height="62" rx="8" fill="#fff" stroke="#a5b4fc" stroke-width="1"/>
+  <text x="370" y="74" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">📝 Agent 定义 .md</text>
+  <text x="370" y="92" text-anchor="middle" font-size="10" fill="#6b7280">tools / skills / thinking</text>
+  <text x="370" y="106" text-anchor="middle" font-size="10" fill="#6b7280">system_prompt / model</text>
+
+  <rect x="495" y="52" width="220" height="62" rx="8" fill="#fff" stroke="#a5b4fc" stroke-width="1"/>
+  <text x="605" y="74" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">🔧 compiler.py</text>
+  <text x="605" y="92" text-anchor="middle" font-size="10" fill="#6b7280">Schema 简写 → JSON Schema</text>
+  <text x="605" y="106" text-anchor="middle" font-size="10" fill="#6b7280">${var} → Python 表达式</text>
+
+  <line x1="380" y1="130" x2="380" y2="160" stroke="#4f46e5" stroke-width="2" marker-end="url(#a1)"/>
+  <text x="395" y="150" font-size="11" fill="#4f46e5">输入</text>
+
+  <!-- 第 2 层：引擎层 -->
+  <rect x="20" y="165" width="720" height="130" rx="14" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="380" y="192" text-anchor="middle" font-size="14" font-weight="bold" fill="#7c3aed">第 2 层 · 引擎层 — 负责"跑起来"</text>
+
+  <rect x="45" y="208" width="160" height="70" rx="8" fill="#fff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="125" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#6d28d9">parse_workflow_script</text>
+  <text x="125" y="246" text-anchor="middle" font-size="10" fill="#6b7280">AST 解析 → meta 提取</text>
+  <text x="125" y="260" text-anchor="middle" font-size="10" fill="#6b7280">_DeterminismVisitor 安检</text>
+
+  <rect x="225" y="208" width="160" height="70" rx="8" fill="#fff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="305" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#6d28d9">run_workflow</text>
+  <text x="305" y="246" text-anchor="middle" font-size="10" fill="#6b7280">构建受限沙箱 globals</text>
+  <text x="305" y="260" text-anchor="middle" font-size="10" fill="#6b7280">exec(body) → await</text>
+
+  <rect x="405" y="208" width="160" height="70" rx="8" fill="#fff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="485" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#6d28d9">WorkflowAgent</text>
+  <text x="485" y="246" text-anchor="middle" font-size="10" fill="#6b7280">in_memory() 子会话</text>
+  <text x="485" y="260" text-anchor="middle" font-size="10" fill="#6b7280">工具过滤 + skill 加载</text>
+
+  <rect x="585" y="208" width="135" height="70" rx="8" fill="#fff" stroke="#c4b5fd" stroke-width="1"/>
+  <text x="652" y="230" text-anchor="middle" font-size="12" font-weight="bold" fill="#6d28d9">asyncio.Semaphore</text>
+  <text x="652" y="246" text-anchor="middle" font-size="10" fill="#6b7280">并发上限控制</text>
+  <text x="652" y="260" text-anchor="middle" font-size="10" fill="#6b7280">max(1, cpu-2, 16)</text>
+
+  <line x1="380" y1="295" x2="380" y2="325" stroke="#7c3aed" stroke-width="2" marker-end="url(#a2)"/>
+  <text x="395" y="315" font-size="11" fill="#7c3aed">输出</text>
+
+  <!-- 第 3 层：传输层 -->
+  <rect x="20" y="330" width="720" height="110" rx="14" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text x="380" y="356" text-anchor="middle" font-size="14" font-weight="bold" fill="#059669">第 3 层 · 传输层 — SSE 实时流 + 前端渲染</text>
+
+  <rect x="45" y="372" width="200" height="52" rx="8" fill="#fff" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="145" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#047857">/workflow-sync/{rev}/stream</text>
+  <text x="145" y="410" text-anchor="middle" font-size="10" fill="#6b7280">FastAPI SSE StreamingResponse</text>
+
+  <rect x="270" y="372" width="200" height="52" rx="8" fill="#fff" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="370" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#047857">4 个进度回调钩子</text>
+  <text x="370" y="410" text-anchor="middle" font-size="10" fill="#6b7280">on_phase / on_agent_start / end / on_event</text>
+
+  <rect x="495" y="372" width="220" height="52" rx="8" fill="#fff" stroke="#6ee7b7" stroke-width="1"/>
+  <text x="605" y="392" text-anchor="middle" font-size="11" font-weight="bold" fill="#047857">前端 _workflowSyncStream()</text>
+  <text x="605" y="410" text-anchor="middle" font-size="10" fill="#6b7280">解析 SSE → 并行视图渲染</text>
+</svg>
+<div class="cap">图 1-1　三层架构：定义层（脚本+Agent 定义+编译器）→ 引擎层（解析+执行+子会话）→ 传输层（SSE+前端）</div>
+</div>
+
+<!-- ============ 2. 核心引擎 ============ -->
+<span class="anchor" id="s2"></span>
+<h2><span class="num">2</span>核心引擎 workflow.py 深度走读</h2>
+
+<div class="lead">
+<code class="inline">workflow.py</code> 是整个系统的核心，560 行代码实现了：<strong>AST 解析 + 元数据提取</strong>、<strong>确定性安检</strong>、<strong>受限沙箱构建</strong>、<strong>三大原语实现</strong>、<strong>并发控制</strong>、<strong>进度回调</strong>。下面逐模块走读。
+</div>
+
+<h3>2.1 对外接口：parse_workflow_script + run_workflow</h3>
+<p>整个引擎只暴露两个核心函数——一个解析，一个执行：</p>
+<pre><span class="label">workflow.py 对外接口</span>
+<span class="k">def</span> <span class="f">parse_workflow_script</span>(script: str) -> tuple[WorkflowMeta, str]:
+    <span class="s">"""解析脚本，提取 meta 和 body。失败抛 ValueError。"""</span>
+
+<span class="k">async def</span> <span class="f">run_workflow</span>(script: str, options: WorkflowRunOptions | None = None
+                 ) -> WorkflowRunResult:
+    <span class="s">"""执行工作流脚本。返回结果 + 日志 + 阶段 + 耗时。"""</span></pre>
+
+<h3>2.2 核心数据结构</h3>
+<pre><span class="label">dataclass 定义</span>
+<span class="r">@dataclass</span>
+<span class="k">class</span> <span class="r">WorkflowMeta</span>:                    <span class="c"># 从脚本 meta = {...} 提取</span>
+    name: str                               <span class="c"># 工作流名称</span>
+    description: str                        <span class="c"># 描述</span>
+    when_to_use: str | None = None          <span class="c"># 使用时机提示</span>
+    phases: list[WorkflowMetaPhase] | None  <span class="c"># 阶段列表（供前端展示）</span>
+
+<span class="r">@dataclass</span>
+<span class="k">class</span> <span class="r">WorkflowMetaPhase</span>:
+    title: str                              <span class="c"># 阶段标题</span>
+    detail: str | None = None               <span class="c"># 详细描述</span>
+    model: str | None = None                <span class="c"># 可选模型覆盖</span>
+
+<span class="r">@dataclass</span>
+<span class="k">class</span> <span class="r">AgentOptions</span>:                       <span class="c"># agent() 的选项</span>
+    label: str | None = None                <span class="c"># 显示标签</span>
+    phase: str | None = None                <span class="c"># 所属阶段</span>
+    schema: dict | None = None              <span class="c"># JSON Schema（结构化输出）</span>
+    model: str | None = None                <span class="c"># 模型覆盖</span>
+    isolation: str | None = None            <span class="c"># 隔离级别</span>
+    agent_type: str | None = None           <span class="c"># agent 类型</span>
+    agent: str | None = None                <span class="c"># ★ 引用 Agent 定义名称</span>
+
+<span class="r">@dataclass</span>
+<span class="k">class</span> <span class="r">WorkflowRunOptions</span>:                 <span class="c"># run_workflow 的配置</span>
+    args: Any = None                        <span class="c"># ★ 注入脚本的运行时参数</span>
+    agent: Any = None                       <span class="c"># WorkflowAgent 实例</span>
+    concurrency: int | None = None          <span class="c"># 最大并发数</span>
+    token_budget: int | None = None         <span class="c"># Token 预算</span>
+    cwd: str | None = None                  <span class="c"># 工作目录</span>
+    signal: Any = None                      <span class="c"># 中止信号</span>
+    <span class="c"># ── 进度回调 ──</span>
+    on_agent_start: Any = None              <span class="c"># agent 启动回调</span>
+    on_agent_end: Any = None                <span class="c"># agent 完成回调</span>
+    on_phase: Any = None                    <span class="c"># 阶段切换回调</span>
+    on_event: Any = None                    <span class="c"># 子 agent 内部事件回调</span>
+
+<span class="r">@dataclass</span>
+<span class="k">class</span> <span class="r">WorkflowRunResult</span>:
+    meta: WorkflowMeta
+    result: Any                             <span class="c"># 脚本 return 的结果</span>
+    logs: list[str]                         <span class="c"># 执行日志</span>
+    phases: list[str]                       <span class="c"># 经过的阶段列表</span>
+    agent_count: int                        <span class="c"># 总共创建的子 agent 数</span>
+    duration_ms: float                      <span class="c"># 执行耗时（毫秒）</span></pre>
+
+<h3>2.3 第一步：AST 解析 + meta 提取</h3>
+<p><code class="inline">parse_workflow_script</code> 是整个引擎的入口。它做三件事：<strong>① 解析 meta 字面量</strong>、<strong>② 运行确定性安全检查</strong>、<strong>③ 把 body（meta 之后的脚本）提取出来</strong>。</p>
+
+<pre><span class="label">parse_workflow_script — 核心流程</span>
+<span class="k">def</span> <span class="f">parse_workflow_script</span>(script: str) -> tuple[WorkflowMeta, str]:
+    <span class="c"># 1. Python ast 模块解析整个脚本</span>
+    tree = ast.<span class="f">parse</span>(script, mode=<span class="s">"exec"</span>)
+
+    <span class="c"># 2. 第一条语句必须是 meta = { name: '...', description: '...' }</span>
+    first = tree.body[<span class="n">0</span>]
+    <span class="c"># 检查：是 Assign 节点、目标是 Name(id='meta')、值是字面量</span>
+    <span class="k">if not</span> isinstance(first, ast.<span class="r">Assign</span>): <span class="k">raise</span> <span class="r">ValueError</span>(...)
+    <span class="k">if</span> first.targets[<span class="n">0</span>].id != <span class="s">"meta"</span>: <span class="k">raise</span> <span class="r">ValueError</span>(...)
+
+    <span class="c"># 3. 只接受纯字面量——不允许变量、函数调用、f-string</span>
+    meta_value = <span class="f">_evaluate_ast_node</span>(first.value)
+    <span class="c"># _evaluate_ast_node 递归处理 Constant、List、Dict、UnaryOp(-n)</span>
+    <span class="c"># 遇到任何非字面量节点直接抛 ValueError</span>
+
+    <span class="c"># 4. 验证 name 和 description 是非空字符串</span>
+    meta = <span class="f">_validate_meta</span>(meta_value)
+
+    <span class="c"># 5. ★ 对 body（meta 之后的所有语句）运行确定性检查</span>
+    <span class="k">for</span> node <span class="k">in</span> tree.body[<span class="n">1</span>:]:
+        <span class="f">_DeterminismVisitor</span>().<span class="f">visit</span>(node)
+
+    <span class="c"># 6. 从 meta 结束行号切出 body 文本</span>
+    body = <span class="s">"\n"</span>.<span class="f">join</span>(script.<span class="f">split</span>(<span class="s">"\n"</span>)[first.end_lineno:])
+
+    <span class="k">return</span> meta, body</pre>
+
+<h4>2.3.1 _evaluate_ast_node —— 严格字面量求值</h4>
+<pre><span class="label">_evaluate_ast_node — 只接受纯数据</span>
+<span class="k">def</span> <span class="f">_evaluate_ast_node</span>(node: ast.AST) -> Any:
+    <span class="k">match</span> node:
+        <span class="k">case</span> ast.<span class="r">Constant</span>(value=v) <span class="k">if</span> isinstance(v, (str, int, float, bool)) | v <span class="k">is</span> None:
+            <span class="k">return</span> v                                    <span class="c"># 基本类型</span>
+        <span class="k">case</span> ast.<span class="r">Constant</span>(value=v):
+            <span class="k">raise</span> <span class="r">ValueError</span>(f<span class="s">"unsupported: {type(v)}"</span>)  <span class="c"># 拒绝 complex 等</span>
+        <span class="k">case</span> ast.<span class="r">List</span>(elts=elts):
+            <span class="k">return</span> [_evaluate_ast_node(e) <span class="k">for</span> e <span class="k">in</span> elts]   <span class="c"># 递归列表</span>
+        <span class="k">case</span> ast.<span class="r">Dict</span>(keys=keys, values=values):
+            <span class="c"># 禁止 **dict 解包：keys 中不能有 None</span>
+            <span class="k">return</span> {_evaluate_ast_node(k): _evaluate_ast_node(v)
+                    <span class="k">for</span> k, v <span class="k">in</span> zip(keys, values)}
+        <span class="k">case</span> ast.<span class="r">UnaryOp</span>(op=ast.<span class="r">USub</span>(), operand=ast.<span class="r">Constant</span>(value=(int()|float()) as v)):
+            <span class="k">return</span> -v                                   <span class="c"># 负数</span>
+        <span class="k">case</span> _:
+            <span class="k">raise</span> <span class="r">ValueError</span>(f<span class="s">"non-literal: {type(node)}"</span>)</pre>
+
+<h4>2.3.2 _DeterminismVisitor —— 拒绝所有危险构造</h4>
+<pre><span class="label">_DeterminismVisitor — AST 级安全审计</span>
+<span class="k">class</span> <span class="r">_DeterminismVisitor</span>(ast.<span class="r">NodeVisitor</span>):
+    <span class="s">"""遍历 AST，拒绝所有危险节点。"""</span>
+
+    <span class="k">def</span> <span class="f">visit_Import</span>(self, node: ast.Import):
+        <span class="k">raise</span> <span class="r">ValueError</span>(<span class="s">"import statements are not allowed"</span>)
+
+    <span class="k">def</span> <span class="f">visit_ImportFrom</span>(self, node: ast.ImportFrom):
+        <span class="k">raise</span> <span class="r">ValueError</span>(<span class="s">"import statements are not allowed"</span>)
+
+    <span class="k">def</span> <span class="f">visit_Call</span>(self, node: ast.Call):
+        <span class="c"># 拒绝危险函数调用</span>
+        <span class="k">match</span> node.func:
+            <span class="k">case</span> ast.<span class="r">Name</span>(id=name) <span class="k">if</span> name <span class="k">in</span> (
+                <span class="s">"open"</span>, <span class="s">"eval"</span>, <span class="s">"exec"</span>, <span class="s">"compile"</span>,
+                <span class="s">"globals"</span>, <span class="s">"locals"</span>, <span class="s">"__import__"</span>,
+            ):
+                <span class="k">raise</span> <span class="r">ValueError</span>(f<span class="s">"{name}() not allowed"</span>)
+            <span class="c"># 拒绝属性绕过：obj.__import__(), obj.__subclasses__() 等</span>
+            <span class="k">case</span> ast.<span class="r">Attribute</span>(attr=attr) <span class="k">if</span> attr <span class="k">in</span> (
+                <span class="s">"__import__"</span>, <span class="s">"__subclasses__"</span>, <span class="s">"__class__"</span>,
+            ):
+                <span class="k">raise</span> <span class="r">ValueError</span>(f<span class="s">".{attr} not allowed"</span>)
+        self.<span class="f">generic_visit</span>(node)  <span class="c"># 继续递归检查子节点</span></pre>
+
+<div class="callout ok">
+<b>为什么要在 AST 层就做安全检查？</b><br>
+因为 Python 的 <code class="inline">exec()</code> 执行的是字符串。如果不做 AST 检查，恶意脚本可以写 <code class="inline">__import__('os').system('rm -rf /')</code>，到运行时才发现就晚了。AST 检查在代码执行前就把它挡掉——<b>检查先行，执行在后</b>。
+</div>
+
+<h3>2.4 第二步：构建沙箱并执行</h3>
+<p><code class="inline">run_workflow</code> 是真正的执行入口。它把 body 包装成 <code class="inline">async def __workflow__():</code>，注入受限 globals，然后在安全沙箱中执行。</p>
+
+<pre><span class="label">run_workflow — 沙箱执行的核心</span>
+<span class="k">async def</span> <span class="f">run_workflow</span>(script, options=None) -> WorkflowRunResult:
+    started = time.<span class="f">monotonic</span>()
+
+    <span class="c"># ── 1. 解析 ──</span>
+    meta, body = <span class="f">parse_workflow_script</span>(script)
+
+    <span class="c"># ── 2. 确定并发数 ──</span>
+    cpu_count = os.<span class="f">cpu_count</span>() or <span class="n">4</span>
+    default_concurrency = max(<span class="n">1</span>, min(cpu_count - <span class="n">2</span>, <span class="n">16</span>))
+    concurrency = max(<span class="n">1</span>, min(options.concurrency or default_concurrency, <span class="n">16</span>))
+    sem = asyncio.<span class="r">Semaphore</span>(concurrency)
+
+    <span class="c"># ── 3. 构建沙箱 globals（详细见 2.5 节）──</span>
+    sandbox_globals = {...}
+
+    <span class="c"># ── 4. 包装执行 ──</span>
+    wrapper = (<span class="s">"async def __workflow__():\n"</span>
+               + <span class="s">"\n"</span>.<span class="f">join</span>(f<span class="s">"  {line}"</span> <span class="k">for</span> line <span class="k">in</span> body.<span class="f">split</span>(<span class="s">"\n"</span>)))
+    local_vars = {}
+    exec(wrapper, sandbox_globals, local_vars)
+    result = <span class="k">await</span> local_vars[<span class="s">"__workflow__"</span>]()
+
+    <span class="c"># ── 5. 验证结果可序列化 ──</span>
+    <span class="f">_assert_serializable</span>(result)
+
+    <span class="c"># ── 6. 返回汇总 ──</span>
+    <span class="k">return</span> <span class="r">WorkflowRunResult</span>(
+        meta=meta, result=result, logs=state[<span class="s">"logs"</span>],
+        phases=state[<span class="s">"phases"</span>], agent_count=state[<span class="s">"agent_count"</span>],
+        duration_ms=(time.<span class="f">monotonic</span>() - started) * <span class="n">1000</span>,
+    )</pre>
+
+<h3>2.5 沙箱 globals 构建</h3>
+<p>这是工作流安全的最后防线——即使在 AST 检查通过后，运行时仍受限于严格受限的全局命名空间：</p>
+
+<pre><span class="label">sandbox_globals — 脚本里能看到的全部全局变量</span>
+sandbox_globals = {
+    <span class="c"># ★ 三大编排原语</span>
+    <span class="s">"agent"</span>:    _agent,       <span class="c"># async (prompt, opts?) -> Any</span>
+    <span class="s">"parallel"</span>: _parallel,    <span class="c"># async (thunks) -> list[Any]</span>
+    <span class="s">"pipeline"</span>: _pipeline,    <span class="c"># async (items, *stages) -> list[Any]</span>
+
+    <span class="c"># ★ 日志与阶段标记</span>
+    <span class="s">"log"</span>:      _log,         <span class="c"># (msg) -> None</span>
+    <span class="s">"phase"</span>:    _phase,       <span class="c"># (title) -> None</span>
+
+    <span class="c"># ★ 运行时上下文</span>
+    <span class="s">"args"</span>:     options.args, <span class="c"># 外部注入的参数 dict</span>
+    <span class="s">"cwd"</span>:      options.cwd,  <span class="c"># 工作目录</span>
+    <span class="s">"budget"</span>:   _Budget(),    <span class="c"># Token 预算追踪</span>
+
+    <span class="c"># ★ 安全别名（无文件 I/O、无 import）</span>
+    <span class="s">"JSON"</span>:     json_module,  <span class="c"># json.dumps / json.loads</span>
+    <span class="s">"Math"</span>:     math,         <span class="c"># math.sqrt 等</span>
+    <span class="s">"Array"</span>:    list,         <span class="c"># JS 友好的别名</span>
+    <span class="s">"Object"</span>:   dict,
+    <span class="s">"Map"</span>:      dict,
+    <span class="s">"Set"</span>:      set,
+
+    <span class="c"># ★ 受限 builtins</span>
+    <span class="s">"__builtins__"</span>: _build_safe_builtins(log_fn),
+    <span class="c"># 只有：str,int,float,bool,list,dict,set,tuple</span>
+    <span class="c">#       len,range,enumerate,zip,map,filter</span>
+    <span class="c">#       sorted,reversed,min,max,sum,any,all</span>
+    <span class="c">#       abs,chr,ord,isinstance,type,print(=log_fn)</span>
+    <span class="c">#       Exception,ValueError,TypeError,KeyError,IndexError</span>
+    <span class="c"># 没有：open, __import__, eval, exec, compile</span>
+    <span class="c">#        globals, locals, getattr, setattr, delattr</span>
+    <span class="c">#        super, classmethod, staticmethod, property</span>
+}</pre>
+
+<h3>2.6 执行方式：包装成 async def 然后用 exec()</h3>
+<p>核心技巧——将 body 文本包装成一个 async 函数，然后用 <code class="inline">exec()</code> 定义它，再 <code class="inline">await</code> 调用：</p>
+<pre><span class="label">包装与执行</span>
+<span class="c"># body 是去掉了 meta = {...} 之后的脚本文本，例如：</span>
+<span class="c">#   phase('Analyze')</span>
+<span class="c">#   analysis = await agent('分析 diffs...', {'label': 'diff analysis'})</span>
+<span class="c">#   return {'result': analysis}</span>
+
+wrapper = <span class="s">"async def __workflow__():\n"</span> + <span class="s">"\n"</span>.<span class="f">join</span>(
+    f<span class="s">"  {line}"</span> <span class="k">for</span> line <span class="k">in</span> body.<span class="f">split</span>(<span class="s">"\n"</span>)
+)
+<span class="c"># 生成：</span>
+<span class="c">#   async def __workflow__():</span>
+<span class="c">#       phase('Analyze')</span>
+<span class="c">#       analysis = await agent(...)</span>
+<span class="c">#       return {'result': analysis}</span>
+
+local_vars = {}
+exec(wrapper, sandbox_globals, local_vars)     <span class="c"># 定义函数</span>
+result = <span class="k">await</span> local_vars[<span class="s">"__workflow__"</span>]()  <span class="c"># 执行它</span></pre>
+
+<div class="callout warn">
+<b>exec() 为什么安全？</b><br>
+<code class="inline">exec(code, globals, locals)</code> 中，globals 指定了代码执行时的全局命名空间。我们把 <code class="inline">__builtins__</code> 替换成了只有安全函数的白名单版本，所以代码里写 <code class="inline">open('file.txt')</code> 会报 <code class="inline">NameError</code>——因为在 globals 中根本不存在 <code class="inline">open</code>。
+</div>
+
+<!-- ============ 3. 三大原语 ============ -->
+<span class="anchor" id="s3"></span>
+<h2><span class="num">3</span>三大编排原语：agent / parallel / pipeline</h2>
+
+<div class="lead">
+沙箱脚本中可用的三个核心函数，覆盖所有任务拓扑结构：<strong>串行 agent</strong>（单任务委托）、<strong>并行 fan-out</strong>（无依赖任务同时跑）、<strong>流水线 pipeline</strong>（每项串行、项间并发）。三者都受 <code class="inline">asyncio.Semaphore</code> 全局并发控制。
+</div>
+
+<h3>3.1 agent(prompt, opts) — 串行委托</h3>
+<pre><span class="label">_agent — 完整的子 Agent 调度流程 (workflow.py:412-481)</span>
+<span class="k">async def</span> <span class="f">_agent</span>(prompt, agent_opts=None):
+    <span class="c"># ① 检查中止信号</span>
+    <span class="f">_check_aborted</span>()
+    <span class="c"># ② 检查 Token 预算</span>
+    <span class="k">if</span> budget.remaining() &lt;= <span class="n">0</span>: <span class="k">raise</span> <span class="r">RuntimeError</span>(<span class="s">"budget exhausted"</span>)
+
+    <span class="c"># ③ 标准化选项，确定 label、phase、schema</span>
+    norm_opts = <span class="f">_normalize_agent_options</span>(agent_opts)
+
+    <span class="c"># ④ ★ 如果 opts 中指定了 agent: "wiki-writer"</span>
+    <span class="c">#    从 args['agent_defs'] 中查出该 Agent 的工具白名单、系统提示词、skills</span>
+    <span class="k">if</span> norm_opts.agent:
+        agent_def = args[<span class="s">'agent_defs'</span>].<span class="f">get</span>(norm_opts.agent)
+        <span class="k">if</span> agent_def:
+            agent_active_tools = agent_def[<span class="s">'tools'</span>]      <span class="c"># ['read','write','edit',...]</span>
+            agent_system_prompt = agent_def[<span class="s">'system_prompt'</span>] <span class="c"># Agent 角色的行为指导</span>
+            agent_skill_names = agent_def[<span class="s">'skills'</span>]        <span class="c"># ['code-analysis']</span>
+
+    <span class="c"># ⑤ 内层 runner：计数器+1、触发回调、调用 WorkflowAgent.run()</span>
+    <span class="k">async def</span> <span class="f">_agent_runner</span>():
+        state[<span class="s">"agent_count"</span>] += <span class="n">1</span>
+        <span class="k">if</span> options.on_agent_start: options.on_agent_start(...)
+
+        <span class="k">try</span>:
+            result = <span class="k">await</span> agent_runner.<span class="f">run</span>(
+                task_prompt,
+                label=label, schema=norm_opts.schema,
+                instructions=instructions, signal=signal,
+                event_callback=options.on_event,
+                active_tools=agent_active_tools,       <span class="c"># 工具白名单</span>
+                system_prompt=agent_system_prompt,     <span class="c"># 角色提示词</span>
+                skill_names=agent_skill_names,         <span class="c"># 技能名称列表</span>
+            )
+            <span class="k">if</span> options.on_agent_end: options.on_agent_end({<span class="s">"result"</span>: result})
+            <span class="k">return</span> result
+        <span class="k">except</span> <span class="r">Exception</span> <span class="k">as</span> e:
+            <span class="c"># ★ 单个 agent 失败返回 None，不影响其他 agent</span>
+            <span class="k">if</span> options.on_agent_end: options.on_agent_end({<span class="s">"error"</span>: str(e)})
+            <span class="k">return</span> None
+
+    <span class="c"># ⑥ ★ 通过信号量控制并发</span>
+    <span class="k">async with</span> sem:
+        <span class="k">return await</span> _agent_runner()</pre>
+
+<div class="callout ok">
+<b>关键设计：agent 名称 → 配置查表</b><br>
+脚本中写 <code class="inline">agent('prompt', {'agent': 'wiki-writer'})</code>，引擎运行时从 <code class="inline">args['agent_defs']['wiki-writer']</code> 查出 tools、system_prompt、skills——完全解耦。改 Agent 行为只需改 <code class="inline">.md</code> 文件，脚本不变。
+</div>
+
+<h3>3.2 parallel(thunks) — 并发 fan-out</h3>
+<pre><span class="label">_parallel — 所有 thunk 同时启动，失败不中断 (workflow.py:484-498)</span>
+<span class="k">async def</span> <span class="f">_parallel</span>(thunks: list):
+    <span class="k">if not</span> isinstance(thunks, list):
+        <span class="k">raise</span> <span class="r">TypeError</span>(<span class="s">"parallel() expects a list of functions"</span>)
+
+    <span class="c"># ★ _safe_thunk：包装每个 thunk，失败返回 None 而不是抛异常</span>
+    <span class="k">async def</span> <span class="f">_safe_thunk</span>(thunk, index):
+        <span class="k">try</span>:
+            <span class="k">return await</span> thunk()
+        <span class="k">except</span> <span class="r">Exception</span> <span class="k">as</span> e:
+            <span class="k">if</span> signal <span class="k">and</span> signal.<span class="f">is_set</span>(): <span class="k">raise</span>
+            log(f<span class="s">"parallel[{index}] failed: {e}"</span>)
+            <span class="k">return</span> None
+
+    <span class="c"># ★ asyncio.gather 并发执行，每个 thunk 内部通过 _agent 的 semaphore 排队</span>
+    <span class="k">return await</span> asyncio.<span class="f">gather</span>(
+        *[_safe_thunk(t, i) <span class="k">for</span> i, t <span class="k">in</span> enumerate(thunks)]
+    )</pre>
+
+<h3>3.3 pipeline(items, *stages) — 流水线</h3>
+<pre><span class="label">_pipeline — 每项串行过阶段，项间并发 (workflow.py:501-523)</span>
+<span class="k">async def</span> <span class="f">_pipeline</span>(items: list, *stages):
+    <span class="k">if not</span> isinstance(items, list):
+        <span class="k">raise</span> <span class="r">TypeError</span>(<span class="s">"pipeline() expects a list as first arg"</span>)
+
+    <span class="k">async def</span> <span class="f">_run_item</span>(item, index):
+        value = item                         <span class="c"># 初始值是 item 本身</span>
+        <span class="k">for</span> stage <span class="k">in</span> stages:                  <span class="c"># 逐阶段执行</span>
+            <span class="k">try</span>:
+                result = stage(value, item, index)
+                <span class="c"># stage 可以是同步或异步函数</span>
+                <span class="k">if</span> asyncio.<span class="f">iscoroutine</span>(result):
+                    value = <span class="k">await</span> result       <span class="c"># await 异步 stage</span>
+                <span class="k">else</span>:
+                    value = result             <span class="c"># 直接用同步结果</span>
+            <span class="k">except</span> <span class="r">Exception</span> <span class="k">as</span> e:
+                <span class="k">if</span> signal <span class="k">and</span> signal.<span class="f">is_set</span>(): <span class="k">raise</span>
+                log(f<span class="s">"pipeline[{index}] failed: {e}"</span>)
+                <span class="k">return</span> None
+        <span class="k">return</span> value
+
+    <span class="c"># ★ 所有 item 并发执行，但每个 item 内部是串行的</span>
+    <span class="k">return await</span> asyncio.<span class="f">gather</span>(
+        *[_run_item(item, i) <span class="k">for</span> i, item <span class="k">in</span> enumerate(items)]
+    )</pre>
+
+<h3>3.4 三种模式对比</h3>
+<div class="diagram">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="24" font-size="13" font-weight="bold" fill="#4f46e5">serial（默认）</text>
+  <rect x="20" y="34" width="80" height="36" rx="6" fill="#eef2ff" stroke="#4f46e5" stroke-width="1"/>
+  <text x="60" y="57" text-anchor="middle" font-size="11" fill="#4338ca">Agent A</text>
+  <line x1="100" y1="52" x2="122" y2="52" stroke="#4f46e5" stroke-width="1.5" marker-end="url(#a1)"/>
+  <rect x="125" y="34" width="80" height="36" rx="6" fill="#eef2ff" stroke="#4f46e5" stroke-width="1"/>
+  <text x="165" y="57" text-anchor="middle" font-size="11" fill="#4338ca">Agent B</text>
+  <line x1="205" y1="52" x2="227" y2="52" stroke="#4f46e5" stroke-width="1.5" marker-end="url(#a1)"/>
+  <rect x="230" y="34" width="80" height="36" rx="6" fill="#eef2ff" stroke="#4f46e5" stroke-width="1"/>
+  <text x="270" y="57" text-anchor="middle" font-size="11" fill="#4338ca">Agent C</text>
+  <text x="340" y="57" font-size="11" fill="#6b7280">A 完成后 B 开始，B 完成后 C 开始</text>
+
+  <text x="20" y="118" font-size="13" font-weight="bold" fill="#7c3aed">parallel</text>
+  <rect x="20" y="128" width="80" height="36" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="60" y="151" text-anchor="middle" font-size="11" fill="#6d28d9">Agent A</text>
+  <rect x="110" y="128" width="80" height="36" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="150" y="151" text-anchor="middle" font-size="11" fill="#6d28d9">Agent B</text>
+  <rect x="200" y="128" width="80" height="36" rx="6" fill="#faf5ff" stroke="#7c3aed" stroke-width="1"/>
+  <text x="240" y="151" text-anchor="middle" font-size="11" fill="#6d28d9">Agent C</text>
+  <text x="340" y="151" font-size="11" fill="#6b7280">A、B、C 同时启动</text>
+
+  <text x="20" y="212" font-size="13" font-weight="bold" fill="#059669">pipeline</text>
+  <rect x="20" y="222" width="80" height="36" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="1"/>
+  <text x="60" y="245" text-anchor="middle" font-size="10" fill="#047857">Item 1</text>
+  <line x1="100" y1="240" x2="140" y2="240" stroke="#059669" stroke-width="1" marker-end="url(#a1)"/>
+  <rect x="145" y="222" width="55" height="36" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="0.8"/>
+  <text x="172" y="232" text-anchor="middle" font-size="9" fill="#047857">lint</text>
+  <text x="172" y="246" text-anchor="middle" font-size="9" fill="#047857">review</text>
+  <text x="340" y="245" font-size="11" fill="#6b7280">Item 内串行、Item 间并发</text>
+
+  <rect x="20" y="268" width="80" height="36" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="1"/>
+  <text x="60" y="291" text-anchor="middle" font-size="10" fill="#047857">Item 2</text>
+  <line x1="100" y1="286" x2="140" y2="286" stroke="#059669" stroke-width="1" marker-end="url(#a1)"/>
+  <rect x="145" y="268" width="55" height="36" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="0.8"/>
+  <text x="172" y="278" text-anchor="middle" font-size="9" fill="#047857">lint</text>
+  <text x="172" y="292" text-anchor="middle" font-size="9" fill="#047857">review</text>
+</svg>
+<div class="cap">图 3-1　三种模式的时间线对比</div>
+</div>
+
+<!-- ============ 4. WorkflowAgent ============ -->
+<span class="anchor" id="s4"></span>
+<h2><span class="num">4</span>WorkflowAgent：子会话的完整生命周期</h2>
+
+<div class="lead">
+<code class="inline">workflow_agent.py</code> 中的 <code class="inline">WorkflowAgent</code> 类负责为每个 <code class="inline">agent()</code> 调用创建、执行、销毁一个隔离的子 AgentSession。它是连接引擎和 LLM 的桥梁——接收 prompt+配置，创建会话，注入工具和 skills，执行并提取结果。
+</div>
+
+<h3>4.1 run() 方法的完整流程</h3>
+<pre><span class="label">WorkflowAgent.run() — 子 Agent 的完整生命周期 (workflow_agent.py:39-258)</span>
+<span class="k">async def</span> <span class="f">run</span>(self, prompt, *, label=None, schema=None,
+            instructions=None, signal=None, event_callback=None,
+            active_tools=None, system_prompt=None, skill_names=None):
+    <span class="c"># ── ① 构建完整 prompt ──</span>
+    parts = []
+    <span class="k">if</span> system_prompt: parts.<span class="f">append</span>(system_prompt)    <span class="c"># Agent 角色定义</span>
+    <span class="k">if</span> instructions: parts.<span class="f">append</span>(instructions)     <span class="c"># "Workflow phase: Analyze"</span>
+    parts.<span class="f">append</span>(f<span class="s">"Task: {prompt}"</span>)
+
+    <span class="c"># ★ Schema 场景：追加结构化输出合约指令</span>
+    <span class="k">if</span> schema:
+        parts.<span class="f">extend</span>([
+            <span class="s">"Final output contract:"</span>,
+            <span class="s">"- Your final action MUST be a structured_output tool call."</span>,
+            <span class="s">"- The structured_output arguments are the return value."</span>,
+        ])
+
+    full_prompt = <span class="s">"\n\n"</span>.<span class="f">join</span>(parts)
+
+    <span class="c"># ── ② 按需加载 skills ──</span>
+    <span class="k">if</span> skill_names:
+        all_skills = <span class="f">load_skills</span>()                   <span class="c"># 加载所有注册的 skill</span>
+        skill_map = {s.name: s <span class="k">for</span> s <span class="k">in</span> all_skills.skills}
+        skills = [skill_map[name] <span class="k">for</span> name <span class="k">in</span> skill_names <span class="k">if</span> name <span class="k">in</span> skill_map]
+        skill_text = <span class="f">format_skills_for_prompt</span>(skills)
+        full_prompt = skill_text + <span class="s">"\n\n"</span> + full_prompt  <span class="c"># 前置注入</span>
+
+    <span class="c"># ── ③ 结构化输出工具 ──</span>
+    <span class="k">if</span> schema:
+        capture = <span class="r">StructuredOutputCapture</span>()
+        subagent_tools.<span class="f">append</span>(<span class="f">create_structured_output_tool</span>(schema, capture))
+
+    <span class="c"># ── ④ 创建内存会话 ──</span>
+    session = <span class="r">AgentSession</span>(
+        cwd=self.cwd,
+        model=self.model,
+        session_manager=SessionManager.<span class="f">in_memory</span>(self.cwd),  <span class="c"># ★ 临时目录</span>
+        extra_tools=subagent_tools,
+        ...
+    )
+
+    <span class="c"># ── ⑤ 设置工具白名单 ──</span>
+    <span class="k">if</span> active_tools:
+        <span class="k">if</span> capture:
+            active_tools = list(active_tools) + [<span class="s">"structured_output"</span>]
+        session.<span class="f">set_active_tools_by_name</span>(active_tools)
+
+    <span class="c"># ── ⑥ 订阅事件 → 转发给进度回调 ──</span>
+    <span class="k">if</span> event_callback:
+        session._agent.<span class="f">subscribe</span>(_forward_event)
+        <span class="c"># _forward_event 将 message_update / tool_execution_start/end</span>
+        <span class="c"># 转换为统一的事件 dict 并通过 event_callback 传到上层</span>
+
+    <span class="c"># ── ⑦ 安装中止监视器 ──</span>
+    <span class="k">if</span> signal:
+        abort_task = asyncio.<span class="f">ensure_future</span>(_watch_abort())
+        <span class="c"># _watch_abort 轮询 signal，触发时调用 session.abort()</span>
+
+    <span class="c"># ── ⑧ 执行 ──</span>
+    <span class="k">await</span> session.<span class="f">prompt</span>(full_prompt)
+
+    <span class="c"># ── ⑨ 提取结果 ──</span>
+    <span class="k">if</span> schema <span class="k">and</span> capture <span class="k">and</span> capture.<span class="f">called</span>:
+        <span class="k">return</span> capture.value                 <span class="c"># ★ 结构化输出：返回 dict</span>
+    <span class="k">return</span> self.<span class="f">_last_assistant_text</span>(session)  <span class="c"># 普通输出：最后一条 assistant 文本</span>
+
+    <span class="c"># ── ⑩ 清理（finally 块）──</span>
+    <span class="k">finally</span>:
+        <span class="k">if</span> abort_task: abort_task.<span class="f">cancel</span>()
+        session.<span class="f">dispose</span>()   <span class="c"># ★ 清理临时目录，释放资源</span></pre>
+
+<h3>4.2 事件转发机制</h3>
+<p><code class="inline">WorkflowAgent</code> 订阅 <code class="inline">AgentSession</code> 的内部事件，将子 Agent 的工具调用和文本输出转发给 <code class="inline">event_callback</code>，最终流向 SSE：</p>
+<pre><span class="label">事件转发 — 将子 Agent 内部行为暴露给上层</span>
+<span class="k">def</span> <span class="f">_forward_event</span>(event):
+    evt = {}
+    <span class="k">if</span> event.type == <span class="s">"message_update"</span>:
+        <span class="c"># 子 Agent 正在输出文本</span>
+        evt = {<span class="s">"text"</span>: event.assistant_message_event.delta}
+    <span class="k">elif</span> event.type == <span class="s">"tool_execution_start"</span>:
+        <span class="c"># 子 Agent 开始调用工具</span>
+        evt = {<span class="s">"tool"</span>: event.tool_name, <span class="s">"args"</span>: str(event.args)[:<span class="n">120</span>]}
+    <span class="k">elif</span> event.type == <span class="s">"tool_execution_end"</span>:
+        <span class="c"># 子 Agent 工具调用完成</span>
+        evt = {<span class="s">"tool"</span>: event.tool_name, <span class="s">"is_error"</span>: event.is_error}
+    evt[<span class="s">"_subagent"</span>] = label        <span class="c"># 标记是哪个 agent 的事件</span>
+    event_callback(evt)               <span class="c"># → WorkflowRunOptions.on_event → SSE</span></pre>
+
+<!-- ============ 5. 结构化输出 ============ -->
+<span class="anchor" id="s5"></span>
+<h2><span class="num">5</span>结构化输出：从回调捕获到类型契约</h2>
+
+<div class="lead">
+子 Agent 默认返回文本。但下游阶段需要结构化的 dict——<code class="inline">StructuredOutputCapture</code> 是一个巧妙的"陷阱工具"：LLM 调用它时，捕获其参数作为返回值。使用者得到了类型安全的 dict，而不是需要解析的字符串。
+</div>
+
+<h3>5.1 工作原理</h3>
+<pre><span class="label">structured_output.py — 完整实现 (57行)</span>
+<span class="k">class</span> <span class="r">StructuredOutputCapture</span>:
+    <span class="s">"""可变容器——记录 structured_output 工具是否被调用，以及调用参数。"""</span>
+    <span class="k">def</span> <span class="f">__init__</span>(self):
+        self.value: Any = None      <span class="c"># 调用参数（即结构化输出数据）</span>
+        self.called: bool = False   <span class="c"># 标记是否被调用过</span>
+
+<span class="k">def</span> <span class="f">create_structured_output_tool</span>(schema, capture, name=<span class="s">"structured_output"</span>):
+    <span class="s">"""创建工具：参数定义遵循 schema，执行时把参数存入 capture。"""</span>
+
+    <span class="k">async def</span> <span class="f">_execute</span>(tool_call_id, params, signal=None, on_update=None):
+        capture.value = params      <span class="c"># ★ 保存参数</span>
+        capture.called = True       <span class="c"># ★ 标记已调用</span>
+        <span class="k">return</span> <span class="r">AgentToolResult</span>(
+            content=[<span class="r">TextContent</span>(type=<span class="s">"text"</span>, text=<span class="s">"Structured output received."</span>)],
+            details=params,
+        )
+
+    <span class="k">return</span> <span class="r">AgentTool</span>(
+        name=name,
+        label=<span class="s">"Structured Output"</span>,
+        description=<span class="s">"Return the final machine-readable result."</span>,
+        parameters=schema,          <span class="c"># ★ JSON Schema 作为工具的参数定义</span>
+        execute=_execute,
+    )</pre>
+
+<div class="diagram">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a5" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4f46e5"/></marker></defs>
+  <rect x="10" y="55" width="150" height="70" rx="10" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+  <text x="85" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#4f46e5">① 创建工具</text>
+  <text x="85" y="96" text-anchor="middle" font-size="10" fill="#6b7280">schema + capture</text>
+  <text x="85" y="112" text-anchor="middle" font-size="10" fill="#6b7280">→ structured_output 工具</text>
+  <line x1="162" y1="90" x2="220" y2="90" stroke="#4f46e5" stroke-width="2" marker-end="url(#a5)"/>
+  <rect x="225" y="55" width="150" height="70" rx="10" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="300" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">② LLM 调用工具</text>
+  <text x="300" y="96" text-anchor="middle" font-size="10" fill="#6b7280">params = {</text>
+  <text x="300" y="112" text-anchor="middle" font-size="10" fill="#6b7280">  file_tasks: [...]}</text>
+  <line x1="377" y1="90" x2="435" y2="90" stroke="#7c3aed" stroke-width="2" marker-end="url(#a5)"/>
+  <rect x="440" y="55" width="130" height="70" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text x="505" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#059669">③ 捕获</text>
+  <text x="505" y="96" text-anchor="middle" font-size="10" fill="#6b7280">capture.value = params</text>
+  <text x="505" y="112" text-anchor="middle" font-size="10" fill="#6b7280">capture.called = True</text>
+  <line x1="572" y1="90" x2="630" y2="90" stroke="#059669" stroke-width="2" marker-end="url(#a5)"/>
+  <rect x="635" y="55" width="75" height="70" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="672" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#d97706">④ 返回</text>
+  <text x="672" y="96" text-anchor="middle" font-size="10" fill="#6b7280">capture.value</text>
+  <text x="672" y="112" text-anchor="middle" font-size="10" fill="#6b7280">→ dict</text>
+  <text x="375" y="175" text-anchor="middle" font-size="12" fill="#6b7280">WorkflowAgent.run() 检测到 capture.called → 返回 capture.value 而非文本</text>
+</svg>
+<div class="cap">图 5-1　结构化输出的四步流程</div>
+</div>
+
+<div class="callout ok">
+<b>为什么不直接用 LLM 的 tool_use 机制？</b><br>
+实际上就是在用——<code class="inline">structured_output</code> 就是一个普通的 AgentTool（有 name、description、parameters、execute）。LLM 看到这个工具就像看到任何其他工具一样，可以主动调用它。区别在于它的 execute 实现不是做业务操作，而是"捕获参数并标记"。这是一种优雅的借用——用现有的 tool-calling 基础设施实现了结构化输出，无需新增任何协议。
+</div>
+
+<!-- ============ 6. YAML 编译器 ============ -->
+<span class="anchor" id="s6"></span>
+<h2><span class="num">6</span>YAML 编译器：声明式 → Python 脚本</h2>
+
+<div class="lead">
+<code class="inline">compiler.py</code> 是 workflow 的"用户界面"——它让用户用 69 行 YAML 替代 127 行 Python 脚本。编译器处理三件事：<strong>Schema 简写展开</strong>、<strong>变量插值解析</strong>、<strong>阶段代码生成</strong>（serial / parallel / pipeline）。
+</div>
+
+<h3>6.1 编译流程</h3>
+<pre><span class="label">compile_workflow_yaml — 从 YAML 到可执行 Python 的完整路径</span>
+<span class="k">def</span> <span class="f">compile_workflow_yaml</span>(yaml_text, agent_defs=None) -> str:
+    <span class="c"># ① 解析 YAML</span>
+    doc = yaml.<span class="f">safe_load</span>(yaml_text)
+    name = doc[<span class="s">"name"</span>]
+    description = doc[<span class="s">"description"</span>]
+    phases = doc[<span class="s">"phases"</span>]
+    variables = doc.<span class="f">get</span>(<span class="s">"variables"</span>)
+
+    <span class="c"># ② 生成 meta = {...} 块</span>
+    lines.<span class="f">append</span>(<span class="s">"meta = {</span><span class="se">\n</span><span class="s">    'name': '{name}',</span><span class="se">\n</span><span class="s">    ...</span><span class="se">\n</span><span class="s">}"</span>)
+
+    <span class="c"># ③ 编译 variables → Python 变量定义</span>
+    <span class="k">for</span> vname, vprompt <span class="k">in</span> variables.<span class="f">items</span>():
+        lines.<span class="f">append</span>(f<span class="s">"_self_{vname} = {resolve_prompt(vprompt)}"</span>)
+
+    <span class="c"># ④ 编译每个 phase —— 根据 mode 生成不同的 Python 代码</span>
+    phase_lines = <span class="f">compile_phases</span>(phases, variables, ...)
+    lines.<span class="f">extend</span>(phase_lines)
+
+    <span class="c"># ⑤ 生成 return 语句</span>
+    lines.<span class="f">append</span>(<span class="s">"return dict(_outputs)"</span>)
+
+    <span class="k">return</span> <span class="s">"\n"</span>.<span class="f">join</span>(lines)</pre>
+
+<h3>6.2 Schema 简写编译器</h3>
+<pre><span class="label">compile_schema — YAML 友好语法 → JSON Schema</span>
+<span class="k">def</span> <span class="f">compile_schema</span>(shorthand) -> dict | None:
+    <span class="c"># str → {"type": "string"}</span>
+    <span class="c"># str? → {"type": "string"} + 不加入 required 列表</span>
+    <span class="c"># int → {"type": "integer"}</span>
+    <span class="c"># float → {"type": "number"}</span>
+    <span class="c"># bool → {"type": "boolean"}</span>
+    <span class="c"># [str] → {"type": "array", "items": {"type": "string"}}</span>
+    <span class="c"># {enum: [a,b]} → {"type": "string", "enum": ["a", "b"]}</span>
+    <span class="c"># {field1: str, field2: int} → 嵌套 object 递归展开</span></pre>
+
+<h3>6.3 变量插值系统</h3>
+<p>编译器解析 <code class="inline">${...}</code> 语法并生成相应的 Python 表达式：</p>
+<table>
+<tr><th>YAML 语法</th><th>解析为 Python 表达式</th><th>用途</th></tr>
+<tr><td><code class="inline">${commit_message}</code></td><td><code class="inline">args['commit_message']</code></td><td>注入的运行时参数</td></tr>
+<tr><td><code class="inline">${previous}</code></td><td><code class="inline">_prev</code></td><td>上一步 agent 返回值</td></tr>
+<tr><td><code class="inline">${outputs.Plan.file_tasks}</code></td><td><code class="inline">_outputs.get('Plan',{}).get('file_tasks')</code></td><td>跨 Phase 引用结构化输出字段</td></tr>
+<tr><td><code class="inline">${item.wiki_page}</code></td><td><code class="inline">item['wiki_page']</code></td><td>for_each 迭代的元素字段</td></tr>
+<tr><td><code class="inline">${self.task}</code></td><td><code class="inline">_self.get('task', '')</code></td><td>Phase 级变量</td></tr>
+<tr><td><code class="inline">${join(files, "- ${item}")}</code></td><td><code class="inline">chr(10).join('- {item}'.format(item=f) for f in args['files'])</code></td><td>数组展开为文本</td></tr>
+</table>
+
+<h3>6.4 阶段编译器：三种 mode 的代码生成</h3>
+<pre><span class="label">compile_phases — 三种模式生成的 Python 代码骨架</span>
+<span class="c"># ── ① mode: serial（默认）──</span>
+<span class="c"># step1 → step2 → ${previous} 指向前一步输出</span>
+phase(<span class="s">'Analyze'</span>)
+_s1 = await agent(f<span class="s">'...{args["commit_message"]}...'</span>,
+                  {<span class="s">'label'</span>: <span class="s">'diff analysis'</span>, <span class="s">'agent'</span>: <span class="s">'diff-analyzer'</span>})
+_s2 = await agent(f<span class="s">'...{_s1}...'</span>,           <span class="c"># ← ${previous} → _s1</span>
+                  {<span class="s">'label'</span>: <span class="s">'wiki planning'</span>, <span class="s">'agent'</span>: <span class="s">'wiki-planner'</span>,
+                   <span class="s">'schema'</span>: {<span class="s">"type"</span>:<span class="s">"object"</span>, ...}})
+
+<span class="c"># ── ② mode: parallel, for_each: [itemA, itemB] ──</span>
+<span class="c"># 所有 item 的 agent 同时启动</span>
+phase(<span class="s">'Write'</span>)
+<span class="k">if</span> plan.get(<span class="s">'file_tasks'</span>):                    <span class="c"># ← 编译器自动插入空检查</span>
+    results = await parallel([
+      (<span class="k">lambda</span> it=_item: agent(                    <span class="c"># ★ lambda 默认参数闭包绑定</span>
+          f<span class="s">'''页面: {it['wiki_page']}'''</span>,
+          {<span class="s">'label'</span>: f<span class="s">'write-{it["wiki_page"]}'</span>, <span class="s">'agent'</span>: <span class="s">'wiki-writer'</span>}
+      )) <span class="k">for</span> _item <span class="k">in</span> plan[<span class="s">'file_tasks'</span>]
+    ])
+
+<span class="c"># ── ③ mode: pipeline, for_each: [fileA, fileB] × [lint, review, fix] ──</span>
+phase(<span class="s">'Per-File Review'</span>)
+results = await pipeline(
+    changed_files,
+    <span class="k">lambda</span> _prev, _orig, _idx: agent(f<span class="s">'对 {_orig} lint...'</span>, {<span class="s">'agent'</span>:<span class="s">'lint'</span>}),
+    <span class="k">lambda</span> _prev, _orig, _idx: agent(f<span class="s">'{_prev}\n审查...'</span>, {<span class="s">'agent'</span>:<span class="s">'reviewer'</span>}),
+    <span class="k">lambda</span> _prev, _orig, _idx: agent(f<span class="s">'{_prev}\n修复...'</span>, {<span class="s">'agent'</span>:<span class="s">'fixer'</span>}),
+)</pre>
+
+<div class="callout ok">
+<b>编译器自动处理的安全措施</b><br>
+1. <b>空值保护</b>：有 <code class="inline">for_each</code> 的阶段自动插入 <code class="inline">if plan.get('file_tasks'): ... else: results = []</code>。<br>
+2. <b>lambda 闭包安全</b>：<code class="inline">lambda it=_item:</code>（而非 <code class="inline">lambda: agent(..., item)</code>），用默认参数捕获当前值，避免 Python 闭包的延迟绑定陷阱。<br>
+3. <b>参数验证</b>：编译器在生成脚本前校验 name/phases/agent 引用的有效性。
+</div>
+
+<!-- ============ 7. YAML 编写指南 ============ -->
+<span class="anchor" id="s7"></span>
+<h2><span class="num">7</span>YAML 编写指南：从零写一个 Workflow</h2>
+
+<div class="lead">
+一个完整的 Workflow YAML 由三个核心部分组成：<strong>元信息</strong>（name / description）、<strong>可选变量</strong>（variables）、<strong>阶段列表</strong>（phases）。每个 phase 由一组 step 组成，每个 step 本质上就是一次 <code class="inline">agent()</code> 调用。理解这几层结构就掌握了 YAML 的编写。
+</div>
+
+<h3>7.1 最简示例：单 Agent 单 Phase</h3>
+<p>最小可运行的 workflow 只需要一个 phase、一个 step：</p>
+<pre><span class="label">最简 Workflow</span>
+name: hello_world
+description: 最简示例——调用一次 agent 输出问候语
+
+phases:
+  - title: Greet
+    steps:
+      - agent: wiki-writer
+        label: greeting
+        prompt: |
+          请向用户打招呼"你好，这是你的第一个 Workflow！"</pre>
+<p>等价于手写 Python 脚本：</p>
+<pre><span class="label">等价的 Python 脚本</span>
+meta = {
+    'name': 'hello_world',
+    'description': '最简示例——调用一次 agent 输出问候语',
+    'phases': [{'title': 'Greet'}],
+}
+
+phase('Greet')
+_s1 = await agent(
+    f'''请向用户打招呼"你好，这是你的第一个 Workflow！"''',
+    { 'label': 'greeting', 'agent': 'wiki-writer' }
+)
+return dict(_outputs)</pre>
+
+<h3>7.2 顶层字段说明</h3>
+<table>
+<tr><th>字段</th><th>必填</th><th>类型</th><th>说明</th></tr>
+<tr><td><code class="inline">name</code></td><td>✅</td><td>string</td><td>工作流唯一标识，对应 <code class="inline">meta.name</code></td></tr>
+<tr><td><code class="inline">description</code></td><td>✅</td><td>string</td><td>描述这个工作流做什么</td></tr>
+<tr><td><code class="inline">concurrency</code></td><td>否</td><td>int</td><td>最大并发 agent 数，默认 <code class="inline">max(1, min(cpu-2, 16))</code></td></tr>
+<tr><td><code class="inline">variables</code></td><td>否</td><td>dict</td><td>顶层变量定义，在任意 phase 中可通过 <code class="inline">${self.var_name}</code> 引用</td></tr>
+<tr><td><code class="inline">phases</code></td><td>✅</td><td>list</td><td>阶段列表，至少一个 phase</td></tr>
+</table>
+
+<h3>7.3 Phase 字段说明</h3>
+<table>
+<tr><th>字段</th><th>必填</th><th>类型</th><th>说明</th></tr>
+<tr><td><code class="inline">title</code></td><td>✅</td><td>string</td><td>阶段名称，显示在前端进度面板。同时作为 <code class="inline">${outputs.&lt;title&gt;}</code> 的输出键名</td></tr>
+<tr><td><code class="inline">mode</code></td><td>否</td><td>serial | parallel | pipeline</td><td>执行模式，默认 <code class="inline">serial</code>（见 7.5 节详解）</td></tr>
+<tr><td><code class="inline">for_each</code></td><td>否</td><td>string</td><td>遍历表达式，如 <code class="inline">${outputs.Plan.file_tasks}</code>。配合 mode 使用</td></tr>
+<tr><td><code class="inline">steps</code></td><td>✅</td><td>list</td><td>该阶段的步骤列表，至少一个 step</td></tr>
+</table>
+
+<h3>7.4 Step 字段说明</h3>
+<table>
+<tr><th>字段</th><th>必填</th><th>类型</th><th>说明</th></tr>
+<tr><td><code class="inline">agent</code></td><td>✅</td><td>string</td><td>Agent 定义名称，引用 <code class="inline">builtin-agents/</code> 或项目 <code class="inline">agents/</code> 中的 <code class="inline">name</code> 字段</td></tr>
+<tr><td><code class="inline">label</code></td><td>否</td><td>string</td><td>显示标签，用于日志和前端进度展示。支持 <code class="inline">${...}</code> 变量</td></tr>
+<tr><td><code class="inline">prompt</code></td><td>✅</td><td>string</td><td>发送给 agent 的任务描述。支持全部 <code class="inline">${...}</code> 变量插值语法</td></tr>
+<tr><td><code class="inline">output_schema</code></td><td>否</td><td>dict</td><td>结构化输出定义，使用 Schema 简写语法。有此项时 agent 必须调用 <code class="inline">structured_output</code> 工具</td></tr>
+</table>
+
+<div class="callout ok">
+<b>agent 字段引用的是 Agent 定义名称</b><br>
+<code class="inline">agent: wiki-writer</code> 会在运行时从 <code class="inline">args['agent_defs']['wiki-writer']</code> 查出该 Agent 的 tools（工具白名单）、system_prompt（角色提示词）、skills（技能列表）、thinking（思考模式）。这个名称必须与 <code class="inline">builtin-agents/*.md</code> 或项目 <code class="inline">.wiki/workflows/agents/*.md</code> 中定义的 <code class="inline">name</code> 一致。
+</div>
+
+<h3>7.5 三种 Mode 详解</h3>
+
+<div class="grid2">
+<div class="card">
+<h4>serial（默认）— 串行执行</h4>
+<p style="font-size:14px">Step 按书写顺序依次执行。每个 step 的 <code class="inline">${previous}</code> 指向上一个 step 的输出。</p>
+<p style="font-size:13px;color:var(--muted)"><b>适用</b>：有严格先后依赖的步骤，如 先分析 → 再制定计划。</p>
+</div>
+<div class="card">
+<h4>parallel — 并发执行</h4>
+<p style="font-size:14px">所有 step 同时启动，互不等待。有 <code class="inline">for_each</code> 时，将数组的每个元素展开为一个 step 实例，全部并发。</p>
+<p style="font-size:13px;color:var(--muted)"><b>适用</b>：独立任务批量处理，如 同时写 10 个 wiki 页面。</p>
+</div>
+<div class="card">
+<h4>pipeline — 流水线</h4>
+<p style="font-size:14px">必须配合 <code class="inline">for_each</code>。每个 item <b>串行</b>经过所有 step，但不同 item 之间<b>并发</b>。</p>
+<p style="font-size:13px;color:var(--muted)"><b>适用</b>：每个文件都要经过 lint→review→fix 三步，但文件间并发处理。</p>
+</div>
+<div class="card">
+<h4>serial + for_each — 遍历串行</h4>
+<p style="font-size:14px">遍历数组，每个元素按 steps 串行执行，元素之间也是<b>串行</b>（一个处理完再处理下一个）。</p>
+<p style="font-size:13px;color:var(--muted)"><b>适用</b>：需要对每个元素执行多步操作且需要严格控制顺序时。</p>
+</div>
+</div>
+
+<h4>mode 与 for_each 组合速查</h4>
+<table>
+<tr><th>mode</th><th>for_each</th><th>行为</th><th>典型场景</th></tr>
+<tr><td>serial</td><td>无</td><td>steps 顺序执行，${previous} 指向前一步</td><td>Analyze → Plan</td></tr>
+<tr><td>parallel</td><td>无</td><td>所有 steps 同时启动</td><td>同时查多个数据源</td></tr>
+<tr><td>parallel</td><td>有</td><td>每个 item 对应一个 step，全部并发（fan-out）</td><td>对 Plan 中每个 file_task 启动 writer</td></tr>
+<tr><td>pipeline</td><td>有</td><td>item 内串行经过所有 step，item 间并发</td><td>每个文件 lint → review → fix</td></tr>
+<tr><td>serial</td><td>有</td><td>遍历 items，每个 item 串行执行所有 steps</td><td>逐文件分析+修复（需严格顺序）</td></tr>
+</table>
+
+<h3>7.6 完整示例：Wiki 同步工作流</h3>
+<p>这是一个真实可运行的 wiki-sync workflow，演示了三种 mode 的组合使用：</p>
+<pre><span class="label">.wiki/workflows/sync.yaml — 完整 wiki 同步</span>
+name: wiki_sync
+description: 分析 VCS 提交并更新 wiki 页面
+concurrency: 8                         <span class="c">← 最多 8 个 writer 同时写</span>
+
+variables:                             <span class="c">← 可选：顶层变量，减少重复</span>
+  task: |
+    提交信息: ${commit_message}
+    变更文件:
+    ${join(changed_files, "- ${item}\n")}
+    受影响的 Wiki 章节: ${affected_sections}
+    Diff 目录: ${diffs_dir}
+
+phases:
+  <span class="c"># ─── Phase 1: serial 串行分析 ───</span>
+  - title: Analyze
+    steps:
+      - agent: diff-analyzer
+        label: diff analysis
+        prompt: |
+          ${self.task}
+
+          请逐一阅读 diff 目录下的文件，分析每个代码变更对 wiki 的影响。
+          输出每个文件：变更了什么 → 影响哪个页面 → 怎么更新。
+
+  <span class="c"># ─── Phase 2: serial 制定计划（结构化输出）───</span>
+  - title: Plan
+    steps:
+      - agent: wiki-planner
+        label: wiki planning
+        prompt: |
+          基于分析结果，为每个文件生成具体的 wiki 更新指令：
+
+          ${previous}                   <span class="c">← 引用 Phase 1 的输出</span>
+
+          调用 structured_output 返回结果。
+        output_schema:                 <span class="c">← Schema 简写（会自动展开为 JSON Schema）</span>
+          file_tasks:
+            file: str
+            wiki_page: str
+            section: str?              <span class="c">← ? 表示可选字段</span>
+            action: {enum: [create, update, delete]}  <span class="c">← 枚举约束</span>
+            instructions: str
+          no_change_files: [str]       <span class="c">← [str] → 字符串数组</span>
+
+  <span class="c"># ─── Phase 3: parallel fan-out 并行写 ───</span>
+  - title: Write
+    mode: parallel                    <span class="c">← ★ 并发模式</span>
+    for_each: ${outputs.Plan.file_tasks}  <span class="c">← ★ 遍历 Plan 阶段结构化输出的数组</span>
+    steps:
+      - agent: wiki-writer
+        label: write-${item.wiki_page}   <span class="c">← 每项的 label 不同</span>
+        prompt: |
+          源文件: ${item.file}            <span class="c">← 引用当前迭代元素的字段</span>
+          目标页面: ${item.wiki_page}
+          操作: ${item.action}
+          指令: ${item.instructions}
+
+          请根据指令修改 wiki 页面，完成后说明修改内容。</pre>
+
+<div class="callout warn">
+<b>编写 YAML 的三个关键点</b>
+<ol style="margin:4px 0">
+<li><b>变量优先级</b>：<code class="inline">item</code> > <code class="inline">self</code> > <code class="inline">outputs</code> > <code class="inline">previous</code> > <code class="inline">args</code>。同名变量按此顺序解析。</li>
+<li><b>for_each 必须先有输出</b>：<code class="inline">${outputs.Plan.file_tasks}</code> 能引用是因为 Plan 阶段在前面已经执行完毕。不能跨 phase 引用尚未执行的阶段。</li>
+<li><b>空值安全由编译器自动处理</b>：<code class="inline">for_each</code> 阶段编译后会自动生成 <code class="inline">if items: ... else: results = []</code> 的空检查，YAML 中无需手写。</li>
+</ol>
+</div>
+
+<h3>7.7 YAML vs Python 脚本的选择</h3>
+<table>
+<tr><th>场景</th><th>推荐</th><th>原因</th></tr>
+<tr><td>标准 wiki 同步、固定流程</td><td>YAML</td><td>声明式、易读、易维护、少出错</td></tr>
+<tr><td>需要 <code class="inline">if/else</code> 分支逻辑</td><td>Python</td><td>YAML 不支持条件分支</td></tr>
+<tr><td>需要 <code class="inline">while</code> 循环或重试</td><td>Python</td><td>YAML 只支持 <code class="inline">for_each</code> 遍历</td></tr>
+<tr><td>需要 <code class="inline">try/except</code> 自定义错误处理</td><td>Python</td><td>YAML 只能靠编译器生成的默认空值保护</td></tr>
+<tr><td>LLM 现场生成 workflow</td><td>Python</td><td>模型对 Python 语法比 YAML 自定义结构更熟悉</td></tr>
+</table>
+
+<div class="callout ok">
+<b>两种格式可以共存</b><br>
+<code class="inline">execute_workflow_sync()</code> 会自动检测脚本格式：以 <code class="inline">meta =</code> 开头 → 直接执行；否则 → 当作 YAML 编译成 Python 后再执行。项目里可以同时放 <code class="inline">sync.yaml</code>（标准流程）和 <code class="inline">sync_advanced.py</code>（含复杂逻辑的版本）。
+</div><!-- ============ 7. Agent 定义 ============ -->
+<span class="anchor" id="s8"></span>
+<h2><span class="num">8</span>Agent 定义：.md Frontmatter 配置化</h2>
+
+<div class="lead">
+Workflow 的 Agent 配置完全通过 <code class="inline">.md</code> 文件的 YAML frontmatter 管理——与 Chain 模式的 agent 定义格式完全相同，但存储目录隔离。<strong>工具白名单、技能加载、思考模式、模型选择、系统提示词</strong>都在这里声明。
+</div>
+
+<h3>7.1 Agent 定义格式</h3>
+<pre><span class="label">builtin-agents/wiki-writer.md — 完整的 Agent 定义</span>
+---
+name: wiki-writer
+description: 根据更新计划执行 wiki 文档的精确编辑
+tools: [read, write, edit, grep, find, ls]     <span class="c">← 工具白名单</span>
+thinking: high                                   <span class="c">← 思考模式</span>
+---
+你是 wiki 文档维护专家。你的任务是根据更新指令，对 wiki 页面执行精确的编辑。
+
+## 工作流程
+1. 使用 read 阅读目标 wiki 页面
+2. 找到对应的 WIKI_SECTION 章节标记
+3. 使用 edit 工具精确修改章节内容
+4. 简要说明做了什么修改
+
+## 编辑规则（必须遵守）
+1. 只修改 WIKI_SECTION 标记内的内容
+2. 保留所有标记和溯源行
+3. 编辑优先：优先使用 edit 做精确替换，而非 write 重写整个文件</pre>
+
+<h3>7.2 加载优先级</h3>
+<pre><span class="label">_load_workflow_agent_defs — 两层覆盖 (workflow_sync.py:181-229)</span>
+<span class="k">def</span> <span class="f">_load_workflow_agent_defs</span>(project_path) -> dict:
+    builtin_dir = <span class="s">"core/workflow/builtin-agents/"</span>
+    project_dir = <span class="s">"&lt;project&gt;/.wiki/workflows/agents/"</span>
+
+    <span class="c"># ① 先加载内置定义</span>
+    agent_defs = <span class="f">_load_dir</span>(builtin_dir)
+
+    <span class="c"># ② 再用项目定义覆盖（高优先级）</span>
+    project_defs = <span class="f">_load_dir</span>(project_dir)
+    agent_defs.<span class="f">update</span>(project_defs)     <span class="c"># ★ 项目覆盖内置</span>
+
+    <span class="k">return</span> agent_defs
+    <span class="c"># → 注入到 args['agent_defs'] → 脚本中 {'agent': 'name'} 查找</span></pre>
+
+<h3>7.3 Agent 配置如何传递到子会话</h3>
+<p>数据流：<code class="inline">.md 文件</code> → <code class="inline">_load_workflow_agent_defs()</code> → <code class="inline">args['agent_defs']</code> → 沙箱 <code class="inline">_agent()</code> 中查表 → <code class="inline">WorkflowAgent.run()</code> 参数注入：</p>
+<pre><span class="label">完整的数据传递链</span>
+<span class="c"># 1. 加载阶段 (workflow_sync.py)</span>
+agent_defs = <span class="f">_load_workflow_agent_defs</span>(project_path)
+<span class="c"># agent_defs = {"wiki-writer": {"tools": [...], "system_prompt": "你是...", ...}}</span>
+
+<span class="c"># 2. 注入到 args (workflow_sync.py)</span>
+args = {..., <span class="s">"agent_defs"</span>: agent_defs}
+
+<span class="c"># 3. 沙箱中 agent() 查表 (workflow.py)</span>
+<span class="k">if</span> norm_opts.agent:
+    agent_def = options.args[<span class="s">'agent_defs'</span>].<span class="f">get</span>(norm_opts.agent)
+    <span class="k">if</span> agent_def:
+        agent_active_tools = agent_def[<span class="s">'tools'</span>]
+        agent_system_prompt = agent_def[<span class="s">'system_prompt'</span>]
+        agent_skill_names = agent_def[<span class="s">'skills'</span>]
+
+<span class="c"># 4. WorkflowAgent.run() 使用 (workflow_agent.py)</span>
+result = <span class="k">await</span> self.<span class="f">run</span>(
+    prompt,
+    active_tools=agent_active_tools,      <span class="c"># → session.set_active_tools_by_name()</span>
+    system_prompt=agent_system_prompt,    <span class="c"># → 构建 full_prompt 时前置</span>
+    skill_names=agent_skill_names,        <span class="c"># → load_skills() + format_skills_for_prompt()</span>
+)</pre>
+
+<!-- ============ 8. API 集成 ============ -->
+<span class="anchor" id="s9"></span>
+<h2><span class="num">9</span>API 集成：SSE 流式端点 + 进度回调</h2>
+
+<div class="lead">
+桌面 API 提供与旧 Chain 端点并行的新 SSE 流式端点。<code class="inline">execute_workflow_sync()</code> 是 workflow 引擎的上层封装——整合了 WikiIndexer（反向索引）、VCS Monitor（diff 文件写入）、WorkflowAgent（子会话管理），以及 YAML 编译的自动检测。
+</div>
+
+<h3>8.1 execute_workflow_sync() 的 10 步流程</h3>
+<pre><span class="label">workflow_sync.py — 从 HTTP 请求到 WorkflowRunResult</span>
+<span class="c">// ① 验证输入：changed_files 不能为空</span>
+<span class="c">// ② 反向索引：WikiIndexer.get_affected_sections(changed_files)</span>
+<span class="c">//    查到每个变更文件影响了哪些 wiki 页面的哪些章节</span>
+<span class="c">// ③ 确保 .wiki/chain/ 目录存在</span>
+<span class="c">// ④ 写入 per-file diff（VCS monitor.write_file_diffs）</span>
+<span class="c">//    将整体 diff 按文件拆分写入 diffs_dir/，避免单次 prompt 上下文溢出</span>
+<span class="c">// ⑤ 加载 Workflow Agent 定义（_load_workflow_agent_defs）</span>
+<span class="c">//    先读内置 builtin-agents/，再读项目 .wiki/workflows/agents/ 覆盖</span>
+<span class="c">// ⑥ 构建 args = {changed_files, commit_message, diff, affected_sections,</span>
+<span class="c">//               diffs_dir, revision, agent_defs}</span>
+<span class="c">// ⑦ 解析模型（"provider:model_id" → Model 对象）</span>
+<span class="c">// ⑧ ★ YAML 检测：如果脚本不以 "meta =" 开头，尝试 compile_workflow_yaml()</span>
+<span class="c">// ⑨ 创建 WorkflowAgent(cwd, model, ...)</span>
+<span class="c">// ⑩ await run_workflow(script, WorkflowRunOptions(</span>
+<span class="c">//        args=args, cwd=project_path, agent=agent, concurrency=8,</span>
+<span class="c">//        on_agent_start/end/phase/event=...</span>
+<span class="c">//    ))</span></pre>
+
+<h3>8.2 YAML 自动检测</h3>
+<pre><span class="label">智能脚本格式检测 (workflow_sync.py:131-140)</span>
+<span class="c"># 如果脚本以 meta = 或 export const 开头 → 已经是 Python 脚本 → 直接执行</span>
+<span class="k">if</span> script.strip().<span class="f">startswith</span>((<span class="s">"meta ="</span>, <span class="s">"meta="</span>, <span class="s">"export const"</span>)):
+    <span class="k">pass</span>
+<span class="k">else</span>:
+    <span class="c"># 否则 → 尝试当作 YAML 编译</span>
+    <span class="k">try</span>:
+        <span class="k">from</span> .workflow.compiler <span class="k">import</span> compile_workflow_yaml
+        script = <span class="f">compile_workflow_yaml</span>(script, agent_defs)
+    <span class="k">except</span> <span class="r">Exception</span>:
+        <span class="c"># 编译失败就按原始 Python 尝试（容错回退）</span>
+        <span class="k">pass</span></pre>
+
+<h3>8.3 SSE 事件流向</h3>
+<p>4 个进度回调钩子驱动 6 种 SSE 事件类型：</p>
+<table>
+<tr><th>回调</th><th>触发时机</th><th>SSE 事件</th></tr>
+<tr><td><code class="inline">on_phase(title)</code></td><td>脚本调用 <code class="inline">phase("Analyze")</code></td><td><code class="inline">workflow_phase</code> → {phase: title}</td></tr>
+<tr><td><code class="inline">on_agent_start(dict)</code></td><td>子 agent 启动、进入 semaphore 后</td><td><code class="inline">workflow_agent_start</code> → {label, phase, prompt}</td></tr>
+<tr><td><code class="inline">on_agent_end(dict)</code></td><td>子 agent 完成（成功或失败）</td><td><code class="inline">workflow_agent_end</code> → {label, result|error}</td></tr>
+<tr><td rowspan="3"><code class="inline">on_event(dict)</code></td><td>子 agent 输出文本</td><td><code class="inline">message_update</code> → {text}</td></tr>
+<tr><td>子 agent 开始调用工具</td><td><code class="inline">tool_execution_start</code> → {tool, args}</td></tr>
+<tr><td>子 agent 工具调用完成</td><td><code class="inline">tool_execution_end</code> → {tool, is_error}</td></tr>
+<tr><td>—</td><td>整个 workflow 完成</td><td><code class="inline">workflow_done</code> → {phases, agent_count, duration_ms, result}</td></tr>
+</table>
+
+<!-- ============ 9. 安全设计 ============ -->
+<span class="anchor" id="s10"></span>
+<h2><span class="num">10</span>三层沙箱安全设计</h2>
+
+<div class="lead">
+Workflow 脚本由用户编写甚至由 LLM 生成——必须假设它不可信。引擎在<strong>编译时（AST）</strong>、<strong>加载时（globals）</strong>、<strong>执行时（子会话）</strong>三个层面筑起防线。
+</div>
+
+<div class="grid2">
+<div class="card">
+<h4>🛡️ 第一层：AST 编译时</h4>
+<p style="font-size:14px"><code class="inline">_DeterminismVisitor</code> 遍历完整语法树，拒绝：</p>
+<ul style="font-size:14px">
+<li><code class="inline">import</code> / <code class="inline">from ... import</code></li>
+<li><code class="inline">open()</code> / <code class="inline">eval()</code> / <code class="inline">exec()</code> / <code class="inline">compile()</code></li>
+<li><code class="inline">globals()</code> / <code class="inline">locals()</code> / <code class="inline">__import__()</code></li>
+<li><code class="inline">.__subclasses__()</code> / <code class="inline">.__class__</code> 绕过</li>
+</ul>
+<p style="font-size:12px;color:var(--muted)">发生在 <code class="inline">parse_workflow_script()</code> 中，代码执行前就拦截。</p>
+</div>
+
+<div class="card">
+<h4>🔒 第二层：运行时 globals</h4>
+<p style="font-size:14px"><code class="inline">__builtins__</code> 被替换为白名单（只有 <code class="inline">str/int/list/len/sorted</code> 等纯函数），globals 中不存在：</p>
+<ul style="font-size:14px">
+<li><code class="inline">open</code> / <code class="inline">__import__</code> / <code class="inline">eval</code> / <code class="inline">exec</code></li>
+<li><code class="inline">getattr</code> / <code class="inline">setattr</code> / <code class="inline">delattr</code></li>
+<li><code class="inline">globals</code> / <code class="inline">locals</code></li>
+<li><code class="inline">super</code> / <code class="inline">classmethod</code></li>
+</ul>
+<p style="font-size:12px;color:var(--muted)">即使 AST 漏了，exec() 时也调不到这些函数。</p>
+</div>
+
+<div class="card">
+<h4>🧩 第三层：子 Agent 隔离</h4>
+<p style="font-size:14px">每个 <code class="inline">agent()</code> 调用创建独立的临时目录 AgentSession：</p>
+<ul style="font-size:14px">
+<li><code class="inline">SessionManager.in_memory(cwd)</code> 创建临时 session 目录</li>
+<li><code class="inline">session.dispose()</code> 清理所有临时文件</li>
+<li>子 agent 只能看到自己的 session 目录</li>
+<li>子 agent 之间不共享任何状态</li>
+</ul>
+<p style="font-size:12px;color:var(--muted)">即使一个子 agent 出了问题，不影响其他。</p>
+</div>
+
+<div class="card">
+<h4>🧵 第四层：并发控制</h4>
+<p style="font-size:14px"><code class="inline">asyncio.Semaphore</code> 限制同时运行的 agent 数：</p>
+<ul style="font-size:14px">
+<li>默认 <code class="inline">max(1, min(cpu_count-2, 16))</code></li>
+<li>每个 agent 通过 <code class="inline">async with sem:</code> 获取槽位</li>
+<li>防止 LLM API 被瞬间打爆</li>
+<li>可配置 <code class="inline">concurrency</code> 参数覆盖</li>
+</ul>
+</div>
+</div>
+
+<!-- ============ 10. 完整执行流程 ============ -->
+<span class="anchor" id="s11"></span>
+<h2><span class="num">11</span>完整执行流程：从 HTTP 请求到子 Agent 返回</h2>
+
+<div class="lead">
+下面追踪一个完整的 wiki sync 请求的全链路——从浏览器点击"同步"按钮到所有 wiki 页面更新完毕。涉及 <strong>FastAPI → workflow_sync.py → core engine → WorkflowAgent → LLM API</strong> 的每个环节。
+</div>
+
+<div class="diagram">
+<svg viewBox="0 0 760 680" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="a10" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4f46e5"/></marker></defs>
+  <rect x="10" y="5" width="180" height="50" rx="10" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+  <text x="100" y="25" text-anchor="middle" font-size="12" font-weight="bold" fill="#4f46e5">① 浏览器 POST</text>
+  <text x="100" y="42" text-anchor="middle" font-size="10" fill="#6b7280">/workflow-sync/abc123/stream</text>
+  <line x1="100" y1="55" x2="100" y2="85" stroke="#4f46e5" stroke-width="1.5" marker-end="url(#a10)"/>
+  <rect x="10" y="90" width="180" height="65" rx="10" fill="#faf5ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="100" y="110" text-anchor="middle" font-size="12" font-weight="bold" fill="#7c3aed">② FastAPI 端点</text>
+  <text x="100" y="126" text-anchor="middle" font-size="10" fill="#6b7280">load project config</text>
+  <text x="100" y="142" text-anchor="middle" font-size="10" fill="#6b7280">monitor.get_commit(rev)</text>
+  <line x1="100" y1="155" x2="100" y2="185" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a10)"/>
+  <rect x="10" y="190" width="180" height="65" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+  <text x="100" y="210" text-anchor="middle" font-size="12" font-weight="bold" fill="#059669">③ execute_workflow_sync</text>
+  <text x="100" y="226" text-anchor="middle" font-size="10" fill="#6b7280">WikiIndexer 反向索引</text>
+  <text x="100" y="242" text-anchor="middle" font-size="10" fill="#6b7280">写入 per-file diff</text>
+  <line x1="100" y1="255" x2="100" y2="285" stroke="#059669" stroke-width="1.5" marker-end="url(#a10)"/>
+
+  <rect x="10" y="290" width="180" height="65" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="100" y="310" text-anchor="middle" font-size="12" font-weight="bold" fill="#d97706">④ 加载 &amp; 编译</text>
+  <text x="100" y="326" text-anchor="middle" font-size="10" fill="#6b7280">加载 workflow agent 定义</text>
+  <text x="100" y="342" text-anchor="middle" font-size="10" fill="#6b7280">YAML? → 编译成 Python</text>
+
+  <line x1="100" y1="355" x2="100" y2="385" stroke="#d97706" stroke-width="1.5" marker-end="url(#a10)"/>
+
+  <rect x="250" y="290" width="240" height="130" rx="14" fill="#eef2ff" stroke="#4f46e5" stroke-width="2"/>
+  <line x1="190" y1="345" x2="245" y2="345" stroke="#4f46e5" stroke-width="2" marker-end="url(#a10)"/>
+  <text x="370" y="316" text-anchor="middle" font-size="13" font-weight="bold" fill="#4f46e5">⑤ run_workflow(script, opts)</text>
+  <text x="370" y="338" text-anchor="middle" font-size="11" fill="#4338ca">parse_workflow_script → meta + body</text>
+  <text x="370" y="356" text-anchor="middle" font-size="11" fill="#4338ca">构建沙箱 globals + Semaphore</text>
+  <text x="370" y="374" text-anchor="middle" font-size="11" fill="#4338ca">wrapper = "async def __workflow__():"</text>
+  <text x="370" y="392" text-anchor="middle" font-size="11" fill="#4338ca">exec(wrapper) + await</text>
+  <text x="370" y="410" text-anchor="middle" font-size="11" fill="#4338ca">→ 脚本中的 agent() 被调用</text>
+
+  <line x1="370" y1="420" x2="370" y2="455" stroke="#4f46e5" stroke-width="1.5" marker-end="url(#a10)"/>
+
+  <rect x="250" y="460" width="240" height="90" rx="14" fill="#faf5ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="370" y="486" text-anchor="middle" font-size="13" font-weight="bold" fill="#7c3aed">⑥ WorkflowAgent.run()</text>
+  <text x="370" y="506" text-anchor="middle" font-size="11" fill="#6d28d9">构建 full_prompt（system_prompt + instructions + task）</text>
+  <text x="370" y="522" text-anchor="middle" font-size="11" fill="#6d28d9">按需加载 skills → 注入 prompt</text>
+  <text x="370" y="538" text-anchor="middle" font-size="11" fill="#6d28d9">创建 AgentSession(in_memory), 设置工具白名单</text>
+
+  <line x1="370" y1="550" x2="370" y2="585" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a10)"/>
+
+  <rect x="250" y="590" width="240" height="65" rx="14" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="370" y="612" text-anchor="middle" font-size="13" font-weight="bold" fill="#059669">⑦ session.prompt(full_prompt)</text>
+  <text x="370" y="632" text-anchor="middle" font-size="11" fill="#047857">→ LLM API 调用（受 Semaphore 限流）</text>
+  <text x="370" y="650" text-anchor="middle" font-size="11" fill="#047857">→ 流式返回 → forward_event() → SSE</text>
+
+  <text x="370" y="670" text-anchor="middle" font-size="10" fill="#6b7280">⑧ 提取结果 → session.dispose() → 返回上层</text>
+</svg>
+<div class="cap">图 10-1　完整链路：浏览器 → FastAPI → execute_workflow_sync → run_workflow → WorkflowAgent → LLM</div>
+</div>
+
+<!-- ============ 11. 设计哲学 ============ -->
+<span class="anchor" id="s12"></span>
+<h2><span class="num">12</span>设计哲学与关键决策</h2>
+
+<div class="grid2">
+<div class="card">
+<h4>决策 1：脚本用 Python 而非 JavaScript</h4>
+<p style="font-size:14px">TS 原版工作流脚本是 JS。移植时做了关键决断——改用 Python 语法（<code class="inline">meta = {...}</code> 替代 <code class="inline">export const meta = {...}</code>）。</p>
+<p style="font-size:13px;color:var(--muted)"><b>理由</b>：工作流脚本语法极简单（变量赋值、函数调用、await），JS 和 Python 在这个子集中几乎完全相同。用 Python 可以原生 exec()，无需嵌入 JS 解释器。模型生成 Python 和生成 JS 一样熟练。</p>
+</div>
+
+<div class="card">
+<h4>决策 2：平行端点而非替换</h4>
+<p style="font-size:14px">Workflow 端点 <code class="inline">/workflow-sync/</code> 与旧 Chain 端点 <code class="inline">/chain-sync/</code> 在同一 router 中共存。</p>
+<p style="font-size:13px;color:var(--muted)"><b>理由</b>：零破坏。前端通过 <code class="inline">syncMode</code> 切换。旧用户不受影响，新功能渐进推广。</p>
+</div>
+
+<div class="card">
+<h4>决策 3：编译器而非解释器</h4>
+<p style="font-size:14px">YAML 被<strong>编译</strong>成 Python 脚本再执行——不是在运行时逐条解释 YAML。</p>
+<p style="font-size:13px;color:var(--muted)"><b>理由</b>：YAML 编译成 Python 后，走和手写 Python 完全相同的执行路径（沙箱+原语）。不需要两套执行器，且生成的 Python 脚本可被审查和调试。</p>
+</div>
+
+<div class="card">
+<h4>决策 4：优雅降级 > 全局失败</h4>
+<p style="font-size:14px">单个 agent 失败返回 <code class="inline">None</code>，不抛异常中断整个 workflow。</p>
+<p style="font-size:13px;color:var(--muted)"><b>理由</b>：workflow 本质上是一个批处理任务（一个 commit 改 N 个文件）。一个文件的 wiki 写失败，不应该阻止其他 9 个文件的成功更新。调用方决定如何处理 <code class="inline">None</code>。</p>
+</div>
+
+<div class="card">
+<h4>决策 5：两套 Agent 定义完全隔离</h4>
+<p style="font-size:14px">Chain 的 <code class="inline">agents/*.md</code> 和 Workflow 的 <code class="inline">builtin-agents/*.md</code> 完全独立。</p>
+<p style="font-size:13px;color:var(--muted)"><b>理由</b>：虽然格式相同，但两者的上下文和职责不同。Workflow 的 diff-analyzer 需要处理 per-file diff，Chain 的需要处理整体 diff——它们提示词有差异。隔离避免耦合。</p>
+</div>
+
+<div class="card">
+<h4>决策 6：从 TypeScript 到 Python 的 1:1 移植</h4>
+<p style="font-size:14px">核心数据结构、原语语义、沙箱概念——完全从 <code class="inline">pi-dynamic-workflows</code> TS 项目移植。</p>
+<p style="font-size:13px;color:var(--muted)"><b>映射</b>：acorn → ast / vm → exec() / createLimiter → Semaphore / terminate:true 工具 → StructuredOutputCapture / SessionManager.inMemory() → in_memory()</p>
+</div>
+</div>
+
+<!-- ============ 12. 速查表 ============ -->
+<span class="anchor" id="s13"></span>
+<h2><span class="num">13</span>速查表：核心数据流</h2>
+
+<div class="cheat">
+<span class="h"># Workflow 引擎核心数据流（一图胜千言）</span>
+
+外部调用方
+  │
+  ├── script (str)  +  options (WorkflowRunOptions)
+  │
+  ▼
+parse_workflow_script(script)
+  │
+  ├── ast.parse() → tree
+  ├── 提取 meta = {...}      → WorkflowMeta(name, description, phases)
+  ├── _DeterminismVisitor 安检 → 拒绝 import/open/eval/__import__
+  ├── 切出 body (meta 之后的脚本)
+  │
+  ▼
+run_workflow(script, options)
+  │
+  ├── sem = Semaphore(concurrency)           <span class="c"># 全局并发控制</span>
+  ├── 构建 sandbox_globals = {
+  │       agent, parallel, pipeline,          <span class="c"># 三大原语</span>
+  │       log, phase, args, cwd, budget,      <span class="c"># 上下文</span>
+  │       JSON, Math, Array, Object,          <span class="c"># 安全别名</span>
+  │       __builtins__: {str,int,list,len,...} <span class="c"># 白名单内置</span>
+  │   }
+  ├── wrapper = "async def __workflow__():\n  " + indent(body)
+  ├── exec(wrapper, sandbox_globals, local_vars)
+  ├── await local_vars["__workflow__"]()      <span class="c"># 脚本开始执行</span>
+  │     │
+  │     ├── phase("Analyze")
+  │     ├── result = await agent("prompt", {"agent": "diff-analyzer"})
+  │     │     │
+  │     │     ├── 查 args['agent_defs']['diff-analyzer']
+  │     │     ├── async with sem:           <span class="c"># 获取并发槽位</span>
+  │     │     ├── on_agent_start(...)        <span class="c"># 触发回调 → SSE</span>
+  │     │     ├── WorkflowAgent.run(
+  │     │     │     prompt, label, schema,
+  │     │     │     active_tools=[...],       <span class="c"># 工具白名单</span>
+  │     │     │     system_prompt="...",      <span class="c"># 角色提示词</span>
+  │     │     │     skill_names=[...],        <span class="c"># 按需加载 skills</span>
+  │     │     │   )
+  │     │     │     │
+  │     │     │     ├── 构建 full_prompt
+  │     │     │     ├── load_skills() → format_skills_for_prompt()
+  │     │     │     ├── AgentSession(in_memory) → 临时目录
+  │     │     │     ├── set_active_tools_by_name()
+  │     │     │     ├── subscribe(event → event_callback → SSE)
+  │     │     │     ├── session.prompt(full_prompt)  <span class="c"># ★ LLM API</span>
+  │     │     │     ├── capture.called? → capture.value
+  │     │     │     └── session.dispose()
+  │     │     ├── on_agent_end(...)
+  │     │     └── return result
+  │     │
+  │     └── return {"Analyze": ..., "Plan": ..., "Write": ...}
+  │
+  └── WorkflowRunResult(
+        meta, result, logs, phases, agent_count, duration_ms
+      )
+  →
+SSE: workflow_done
+</div>
+
+<div class="cheat" style="margin-top:20px">
+<span class="h"># 关键文件与职责对应</span>
+
+workflow.py          parse_workflow_script()  + run_workflow()        <span class="c"># 解析 + 执行</span>
+workflow_agent.py    WorkflowAgent.run()                              <span class="c"># 子 Agent 会话管理</span>
+structured_output.py StructuredOutputCapture + create_..._tool()      <span class="c"># 结构化输出</span>
+compiler.py          compile_workflow_yaml() + compile_schema()       <span class="c"># YAML → Python</span>
+workflow_sync.py     execute_workflow_sync() + _load_workflow_agent_defs()  <span class="c"># 集成层</span>
+endpoints/workflow_sync.py  FastAPI SSE endpoint                      <span class="c"># HTTP 端点</span>
+builtin-agents/*.md  Agent 定义（tools/system_prompt/skills/thinking） <span class="c"># 配置</span>
+scripts/sync.yaml    声明式 wiki 同步工作流（69 行）                    <span class="c"># 用户界面</span>
+</div>
+
+</div>
+
+<footer>
+  pi-wiki-agent · Workflow Multi-Agent Orchestration Engine · 架构设计与实现详解
+</footer>
+
+</body>
+</html>
