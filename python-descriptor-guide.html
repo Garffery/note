@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 描述符协议完全指南 - 面试向</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --accent-bg: #f0eeff;
+    --code-bg: #282c34;
+    --code-text: #abb2bf;
+    --keyword: #c678dd;
+    --string: #98c379;
+    --func: #61afef;
+    --comment: #5c6370;
+    --number: #d19a66;
+    --class-name: #e5c07b;
+    --border: #e0e0e0;
+    --red: #e74c3c;
+    --green: #27ae60;
+    --orange: #f39c12;
+    --blue: #3498db;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    padding: 0;
+  }
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #6c5ce7 0%, #8e7cf5 50%, #a29bfe 100%);
+    color: white;
+    padding: 60px 40px 50px;
+    text-align: center;
+  }
+  .header h1 { font-size: 2.4em; font-weight: 800; margin-bottom: 12px; letter-spacing: 1px; }
+  .header .subtitle { font-size: 1.1em; opacity: 0.9; margin-bottom: 20px; }
+  .header .tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .header .tag {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    backdrop-filter: blur(4px);
+  }
+  /* Container */
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+  /* TOC */
+  .toc {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 30px 35px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .toc h2 { font-size: 1.2em; margin-bottom: 16px; color: var(--accent); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+  .toc a:hover { color: var(--accent); }
+  /* Section */
+  .section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 36px 40px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    font-size: 1.5em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section h2 .num {
+    background: var(--accent);
+    color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
+    font-weight: 700;
+  }
+  .section h3 {
+    font-size: 1.15em;
+    color: var(--text);
+    margin: 24px 0 10px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+  .section h4 {
+    font-size: 1em;
+    margin: 16px 0 8px;
+    color: var(--text);
+  }
+  .section p { margin: 10px 0; color: var(--text-secondary); }
+  .section strong { color: var(--text); }
+  /* Callout */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  .callout-info { background: #eef6ff; border-left: 4px solid var(--blue); }
+  .callout-warn { background: #fff8ee; border-left: 4px solid var(--orange); }
+  .callout-tip { background: #f0fdf4; border-left: 4px solid var(--green); }
+  .callout-key { background: var(--accent-bg); border-left: 4px solid var(--accent); }
+  .callout strong { display: block; margin-bottom: 4px; }
+  /* Code */
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 4;
+  }
+  .code-block .line { display: block; }
+  .k { color: var(--keyword); }
+  .s { color: var(--string); }
+  .f { color: var(--func); }
+  .c { color: var(--comment); font-style: italic; }
+  .n { color: var(--number); }
+  .cn { color: var(--class-name); }
+  .o { color: var(--code-text); }
+  .comment-line { color: var(--comment); font-style: italic; }
+  .highlight-line { background: rgba(255,255,255,0.06); margin: 0 -22px; padding: 0 22px; border-radius: 4px; }
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9em;
+  }
+  th {
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  tr:hover td { background: #faf8ff; }
+  td code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: var(--red); }
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-high { background: #ffe0e0; color: #c0392b; }
+  .badge-mid { background: #fff3e0; color: #e67e22; }
+  .badge-star { background: #fff8e1; color: #f39c12; }
+  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  /* Diagram */
+  .diagram {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .diagram .arrow { color: var(--accent-light); }
+  .diagram .label { color: var(--green); font-weight: bold; }
+  .diagram .note { color: var(--comment); }
+  .diagram .hit { color: var(--orange); font-weight: bold; }
+  /* Q&A */
+  .qa { margin: 16px 0; }
+  .qa .question {
+    background: var(--accent-bg);
+    padding: 12px 18px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    color: var(--accent);
+    border-left: 4px solid var(--accent);
+  }
+  .qa .answer {
+    background: #f9f9fb;
+    padding: 14px 18px;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid var(--border);
+    border-top: none;
+  }
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--comment);
+    font-size: 0.85em;
+  }
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header { padding: 40px 20px; }
+    .header h1 { font-size: 1.6em; }
+    .section { padding: 24px 20px; }
+    .container { padding: 20px 12px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Python 描述符协议完全指南</h1>
+  <p class="subtitle">从原理到实战 | 面试高频考点深度解析</p>
+  <div class="tags">
+    <span class="tag">描述符协议</span>
+    <span class="tag">属性查找机制</span>
+    <span class="tag">__get__ / __set__ / __delete__</span>
+    <span class="tag">MRO</span>
+    <span class="tag">数据 vs 非数据描述符</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- TOC -->
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">描述符是什么</a></li>
+    <li><a href="#s2">三个核心方法</a></li>
+    <li><a href="#s3">数据描述符 vs 非数据描述符</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s4">为什么只有 __get__ 是非数据描述符</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s5">属性查找的完整流程</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s6">__mro__ 与属性查找的关系</a></li>
+    <li><a href="#s7">property 的本质就是描述符</a></li>
+    <li><a href="#s8">实战：ORM 字段实现</a></li>
+    <li><a href="#s9">实战：Agent 配置类型校验</a> <span class="badge badge-star">Agent</span></li>
+    <li><a href="#s10">Python 中哪些地方用了描述符</a> <span class="badge badge-mid">追问</span></li>
+    <li><a href="#s11">面试问答速查</a></li>
+  </ol>
+</div>
+
+<!-- Section 1 -->
+<div class="section" id="s1">
+  <h2><span class="num">1</span>描述符是什么</h2>
+
+  <div class="callout callout-key">
+    <strong>一句话定义</strong>
+    描述符协议让你拦截"属性访问/赋值/删除"的行为，把一个类的属性变成"有逻辑的代理"。
+  </div>
+
+  <p>简单来说：如果一个类实现了 <code>__get__</code>、<code>__set__</code>、<code>__delete__</code> 中的任意一个，它的实例作为另一个类的类属性时，就变成了<strong>描述符</strong>——访问该属性时不会直接取值，而是调用这些方法。</p>
+
+  <div class="code-block"><span class="c"># 描述符的基本结构</span>
+<span class="k">class</span> <span class="cn">MyDescriptor</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>):
+        <span class="c"># 拦截 obj.attr 或 Class.attr 的读取</span>
+        ...
+
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>):
+        <span class="c"># 拦截 obj.attr = value 的赋值</span>
+        ...
+
+    <span class="k">def</span> <span class="f">__delete__</span>(<span class="o">self, obj</span>):
+        <span class="c"># 拦截 del obj.attr 的删除</span>
+        ...
+
+<span class="k">class</span> <span class="cn">MyClass</span>:
+    attr = <span class="cn">MyDescriptor</span>()  <span class="c"># ← attr 就是一个描述符</span></div>
+
+  <div class="callout callout-info">
+    <strong>关键认知</strong>
+    Python 中 <code>property</code>、<code>classmethod</code>、<code>staticmethod</code>、<code>super()</code> 底层全是描述符。理解描述符 = 理解 Python 面向对象的底层机制。
+  </div>
+</div>
+
+<!-- Section 2 -->
+<div class="section" id="s2">
+  <h2><span class="num">2</span>三个核心方法</h2>
+
+  <table>
+    <tr>
+      <th>方法</th>
+      <th>触发时机</th>
+      <th>参数说明</th>
+    </tr>
+    <tr>
+      <td><code>__get__(self, obj, objtype)</code></td>
+      <td><code>obj.attr</code> 或 <code>Class.attr</code></td>
+      <td><code>obj</code> 是实例（类访问时为 None），<code>objtype</code> 是类</td>
+    </tr>
+    <tr>
+      <td><code>__set__(self, obj, value)</code></td>
+      <td><code>obj.attr = value</code></td>
+      <td><code>value</code> 是要赋的值</td>
+    </tr>
+    <tr>
+      <td><code>__delete__(self, obj)</code></td>
+      <td><code>del obj.attr</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>__set_name__(self, owner, name)</code></td>
+      <td>类定义时自动调用</td>
+      <td><code>owner</code> 是所属类，<code>name</code> 是属性名（Python 3.6+）</td>
+    </tr>
+  </table>
+
+  <h3>参数详解</h3>
+  <div class="code-block"><span class="k">class</span> <span class="cn">MyDescriptor</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>):
+        <span class="c"># self: 描述符实例本身</span>
+        <span class="c"># obj: 使用描述符的实例（实例访问时），类访问时为 None</span>
+        <span class="c"># objtype: 使用描述符的类</span>
+        <span class="k">if</span> obj <span class="k">is</span> <span class="k">None</span>:
+            <span class="k">return</span> self  <span class="c"># 类级别访问 → 返回描述符自身</span>
+        <span class="k">return</span> obj.__dict__.get(<span class="s">'_value'</span>)
+
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>):
+        <span class="c"># self: 描述符实例</span>
+        <span class="c"># obj: 使用描述符的实例</span>
+        <span class="c"># value: 要赋的值</span>
+        obj.__dict__[<span class="s">'_value'</span>] = value</div>
+</div>
+
+<!-- Section 3 -->
+<div class="section" id="s3">
+  <h2><span class="num">3</span>数据描述符 vs 非数据描述符 <span class="badge badge-high">高频</span></h2>
+
+  <table>
+    <tr>
+      <th>类型</th>
+      <th>实现方法</th>
+      <th>优先级</th>
+      <th>典型代表</th>
+    </tr>
+    <tr>
+      <td><strong>数据描述符</strong></td>
+      <td><code>__get__</code> + <code>__set__</code> 或 <code>__delete__</code></td>
+      <td><strong>最高</strong>（高于实例字典）</td>
+      <td><code>property</code>、ORM 字段</td>
+    </tr>
+    <tr>
+      <td><strong>非数据描述符</strong></td>
+      <td>仅 <code>__get__</code></td>
+      <td><strong>较低</strong>（低于实例字典）</td>
+      <td>普通方法、<code>classmethod</code>、<code>staticmethod</code></td>
+    </tr>
+  </table>
+
+  <h3>代码验证优先级差异</h3>
+  <div class="code-block"><span class="k">class</span> <span class="cn">Data</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>): <span class="k">return</span> <span class="s">"data"</span>
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>): <span class="k">pass</span>  <span class="c"># ← 有 __set__ → 数据描述符</span>
+
+<span class="k">class</span> <span class="cn">NonData</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>): <span class="k">return</span> <span class="s">"nondata"</span>
+    <span class="c"># ← 没有 __set__ → 非数据描述符</span>
+
+<span class="k">class</span> <span class="cn">C</span>:
+    data = <span class="cn">Data</span>()
+    nondata = <span class="cn">NonData</span>()
+
+c = <span class="cn">C</span>()
+c.__dict__[<span class="s">'data'</span>] = <span class="s">'实例字典的值'</span>       <span class="c"># 手动往实例字典塞值</span>
+c.__dict__[<span class="s">'nondata'</span>] = <span class="s">'实例字典的值'</span>
+
+<span class="f">print</span>(c.data)      <span class="c"># "data"           ← 数据描述符赢，实例字典被忽略</span>
+<span class="f">print</span>(c.nondata)   <span class="c"># "实例字典的值"    ← 实例字典赢，__get__ 被跳过</span></div>
+</div>
+
+<!-- Section 4 -->
+<div class="section" id="s4">
+  <h2><span class="num">4</span>为什么只有 __get__ 是非数据描述符 <span class="badge badge-high">高频</span></h2>
+
+  <div class="callout callout-key">
+    <strong>核心原因</strong>
+    有 <code>__set__</code> 说明你声明了"我要控制赋值"，Python 就给你最高优先级，防止实例字典绕过校验逻辑。只有 <code>__get__</code> 说明"我只管读取，赋值你随意"，实例一旦赋值就进实例字典，自然就盖过了 <code>__get__</code>。
+  </div>
+
+  <h3>赋值时的行为差异</h3>
+  <div class="code-block"><span class="k">class</span> <span class="cn">Data</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>): <span class="k">return</span> <span class="s">"data"</span>
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>): <span class="k">print</span>(<span class="s">f"设置值: {value}"</span>)
+
+<span class="k">class</span> <span class="cn">NonData</span>:
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>): <span class="k">return</span> <span class="s">"nondata"</span>
+
+<span class="k">class</span> <span class="cn">C</span>:
+    data = <span class="cn">Data</span>()
+    nondata = <span class="cn">NonData</span>()
+
+c = <span class="cn">C</span>()
+
+c.data = <span class="n">100</span>
+<span class="c"># Data 有 __set__ → Python 调用 Data.__set__(c, 100) → 拦截赋值</span>
+<span class="c"># → 实例字典不会被写入</span>
+
+c.nondata = <span class="n">100</span>
+<span class="c"># NonData 没有 __set__ → Python 不知道要拦截</span>
+<span class="c"># → 直接写入实例字典 c.__dict__['nondata'] = 100</span>
+<span class="c"># → 下次读取时实例字典有值，就不再走 __get__ 了</span></div>
+
+  <h3>设计哲学：保护 vs 灵活</h3>
+
+  <div class="callout callout-warn">
+    <strong>数据描述符 = "我要完全控制这个属性"</strong>
+    有 <code>__set__</code> 说明你声明了赋值控制权，Python 让你优先级高于实例字典，保证不会被绕过。<br>
+    例：<code>property</code> 有 setter 校验逻辑，如果不给最高优先级，<code>obj.__dict__['temp'] = -300</code> 就能绕过校验。
+  </div>
+
+  <div class="callout callout-tip">
+    <strong>非数据描述符 = "我只管读取，赋值你随意"</strong>
+    没有 <code>__set__</code> 说明不控制赋值，实例一旦赋值就直接进字典，自然覆盖描述符。<br>
+    例：普通方法（<code>function</code>）只有 <code>__get__</code>，允许 <code>obj.method = custom_func</code> 覆盖，这是合理的灵活性。
+  </div>
+
+  <table>
+    <tr>
+      <th></th>
+      <th>有 <code>__set__</code></th>
+      <th>没有 <code>__set__</code></th>
+    </tr>
+    <tr>
+      <td>赋值 <code>c.x = 100</code></td>
+      <td>被 <code>__set__</code> 拦截</td>
+      <td>直接写入实例字典</td>
+    </tr>
+    <tr>
+      <td>实例字典有没有值</td>
+      <td><code>__set__</code> 控制，可能不写入</td>
+      <td>一定写入</td>
+    </tr>
+    <tr>
+      <td>读取时谁优先</td>
+      <td>描述符优先（防止被绕过）</td>
+      <td>实例字典优先（覆盖描述符）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Section 5 -->
+<div class="section" id="s5">
+  <h2><span class="num">5</span>属性查找的完整流程 <span class="badge badge-high">高频</span></h2>
+
+  <div class="callout callout-key">
+    <strong>三层结构（不是全程走 MRO！）</strong>
+    属性查找 = 三个独立的层，顺序执行。<code>__mro__</code> 只在第①层和第③层使用，第②层实例字典是独立的，跟继承链完全无关。
+  </div>
+
+  <div class="diagram"><span class="note">obj.x 的查找过程：</span>
+
+<span class="label">① MRO 搜索「数据描述符」</span>  <span class="note">(沿 __mro__ 遍历)</span>
+  └─ 有 __get__ + __set__/__delete__？
+     ├─ 是 → 调用 __get__(obj, type(obj))，<span class="hit">返回，结束</span>
+     └─ 否 → 继续
+
+<span class="label">② 实例字典</span>  <span class="note">(不走 MRO! 直接查 obj.__dict__)</span>
+  └─ name in obj.__dict__？
+     ├─ 是 → <span class="hit">返回 obj.__dict__[name]，结束</span>
+     └─ 否 → 继续
+
+<span class="label">③ MRO 搜索「非数据描述符 + 普通类属性」</span>  <span class="note">(沿 __mro__ 遍历)</span>
+  └─ name in klass.__dict__？
+     ├─ 有 __get__ → 调用 __get__(obj, type(obj))，<span class="hit">返回</span>
+     ├─ 普通属性 → <span class="hit">直接返回</span>
+     └─ 没有 → 继续
+
+<span class="note">④ 都没找到 → raise AttributeError</span></div>
+
+  <h3>伪代码实现</h3>
+  <div class="code-block"><span class="k">def</span> <span class="f">attribute_lookup</span>(obj, name):
+    cls = <span class="f">type</span>(obj)
+    mro = cls.__mro__
+
+    <span class="c"># ① 沿 MRO 找数据描述符</span>
+    <span class="k">for</span> klass <span class="k">in</span> mro:
+        attr = klass.__dict__.get(name)
+        <span class="k">if</span> attr <span class="k">is not</span> <span class="k">None</span> <span class="k">and</span> <span class="f">hasattr</span>(attr, <span class="s">'__set__'</span>):
+            <span class="k">return</span> attr.__get__(obj, cls)
+
+    <span class="c"># ② 查实例字典（不经过 MRO！）</span>
+    <span class="k">if</span> name <span class="k">in</span> obj.__dict__:
+        <span class="k">return</span> obj.__dict__[name]
+
+    <span class="c"># ③ 沿 MRO 找非数据描述符和普通属性</span>
+    <span class="k">for</span> klass <span class="k">in</span> mro:
+        <span class="k">if</span> name <span class="k">in</span> klass.__dict__:
+            attr = klass.__dict__[name]
+            <span class="k">if</span> <span class="f">hasattr</span>(attr, <span class="s">'__get__'</span>):
+                <span class="k">return</span> attr.__get__(obj, cls)
+            <span class="k">return</span> attr
+
+    <span class="c"># ④ 没找到</span>
+    <span class="k">raise</span> <span class="cn">AttributeError</span>(name)</div>
+
+  <h3>用例子一步步走一遍</h3>
+
+  <h4>c.data 的查找（数据描述符）</h4>
+  <div class="code-block"><span class="c"># C.__mro__ = (C, object)</span>
+
+<span class="c"># ① MRO 找数据描述符</span>
+<span class="c">#   C.__dict__['data'] → Data() → 有 __set__？✅ 是数据描述符！</span>
+<span class="c">#   → 调用 Data.__get__(c, C) → 返回 "data"</span>
+<span class="c">#   → 结束，根本没走到第②层</span>
+
+<span class="f">print</span>(c.data)   <span class="c"># "data"  ← 第①层就命中</span></div>
+
+  <h4>c.nondata 的查找（非数据描述符）</h4>
+  <div class="code-block"><span class="c"># C.__mro__ = (C, object)</span>
+
+<span class="c"># ① MRO 找数据描述符</span>
+<span class="c">#   C.__dict__['nondata'] → NonData() → 有 __set__？❌ 没有</span>
+<span class="c">#   → 第①层没命中</span>
+
+<span class="c"># ② 查实例字典（跟 MRO 无关！）</span>
+<span class="c">#   c.__dict__['nondata'] = '实例字典的值' → ✅ 找到了！</span>
+<span class="c">#   → 返回 '实例字典的值'</span>
+
+<span class="f">print</span>(c.nondata)   <span class="c"># "实例字典的值"  ← 第②层命中</span></div>
+
+  <div class="callout callout-warn">
+    <strong>常见误区</strong>
+    不要把"属性查找"理解成"全程沿 __mro__ 走"。实例字典是独立的一层，跟继承链完全无关，夹在数据描述符和非数据描述符之间。
+  </div>
+</div>
+
+<!-- Section 6 -->
+<div class="section" id="s6">
+  <h2><span class="num">6</span>__mro__ 与属性查找的关系</h2>
+
+  <h3>什么是 __mro__</h3>
+  <p><code>__mro__</code> = Method Resolution Order（方法解析顺序），是 Python 用 <strong>C3 线性化算法</strong>算出的继承链排队顺序，决定了属性/方法从哪个父类找。本质是一个<strong>元组</strong>，不可变。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">A</span>: <span class="k">pass</span>
+<span class="k">class</span> <span class="cn">B</span>(<span class="cn">A</span>): <span class="k">pass</span>
+<span class="k">class</span> <span class="cn">C</span>(<span class="cn">A</span>): <span class="k">pass</span>
+<span class="k">class</span> <span class="cn">D</span>(<span class="cn">B</span>, <span class="cn">C</span>): <span class="k">pass</span>
+
+<span class="f">print</span>(<span class="cn">D</span>.__mro__)
+<span class="c"># (D, B, C, A, object)</span>
+<span class="c">#  ↑  自己永远在第一位</span></div>
+
+  <h3>C3 线性化核心原则</h3>
+  <ol style="padding-left: 20px; margin: 10px 0;">
+    <li><strong>子类在父类前面</strong>（D 在 B、C、A 前面）</li>
+    <li><strong>继承顺序保持</strong>（B 在 C 前面，因为 <code>class D(B, C)</code>）</li>
+    <li><strong>每个类只出现一次</strong></li>
+  </ol>
+
+  <h3>super() 的关键认知</h3>
+  <div class="callout callout-key">
+    <strong>super() 不是"调用父类"</strong>
+    super() 是"调用 <code>__mro__</code> 中的下一个类"。理解这一点是理解 Python 多继承的关键。
+  </div>
+
+  <div class="code-block"><span class="c"># D.__mro__ = (D, B, C, A, object)</span>
+<span class="k">class</span> <span class="cn">D</span>(<span class="cn">B</span>, <span class="cn">C</span>):
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self</span>):
+        <span class="f">super</span>().__init__()  <span class="c"># → 调用 B.__init__（MRO中D的下一个）</span>
+
+<span class="k">class</span> <span class="cn">B</span>(<span class="cn">A</span>):
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self</span>):
+        <span class="f">super</span>().__init__()  <span class="c"># → 调用 C.__init__（不是 A！）</span>
+
+<span class="k">class</span> <span class="cn">C</span>(<span class="cn">A</span>):
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self</span>):
+        <span class="f">super</span>().__init__()  <span class="c"># → 调用 A.__init__</span></div>
+
+  <p>这就是为什么多继承下 <code>super()</code> 能让所有类的 <code>__init__</code> 都被调用一次且仅一次——靠的就是 <code>__mro__</code> 这个线性顺序。</p>
+</div>
+
+<!-- Section 7 -->
+<div class="section" id="s7">
+  <h2><span class="num">7</span>property 的本质就是描述符</h2>
+
+  <p>你写的 <code>@property</code> 底层就是一个<strong>数据描述符</strong>：</p>
+
+  <div class="code-block"><span class="c"># 你写的 property</span>
+<span class="k">class</span> <span class="cn">C</span>:
+    <span class="k">@property</span>
+    <span class="k">def</span> <span class="f">x</span>(<span class="o">self</span>):
+        <span class="k">return</span> self._x
+
+    <span class="k">@x.setter</span>
+    <span class="k">def</span> <span class="f">x</span>(<span class="o">self, value</span>):
+        self._x = value
+
+<span class="c"># 底层等价于</span>
+<span class="k">class</span> <span class="cn">C</span>:
+    <span class="k">def</span> <span class="f">get_x</span>(<span class="o">self</span>): <span class="k">return</span> self._x
+    <span class="k">def</span> <span class="f">set_x</span>(<span class="o">self, value</span>): self._x = value
+    x = <span class="f">property</span>(get_x, set_x)  <span class="c"># property 实现了 __get__ 和 __set__</span></div>
+
+  <h3>property 源码简化版</h3>
+  <div class="code-block"><span class="k">class</span> <span class="cn">property</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self, fget=None, fset=None, fdel=None</span>):
+        self.fget = fget
+        self.fset = fset
+
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>):
+        <span class="k">if</span> obj <span class="k">is</span> <span class="k">None</span>: <span class="k">return</span> self
+        <span class="k">return</span> self.fget(obj)
+
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>):
+        self.fset(obj, value)</div>
+
+  <div class="callout callout-info">
+    <strong>面试要点</strong>
+    <code>property</code> 有 <code>__set__</code> → 数据描述符 → 优先级高于实例字典 → 不能被实例字典覆盖。这就是为什么 <code>property</code> 能强制执行校验逻辑。
+  </div>
+</div>
+
+<!-- Section 8 -->
+<div class="section" id="s8">
+  <h2><span class="num">8</span>实战：ORM 字段实现</h2>
+
+  <p>描述符的经典应用场景：封装字段校验逻辑，一次封装，处处复用。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">Field</span>:
+    <span class="k">def</span> <span class="f">__set_name__</span>(<span class="o">self, owner, name</span>):
+        self.name = name
+        self.storage_name = <span class="s">f'_</span><span class="s">{name}</span><span class="s">'</span>
+
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>):
+        <span class="k">if</span> obj <span class="k">is</span> <span class="k">None</span>: <span class="k">return</span> self
+        <span class="k">return</span> <span class="f">getattr</span>(obj, self.storage_name, <span class="k">None</span>)
+
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>):
+        self.validate(value)
+        <span class="f">setattr</span>(obj, self.storage_name, value)
+
+    <span class="k">def</span> <span class="f">validate</span>(<span class="o">self, value</span>):
+        <span class="k">raise</span> <span class="cn">NotImplementedError</span>
+
+<span class="k">class</span> <span class="cn">CharField</span>(<span class="cn">Field</span>):
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self, max_length=255</span>):
+        self.max_length = max_length
+
+    <span class="k">def</span> <span class="f">validate</span>(<span class="o">self, value</span>):
+        <span class="k">if</span> <span class="k">not</span> <span class="f">isinstance</span>(value, <span class="f">str</span>):
+            <span class="k">raise</span> <span class="cn">TypeError</span>(<span class="s">f"</span><span class="s">{self.name}</span><span class="s"> 需要字符串"</span>)
+        <span class="k">if</span> <span class="f">len</span>(value) > self.max_length:
+            <span class="k">raise</span> <span class="cn">ValueError</span>(<span class="s">f"</span><span class="s">{self.name}</span><span class="s"> 超过 </span><span class="s">{self.max_length}</span><span class="s"> 字符"</span>)
+
+<span class="k">class</span> <span class="cn">IntegerField</span>(<span class="cn">Field</span>):
+    <span class="k">def</span> <span class="f">validate</span>(<span class="o">self, value</span>):
+        <span class="k">if</span> <span class="k">not</span> <span class="f">isinstance</span>(value, <span class="f">int</span>):
+            <span class="k">raise</span> <span class="cn">TypeError</span>(<span class="s">f"</span><span class="s">{self.name}</span><span class="s"> 需要整数"</span>)
+
+<span class="c"># 使用：三个字段共享一套校验机制</span>
+<span class="k">class</span> <span class="cn">User</span>(<span class="cn">Model</span>):
+    name = <span class="cn">CharField</span>(max_length=<span class="n">50</span>)
+    age = <span class="cn">IntegerField</span>()
+
+user = <span class="cn">User</span>()
+user.name = <span class="s">"Alice"</span>     <span class="c"># ✅</span>
+user.name = <span class="s">"A"</span> * <span class="n">100</span>  <span class="c"># ❌ ValueError: name 超过 50 字符</span>
+user.age = <span class="s">"abc"</span>       <span class="c"># ❌ TypeError: age 需要整数</span></div>
+
+  <div class="callout callout-info">
+    <strong>实际项目对应</strong>
+    Django ORM 的 <code>Model</code>、SQLAlchemy、Peewee 都用描述符把类属性转成数据库列定义。Pydantic V1 也用描述符收集字段。
+  </div>
+</div>
+
+<!-- Section 9 -->
+<div class="section" id="s9">
+  <h2><span class="num">9</span>实战：Agent 配置类型校验 <span class="badge badge-star">Agent</span></h2>
+
+  <p>在 Agent 开发中，用描述符实现配置属性的自动类型校验：</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">TypedField</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self, type_</span>):
+        self.type_ = type_
+
+    <span class="k">def</span> <span class="f">__set_name__</span>(<span class="o">self, owner, name</span>):
+        self.name = name
+
+    <span class="k">def</span> <span class="f">__get__</span>(<span class="o">self, obj, objtype=None</span>):
+        <span class="k">if</span> obj <span class="k">is</span> <span class="k">None</span>: <span class="k">return</span> self
+        <span class="k">return</span> obj.__dict__.get(self.name)
+
+    <span class="k">def</span> <span class="f">__set__</span>(<span class="o">self, obj, value</span>):
+        <span class="k">if</span> <span class="k">not</span> <span class="f">isinstance</span>(value, self.type_):
+            <span class="k">raise</span> <span class="cn">TypeError</span>(
+                <span class="s">f"</span><span class="s">{self.name}</span><span class="s"> 需要 </span><span class="s">{self.type_.__name__}</span><span class="s">，"</span>
+                <span class="s">f"传入了 </span><span class="s">{type(value).__name__}</span><span class="s">"</span>
+            )
+        obj.__dict__[self.name] = value
+
+<span class="k">class</span> <span class="cn">AgentConfig</span>:
+    model = <span class="cn">TypedField</span>(<span class="f">str</span>)
+    temperature = <span class="cn">TypedField</span>(<span class="f">float</span>)
+    max_tokens = <span class="cn">TypedField</span>(<span class="f">int</span>)
+    tools = <span class="cn">TypedField</span>(<span class="f">list</span>)
+
+config = <span class="cn">AgentConfig</span>()
+config.model = <span class="s">"gpt-4"</span>        <span class="c"># ✅</span>
+config.model = <span class="n">123</span>             <span class="c"># ❌ TypeError</span>
+config.temperature = <span class="n">0.7</span>       <span class="c"># ✅</span>
+config.temperature = <span class="s">"hot"</span>      <span class="c"># ❌ TypeError</span></div>
+</div>
+
+<!-- Section 10 -->
+<div class="section" id="s10">
+  <h2><span class="num">10</span>Python 中哪些地方用了描述符 <span class="badge badge-mid">追问</span></h2>
+
+  <table>
+    <tr>
+      <th>场景</th>
+      <th>描述符类型</th>
+      <th>说明</th>
+    </tr>
+    <tr>
+      <td><code>@property</code></td>
+      <td>数据描述符</td>
+      <td>有 <code>__get__</code> + <code>__set__</code></td>
+    </tr>
+    <tr>
+      <td><code>@classmethod</code></td>
+      <td>非数据描述符</td>
+      <td>只有 <code>__get__</code>，返回绑定方法</td>
+    </tr>
+    <tr>
+      <td><code>@staticmethod</code></td>
+      <td>非数据描述符</td>
+      <td>只有 <code>__get__</code>，返回普通函数</td>
+    </tr>
+    <tr>
+      <td><code>super()</code></td>
+      <td>数据描述符</td>
+      <td>底层依赖描述符机制实现 MRO 跳转</td>
+    </tr>
+    <tr>
+      <td>普通方法 <code>def method(self)</code></td>
+      <td>非数据描述符</td>
+      <td><code>function</code> 有 <code>__get__</code>，无 <code>__set__</code></td>
+    </tr>
+    <tr>
+      <td>ORM 字段（Django/SQLAlchemy）</td>
+      <td>数据描述符</td>
+      <td>字段校验 + 惰性加载</td>
+    </tr>
+    <tr>
+      <td>Pydantic V1 字段</td>
+      <td>数据描述符</td>
+      <td>类型校验（V2 改用 Rust + <code>__init_subclass__</code>）</td>
+    </tr>
+    <tr>
+      <td><code>__slots__</code></td>
+      <td>底层依赖描述符机制</td>
+      <td>阻止实例字典创建，改为 slot 描述符</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Section 11 -->
+<div class="section" id="s11">
+  <h2><span class="num">11</span>面试问答速查</h2>
+
+  <div class="qa">
+    <div class="question">Q1: 什么是描述符协议？</div>
+    <div class="answer">
+      描述符协议是 Python 属性访问的底层机制，本质是<strong>把属性访问委托给一个有 <code>__get__</code>/<code>__set__</code>/<code>__delete__</code> 的对象</strong>。它让属性从"直接存取值"变成"有逻辑的代理"，实现校验、惰性计算、类型检查等。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q2: 数据描述符和非数据描述符的区别？</div>
+    <div class="answer">
+      <strong>数据描述符</strong>有 <code>__set__</code> 或 <code>__delete__</code>，优先级<strong>高于</strong>实例字典；<strong>非数据描述符</strong>只有 <code>__get__</code>，优先级<strong>低于</strong>实例字典。有 <code>__set__</code> 说明声明了"我要控制赋值"，Python 就给你最高优先级防止被绕过。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q3: 属性查找的完整流程？</div>
+    <div class="answer">
+      三层接力：① 沿 MRO 找数据描述符 → ② 查实例字典（不走 MRO）→ ③ 沿 MRO 找非数据描述符和普通属性。实例字典能盖住非数据描述符（排在它前面），但盖不住数据描述符（排在它后面）。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q4: 为什么只有 __get__ 是非数据描述符？</div>
+    <div class="answer">
+      分类依据不是"有没有 <code>__get__</code>"，而是"有没有声明赋值控制权"。没有 <code>__set__</code> 的描述符无法拦截赋值，实例一旦赋值就直接进实例字典，自然就盖过了 <code>__get__</code>。本质是 Python 对"保护性 vs 灵活性"的权衡。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q5: __mro__ 是什么？</div>
+    <div class="answer">
+      Method Resolution Order，方法解析顺序。Python 用 C3 线性化算法算出的继承链排队顺序，本质是一个元组，包含自己（自己在第一位）和所有祖先类。<code>super()</code> 不是"调用父类"，而是"调用 MRO 中的下一个类"。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q6: property 的本质是什么？</div>
+    <div class="answer">
+      <code>property</code> 是 Python 内置的数据描述符类，实现了 <code>__get__</code> 和 <code>__set__</code>。因为有 <code>__set__</code>，它是数据描述符，优先级高于实例字典，所以不能被实例字典覆盖，校验逻辑不会被绕过。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q7: 描述符有什么实际用途？</div>
+    <div class="answer">
+      ① 属性校验（ORM 字段、类型检查）② 惰性计算（首次访问时计算并缓存）③ 日志/监控（拦截访问行为）④ ORM 列定义（Django/SQLAlchemy）⑤ 配置管理（Agent 配置类型校验）。核心价值是"一次封装，处处复用"。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q8: __set_name__ 是什么？什么时候调用？</div>
+    <div class="answer">
+      Python 3.6 引入，在类定义时自动调用，参数是 <code>(owner, name)</code>——所属类和属性名。有了它就不需要手动传属性名字符串，描述符能自动知道自己在类中叫什么。
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>Python 描述符协议完全指南 | 面试向复习资料</p>
+  <p>覆盖：描述符原理 · 数据/非数据描述符 · 属性查找流程 · MRO · property 本质 · ORM 实战 · Agent 开发用例</p>
+</div>
+
+</div>
+</body>
+</html>

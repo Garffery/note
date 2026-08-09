@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 装饰器完全指南</title>
+<style>
+  :root {
+    --bg: #fafbfc;
+    --card-bg: #ffffff;
+    --text: #24292e;
+    --text-secondary: #586069;
+    --border: #e1e4e8;
+    --accent: #0366d6;
+    --accent-light: #f0f5ff;
+    --code-bg: #f6f8fa;
+    --keyword: #d73a49;
+    --string: #032f62;
+    --comment: #6a737d;
+    --func: #6f42c1;
+    --builtin: #005cc5;
+    --number: #005cc5;
+    --decorator: #d73a49;
+    --tag-bg: #f1f8ff;
+    --tag-text: #0366d6;
+    --highlight-bg: #fff5b1;
+    --success: #28a745;
+    --warning: #f66a0a;
+    --danger: #d73a49;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 2em;
+    margin-bottom: 8px;
+    color: #1a1a2e;
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 1.5em;
+    margin: 36px 0 16px;
+    color: #1a1a2e;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+
+  h3 {
+    font-size: 1.2em;
+    margin: 24px 0 12px;
+    color: #2d3436;
+  }
+
+  h4 {
+    font-size: 1.05em;
+    margin: 18px 0 8px;
+    color: #444;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 1.05em;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  /* Code block */
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.88em;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  /* Inline code */
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.92em;
+    white-space: pre-wrap;
+  }
+
+  .code-block code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  /* Syntax highlighting */
+  .k { color: var(--keyword); font-weight: 600; }
+  .s { color: var(--string); }
+  .c { color: var(--comment); font-style: italic; }
+  .f { color: var(--func); }
+  .b { color: var(--builtin); }
+  .n { color: var(--number); }
+  .d { color: var(--decorator); font-weight: 600; }
+  .hl { background: var(--highlight-bg); padding: 1px 4px; border-radius: 3px; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.92em;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: #fbfbfc; }
+
+  /* Tag / Badge */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.82em;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .tag.warn { background: #fff5f5; color: var(--danger); }
+  .tag.success { background: #f0fff4; color: var(--success); }
+
+  /* Diagram */
+  .diagram {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 0.85em;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Blockquote */
+  blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-light);
+    padding: 12px 18px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+    color: #244476;
+  }
+
+  blockquote p { margin: 0; }
+
+  /* Section number */
+  .section-num {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    width: 28px; height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 0.85em;
+    font-weight: 700;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Arrow flow */
+  .flow {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 0.9em;
+    color: var(--accent);
+    margin: 10px 0;
+    padding: 8px 14px;
+    background: var(--accent-light);
+    border-radius: 6px;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+
+  ul, ol {
+    margin: 10px 0 10px 24px;
+  }
+  li { margin: 4px 0; }
+
+  .toc {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 28px;
+    margin: 20px 0;
+  }
+  .toc ol {
+    columns: 2;
+    column-gap: 30px;
+  }
+  .toc li {
+    padding: 3px 0;
+  }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    body { padding: 16px; }
+    .toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+
+<h1><span style="font-size:1.2em;">🐍</span> Python 装饰器完全指南</h1>
+<p class="subtitle">面向 Agent 开发工程师面试 —— 从函数装饰器到类装饰器，从偏函数到实战应用</p>
+
+<!-- ============ 目录 ============ -->
+<div class="toc">
+<strong>📑 目录</strong>
+<ol>
+  <li><a href="#s1">装饰器是什么</a></li>
+  <li><a href="#s2">函数装饰器（无参数）</a></li>
+  <li><a href="#s3">函数装饰器（带参数）</a></li>
+  <li><a href="#s4">functools.wraps 与元信息保留</a></li>
+  <li><a href="#s5">类装饰器（无参数）</a></li>
+  <li><a href="#s6">类装饰器（带参数）⭐</a></li>
+  <li><a href="#s7">带状态的类装饰器</a></li>
+  <li><a href="#s8">类装饰器 vs 函数装饰器</a></li>
+  <li><a href="#s9">functools.partial 偏函数</a></li>
+  <li><a href="#s10">lambda 默认参数陷阱</a></li>
+  <li><a href="#s11">Agent 开发实战</a></li>
+  <li><a href="#s12">面试问答速查</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. 装饰器是什么 -->
+<!-- ============================================================ -->
+<h2 id="s1"><span class="section-num">1</span>装饰器是什么</h2>
+
+<div class="card">
+  <h3>一句话定义</h3>
+  <blockquote>
+    <p><strong>装饰器是一个接受函数作为参数、返回新函数的可调用对象。</strong>它让你在不修改原函数代码的情况下，给函数"穿上"额外的行为。本质上是 AOP（面向切面编程）在 Python 中的实现。</p>
+  </blockquote>
+
+  <h3>等价关系</h3>
+  <div class="code-block"><code><span class="d">@decorator</span>
+<span class="k">def</span> <span class="f">func</span>(): ...
+
+<span class="c"># 完全等价于：</span>
+func = decorator(func)</code></div>
+
+  <h3>装饰器的三个核心要素</h3>
+  <table>
+    <tr><th>要素</th><th>说明</th></tr>
+    <tr><td><strong>接受函数</strong></td><td>被装饰的函数作为参数传入</td></tr>
+    <tr><td><strong>返回新函数</strong></td><td>返回一个包装后的函数（或其他可调用对象）</td></tr>
+    <tr><td><strong>不改变调用方式</strong></td><td>调用方仍然用 <code>func()</code> 的方式调用，感知不到装饰器的存在</td></tr>
+  </table>
+
+  <h3>执行时机</h3>
+  <div class="code-block"><code><span class="k">def</span> <span class="f">dec</span>(func):
+    <span class="b">print</span>(<span class="s">"装饰器执行了"</span>)    <span class="c"># ← 这行在**定义时**就执行！</span>
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="b">print</span>(<span class="s">"wrapper 执行了"</span>)  <span class="c"># ← 这行在**调用时**才执行</span>
+        <span class="k">return</span> func(*args, **kwargs)
+    <span class="k">return</span> wrapper
+
+<span class="d">@dec</span>
+<span class="k">def</span> <span class="f">hello</span>():
+    <span class="b">print</span>(<span class="s">"hello"</span>)
+
+<span class="c"># 输出: "装饰器执行了"  ← 定义 @dec 时就已经执行了！</span>
+<span class="c"># hello() 还没被调用，但 dec(hello) 已经执行完了</span></code></div>
+
+  <p><span class="tag warn">面试重点</span> 装饰器在<strong>函数定义时执行</strong>，不是在函数调用时执行。wrapper 里的逻辑才在调用时执行。</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. 函数装饰器（无参数） -->
+<!-- ============================================================ -->
+<h2 id="s2"><span class="section-num">2</span>函数装饰器（无参数）</h2>
+
+<div class="card">
+  <h3>基础写法</h3>
+  <div class="code-block"><code><span class="k">import</span> functools
+<span class="k">import</span> time
+
+<span class="k">def</span> <span class="f">timer</span>(func):
+    <span class="d">@functools.wraps</span>(func)            <span class="c"># 保留原函数元信息</span>
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        <span class="b">print</span>(<span class="s">f"[</span>{func.<span class="b">__name__</span>}<span class="s">] 耗时 </span>{elapsed:<span class="s">.4f</span>}<span class="s">s"</span>)
+        <span class="k">return</span> result
+    <span class="k">return</span> wrapper
+
+<span class="d">@timer</span>
+<span class="k">def</span> <span class="f">compute</span>(n):
+    <span class="k">return</span> <span class="b">sum</span>(<span class="b">range</span>(n))
+
+compute(<span class="n">10000</span>)
+<span class="c"># [compute] 耗时 0.0003s</span></code></div>
+
+  <h3>多个装饰器叠加</h3>
+  <div class="code-block"><code><span class="d">@dec1</span>
+<span class="d">@dec2</span>
+<span class="d">@dec3</span>
+<span class="k">def</span> <span class="f">func</span>(): ...
+
+<span class="c"># 等价于：func = dec1(dec2(dec3(func)))</span>
+<span class="c"># 执行顺序：从下往上包装，从上往下执行</span>
+<span class="c"># 即定义时：dec3 → dec2 → dec1（从里到外包）</span>
+<span class="c"># 调用时：dec1 → dec2 → dec3 → 原函数（从外到里执行）</span></code></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. 函数装饰器（带参数） -->
+<!-- ============================================================ -->
+<h2 id="s3"><span class="section-num">3</span>函数装饰器（带参数）</h2>
+
+<div class="card">
+  <h3>三层嵌套</h3>
+  <blockquote>
+    <p>带参数的装饰器本质是<strong>"装饰器工厂"</strong>——外层接收配置参数，返回真正的装饰器。</p>
+  </blockquote>
+
+  <div class="code-block"><code><span class="k">def</span> <span class="f">retry</span>(max_attempts=<span class="n">3</span>, delay=<span class="n">1</span>):       <span class="c"># ← 第一层：接收装饰器参数</span>
+    <span class="k">def</span> <span class="f">decorator</span>(func):                <span class="c"># ← 第二层：接收被装饰函数</span>
+        <span class="d">@functools.wraps</span>(func)
+        <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):    <span class="c"># ← 第三层：包装调用逻辑</span>
+            <span class="k">for</span> attempt <span class="k">in</span> <span class="b">range</span>(max_attempts):
+                <span class="k">try</span>:
+                    <span class="k">return</span> func(*args, **kwargs)
+                <span class="k">except</span> <span class="b">Exception</span> <span class="k">as</span> e:
+                    <span class="k">if</span> attempt == max_attempts - <span class="n">1</span>:
+                        <span class="k">raise</span>
+                    time.sleep(delay)
+        <span class="k">return</span> wrapper
+    <span class="k">return</span> decorator
+
+<span class="d">@retry</span>(max_attempts=<span class="n">5</span>, delay=<span class="n">2</span>)        <span class="c"># 带参数的写法</span>
+<span class="k">def</span> <span class="f">fetch_data</span>(url): ...</code></div>
+
+  <h3>带参 vs 无参的执行过程</h3>
+  <table>
+    <tr><th>写法</th><th>等价展开</th></tr>
+    <tr>
+      <td><code>@timer</code></td>
+      <td><code>func = timer(func)</code></td>
+    </tr>
+    <tr>
+      <td><code>@retry(max=3)</code></td>
+      <td><code>func = retry(max=3)(func)</code> —— 先调 <code>retry(max=3)</code> 返回 decorator，再 <code>decorator(func)</code> 返回 wrapper</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. functools.wraps -->
+<!-- ============================================================ -->
+<h2 id="s4"><span class="section-num">4</span>functools.wraps 与元信息保留</h2>
+
+<div class="card">
+  <h3>没有 wraps 会怎样？</h3>
+  <div class="code-block"><code><span class="k">def</span> <span class="f">bad_decorator</span>(func):
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="k">return</span> func(*args, **kwargs)
+    <span class="k">return</span> wrapper
+
+<span class="d">@bad_decorator</span>
+<span class="k">def</span> <span class="f">say_hello</span>():
+    <span class="s">"""说你好"""</span>
+    <span class="k">pass</span>
+
+<span class="b">print</span>(say_hello.<span class="b">__name__</span>)   <span class="c"># "wrapper"   ← 不是 "say_hello"！</span>
+<span class="b">print</span>(say_hello.<span class="b">__doc__</span>)    <span class="c"># None        ← 丢了！</span></code></div>
+
+  <h3>加上 wraps</h3>
+  <div class="code-block"><code><span class="k">def</span> <span class="f">good_decorator</span>(func):
+    <span class="d">@functools.wraps</span>(func)          <span class="c"># ← 关键</span>
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="k">return</span> func(*args, **kwargs)
+    <span class="k">return</span> wrapper
+
+<span class="d">@good_decorator</span>
+<span class="k">def</span> <span class="f">say_hello</span>():
+    <span class="s">"""说你好"""</span>
+    <span class="k">pass</span>
+
+<span class="b">print</span>(say_hello.<span class="b">__name__</span>)   <span class="c"># "say_hello" ✅</span>
+<span class="b">print</span>(say_hello.<span class="b">__doc__</span>)    <span class="c"># "说你好"    ✅</span></code></div>
+
+  <h3>wraps 复制了哪些属性？</h3>
+  <div class="code-block"><code><span class="c"># functools.wraps 底层调用 update_wrapper，复制这些：</span>
+WRAPPER_ASSIGNMENTS = (<span class="s">'__module__'</span>, <span class="s">'__name__'</span>, <span class="s">'__qualname__'</span>,
+                       <span class="s">'__doc__'</span>, <span class="s">'__annotations__'</span>)
+WRAPPER_UPDATES = (<span class="s">'__dict__'</span>,)</code></div>
+
+  <p><span class="tag warn">面试重点</span> 面试官看到装饰器代码没加 <code>@wraps</code> —— 直接扣分。这体现的是工程素养。</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. 类装饰器（无参数） -->
+<!-- ============================================================ -->
+<h2 id="s5"><span class="section-num">5</span>类装饰器（无参数）</h2>
+
+<div class="card">
+  <h3>核心机制</h3>
+  <blockquote>
+    <p><strong>用 <code>__init__</code> 接收被装饰函数，用 <code>__call__</code> 实现包装逻辑。</strong></p>
+  </blockquote>
+
+  <div class="code-block"><code><span class="k">class</span> <span class="f">Logger</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, func):          <span class="c"># func = 被装饰的原始函数</span>
+        <span class="b">self</span>.func = func
+        functools.update_wrapper(<span class="b">self</span>, func)   <span class="c"># 保留元信息</span>
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, *args, **kwargs):      <span class="c"># 调用时走这里</span>
+        <span class="b">print</span>(<span class="s">f"[LOG] 调用 </span>{<span class="b">self</span>.func.<span class="b">__name__</span>}<span class="s">"</span>)
+        start = time.perf_counter()
+        result = <span class="b">self</span>.func(*args, **kwargs)
+        <span class="b">print</span>(<span class="s">f"[LOG] 耗时 </span>{time.perf_counter() - start:<span class="s">.3f</span>}<span class="s">s"</span>)
+        <span class="k">return</span> result
+
+<span class="d">@Logger</span>
+<span class="k">def</span> <span class="f">compute</span>(n):
+    <span class="k">return</span> <span class="b">sum</span>(<span class="b">range</span>(n))
+
+compute(<span class="n">10000</span>)
+<span class="c"># [LOG] 调用 compute</span>
+<span class="c"># [LOG] 耗时 0.002s</span></code></div>
+
+  <h3>等价展开</h3>
+  <div class="flow"><code>compute = Logger(compute)</code> —— 先实例化 Logger（调用 <code>__init__</code>），再把这个实例赋值给 compute。之后 <code>compute()</code> 其实是在调 <code>Logger 实例的 __call__</code>。</div>
+
+  <h3>对比函数装饰器</h3>
+  <div class="code-block"><code><span class="c"># 函数装饰器版本（等价）</span>
+<span class="k">def</span> <span class="f">Logger</span>(func):
+    <span class="d">@functools.wraps</span>(func)
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="b">print</span>(<span class="s">f"[LOG] 调用 </span>{func.<span class="b">__name__</span>}<span class="s">"</span>)
+        result = func(*args, **kwargs)
+        <span class="k">return</span> result
+    <span class="k">return</span> wrapper</code></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. 类装饰器（带参数） -->
+<!-- ============================================================ -->
+<h2 id="s6"><span class="section-num">6</span>类装饰器（带参数）⭐</h2>
+
+<div class="card">
+  <h3>这才是生产中最常用的形式</h3>
+  <blockquote>
+    <p>带参数的类装饰器<strong>只需要两层</strong>（相比之下函数装饰器需要三层），可读性大幅提升。</p>
+  </blockquote>
+
+  <div class="code-block"><code><span class="k">class</span> <span class="f">Retry</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, max_attempts=<span class="n">3</span>, delay=<span class="n">1</span>):
+        <span class="s">"""← 这里接收装饰器自身的配置参数"""</span>
+        <span class="b">self</span>.max_attempts = max_attempts
+        <span class="b">self</span>.delay = delay
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, func):
+        <span class="s">"""← 这里才拿到被装饰的函数"""</span>
+        <span class="d">@functools.wraps</span>(func)
+        <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+            <span class="k">for</span> attempt <span class="k">in</span> <span class="b">range</span>(<span class="b">self</span>.max_attempts):
+                <span class="k">try</span>:
+                    <span class="k">return</span> func(*args, **kwargs)
+                <span class="k">except</span> <span class="b">Exception</span> <span class="k">as</span> e:
+                    <span class="k">if</span> attempt == <span class="b">self</span>.max_attempts - <span class="n">1</span>:
+                        <span class="k">raise</span>
+                    <span class="b">print</span>(<span class="s">f"第 </span>{attempt + <span class="n">1</span>}<span class="s"> 次失败: </span>{e}<span class="s">，</span>{<span class="b">self</span>.delay}<span class="s">s 后重试"</span>)
+                    time.sleep(<span class="b">self</span>.delay)
+        <span class="k">return</span> wrapper
+
+<span class="d">@Retry</span>(max_attempts=<span class="n">3</span>, delay=<span class="n">2</span>)   <span class="c"># 配置重试参数</span>
+<span class="k">def</span> <span class="f">fetch_data</span>(url): ...
+
+<span class="d">@Retry</span>(max_attempts=<span class="n">5</span>)            <span class="c"># 不同参数，不同装饰行为</span>
+<span class="k">def</span> <span class="f">process_task</span>(task): ...</code></div>
+
+  <h3>执行过程详解</h3>
+  <div class="diagram">@Retry(max_attempts=3, delay=2)
+def fetch_data(url): ...
+
+# 等价于：
+# fetch_data = Retry(max_attempts=3, delay=2)(fetch_data)
+#               └──────┬──────┘              └────┬────┘
+#                 ① 调用 __init__              ② 调用 __call__
+#         → 返回 Retry 实例                 → 返回 wrapper 函数</div>
+
+  <h3>函数装饰器 vs 类装饰器：嵌套层数对比</h3>
+  <table>
+    <tr><th></th><th>函数装饰器</th><th>类装饰器</th></tr>
+    <tr>
+      <td>无参数</td>
+      <td>2 层</td>
+      <td>2 层（<code>__init__</code> + <code>__call__</code>）</td>
+    </tr>
+    <tr>
+      <td>有参数</td>
+      <td><strong>3 层</strong>（工厂 → 装饰器 → wrapper）</td>
+      <td><strong>2 层</strong>（<code>__init__</code> + <code>__call__</code>）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. 带状态的类装饰器 -->
+<!-- ============================================================ -->
+<h2 id="s7"><span class="section-num">7</span>带状态的类装饰器</h2>
+
+<div class="card">
+  <h3>函数装饰器维护状态很别扭</h3>
+  <div class="code-block"><code><span class="c"># 函数装饰器：必须用 nonlocal</span>
+<span class="k">def</span> <span class="f">count_calls</span>(func):
+    count = <span class="n">0</span>                    <span class="c"># 自由变量</span>
+    <span class="d">@functools.wraps</span>(func)
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="k">nonlocal</span> count           <span class="c"># ← 必须加 nonlocal，否则 UnboundLocalError</span>
+        count += <span class="n">1</span>
+        <span class="b">print</span>(<span class="s">f"第 </span>{count}<span class="s"> 次调用"</span>)
+        <span class="k">return</span> func(*args, **kwargs)
+    <span class="k">return</span> wrapper</code></div>
+
+  <h3>类装饰器：self 直接存，清晰自然</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">CountCalls</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, func):
+        <span class="b">self</span>.func = func
+        <span class="b">self</span>.count = <span class="n">0</span>              <span class="c"># 直接用 self，不需要 nonlocal</span>
+        functools.update_wrapper(<span class="b">self</span>, func)
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, *args, **kwargs):
+        <span class="b">self</span>.count += <span class="n">1</span>
+        <span class="b">print</span>(<span class="s">f"第 </span>{<span class="b">self</span>.count}<span class="s"> 次调用 </span>{<span class="b">self</span>.func.<span class="b">__name__</span>}<span class="s">"</span>)
+        <span class="k">return</span> <span class="b">self</span>.func(*args, **kwargs)
+
+    <span class="k">def</span> <span class="f">reset</span>(<span class="b">self</span>):                <span class="c"># ← 函数装饰器做不到的：暴露额外方法</span>
+        <span class="b">self</span>.count = <span class="n">0</span>
+
+<span class="d">@CountCalls</span>
+<span class="k">def</span> <span class="f">say_hello</span>():
+    <span class="b">print</span>(<span class="s">"hello"</span>)
+
+say_hello()         <span class="c"># 第 1 次调用 say_hello</span>
+say_hello()         <span class="c"># 第 2 次调用 say_hello</span>
+say_hello.reset()   <span class="c"># ← 直接访问装饰器实例的方法</span>
+say_hello()         <span class="c"># 第 1 次调用 say_hello</span></code></div>
+
+  <h3>多状态场景：类装饰器 > 函数装饰器</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">RateAndCache</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, max_calls=<span class="n">5</span>, ttl=<span class="n">60</span>):
+        <span class="b">self</span>.max_calls = max_calls
+        <span class="b">self</span>.ttl = ttl
+        <span class="b">self</span>.tokens = max_calls         <span class="c"># 令牌桶</span>
+        <span class="b">self</span>.last_refill = time.monotonic()
+        <span class="b">self</span>.cache = {}                 <span class="c"># 缓存</span>
+        <span class="b">self</span>.call_count = <span class="n">0</span>            <span class="c"># 调用统计</span>
+        <span class="b">self</span>.errors = []                <span class="c"># 错误记录</span>
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, func):
+        <span class="d">@functools.wraps</span>(func)
+        <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+            <span class="b">self</span>.call_count += <span class="n">1</span>
+            <span class="c"># 1. 检查缓存</span>
+            cache_key = (args, <span class="b">tuple</span>(<span class="b">sorted</span>(kwargs.items())))
+            <span class="k">if</span> cache_key <span class="k">in</span> <span class="b">self</span>.cache:
+                <span class="k">return</span> <span class="b">self</span>.cache[cache_key]
+            <span class="c"># 2. 令牌桶限流</span>
+            <span class="b">self</span>._refill()
+            <span class="k">if</span> <span class="b">self</span>.tokens <= <span class="n">0</span>:
+                <span class="k">raise</span> <span class="b">RuntimeError</span>(<span class="s">"限流，稍后重试"</span>)
+            <span class="b">self</span>.tokens -= <span class="n">1</span>
+            <span class="c"># 3. 执行</span>
+            <span class="k">return</span> func(*args, **kwargs)
+        <span class="k">return</span> wrapper
+
+    <span class="k">def</span> <span class="f">_refill</span>(<span class="b">self</span>): ...
+    <span class="k">def</span> <span class="f">stats</span>(<span class="b">self</span>):           <span class="c"># 查看统计</span>
+        <span class="k">return</span> {<span class="s">"calls"</span>: <span class="b">self</span>.call_count, <span class="s">"errors"</span>: <span class="b">self</span>.errors}
+    <span class="k">def</span> <span class="f">clear_cache</span>(<span class="b">self</span>):       <span class="c"># 清缓存</span>
+        <span class="b">self</span>.cache.clear()</code></div>
+
+  <p>函数装饰器要维护这 4 个状态变量，需要用闭包 + nonlocal 操作 4 个自由变量，代码可读性极差。类装饰器用 <code>self.xxx</code> 全部搞定，还能暴露 <code>stats()</code>、<code>clear_cache()</code> 等工具方法。</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. 类装饰器 vs 函数装饰器对比 -->
+<!-- ============================================================ -->
+<h2 id="s8"><span class="section-num">8</span>类装饰器 vs 函数装饰器对比</h2>
+
+<div class="card">
+  <table>
+    <tr><th>维度</th><th>函数装饰器</th><th>类装饰器</th></tr>
+    <tr>
+      <td>无参数写法</td>
+      <td>2 层嵌套</td>
+      <td><code>__init__</code> + <code>__call__</code></td>
+    </tr>
+    <tr>
+      <td><strong>带参数写法</strong></td>
+      <td><strong>3 层嵌套</strong>（容易混乱）</td>
+      <td><strong>2 层</strong>（分层清晰）⭐</td>
+    </tr>
+    <tr>
+      <td>状态维护</td>
+      <td>闭包 + <code>nonlocal</code>，状态多了很乱</td>
+      <td><code>self.xxx</code>，多少个状态都清晰</td>
+    </tr>
+    <tr>
+      <td>暴露额外方法</td>
+      <td>不舒服（技术上可行但不优雅）</td>
+      <td>✅ 直接添加到类中</td>
+    </tr>
+    <tr>
+      <td>可测试性</td>
+      <td>需要暴露内部函数</td>
+      <td>✅ 直接测试实例方法</td>
+    </tr>
+    <tr>
+      <td><strong>可继承</strong></td>
+      <td>❌ 不能</td>
+      <td>✅ 可以子类化复用</td>
+    </tr>
+    <tr>
+      <td>性能</td>
+      <td>略快（函数调用开销小）</td>
+      <td>略慢（实例化 + <code>__call__</code>）</td>
+    </tr>
+    <tr>
+      <td>适用场景</td>
+      <td>简单、无状态的装饰逻辑</td>
+      <td>复杂、有状态、需要复用的场景</td>
+    </tr>
+  </table>
+
+  <h3>选择指南</h3>
+  <ul>
+    <li><strong>状态变量 ≤ 1 个</strong>，装饰器不带参数 → 函数装饰器</li>
+    <li><strong>状态变量 ≥ 2 个</strong>，或装饰器带参数 → <strong>类装饰器</strong></li>
+    <li>需要暴露方法（如 <code>reset()</code>、<code>stats()</code>）→ 必须类装饰器</li>
+    <li>需要继承复用 → 必须类装饰器</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. functools.partial 偏函数 -->
+<!-- ============================================================ -->
+<h2 id="s9"><span class="section-num">9</span>functools.partial 偏函数</h2>
+
+<div class="card">
+  <h3>一句话</h3>
+  <blockquote>
+    <p><strong>偏函数就是把一个函数的一部分参数提前写死，生成一个新函数。</strong></p>
+  </blockquote>
+
+  <div class="code-block"><code><span class="k">from</span> functools <span class="k">import</span> partial
+
+<span class="k">def</span> <span class="f">add</span>(a, b, c):
+    <span class="k">return</span> a + b + c
+
+add_100 = partial(add, <span class="n">100</span>)       <span class="c"># 把 a 固定为 100</span>
+<span class="b">print</span>(add_100(<span class="n">20</span>, <span class="n">3</span>))             <span class="c"># 123，等价于 add(100, 20, 3)</span></code></div>
+
+  <h3>原理（简化版）</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">partial</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, func, /, *args, **kwargs):
+        <span class="b">self</span>.func = func
+        <span class="b">self</span>.args = args
+        <span class="b">self</span>.keywords = kwargs
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, /, *args, **kwargs):
+        merged_kwargs = {**<span class="b">self</span>.keywords, **kwargs}
+        <span class="k">return</span> <span class="b">self</span>.func(*<span class="b">self</span>.args, *args, **merged_kwargs)</code></div>
+
+  <h3>partial vs lambda</h3>
+  <table>
+    <tr><th></th><th>partial</th><th>lambda</th></tr>
+    <tr><td>元信息保留</td><td>✅ <code>__name__</code>、<code>.func</code> 都在</td><td>❌ 全成 <code>&lt;lambda&gt;</code></td></tr>
+    <tr><td>可 pickle 序列化</td><td>✅ 支持</td><td>❌ <strong>不支持</strong></td></tr>
+    <tr><td>性能</td><td>略快（C 实现）</td><td>略慢</td></tr>
+    <tr><td>调试</td><td>调用栈清晰</td><td>调用栈混乱</td></tr>
+  </table>
+
+  <blockquote>
+    <p><span class="tag warn">重要</span> 在分布式 / multiprocessing 场景下，lambda 不可 pickle 会直接导致程序崩溃，必须用 partial。</p>
+  </blockquote>
+
+  <h3>Agent 开发中的实际用例</h3>
+  <div class="code-block"><code><span class="c"># 预设 LLM 调用参数，避免每次重复传参</span>
+call_gpt4 = partial(
+    openai.chat.completions.create,
+    model=<span class="s">"gpt-4"</span>,
+    temperature=<span class="n">0.3</span>,
+    max_tokens=<span class="n">4096</span>,
+)
+
+<span class="c"># 实际调用时只传必要参数</span>
+result = call_gpt4(messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"你好"</span>}])</code></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 10. lambda 默认参数陷阱 -->
+<!-- ============================================================ -->
+<h2 id="s10"><span class="section-num">10</span>lambda 默认参数陷阱</h2>
+
+<div class="card">
+  <h3>经典陷阱：闭包延迟绑定</h3>
+  <div class="code-block"><code><span class="c"># ❌ 陷阱</span>
+funcs = [<span class="k">lambda</span>: i <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(<span class="n">3</span>)]
+<span class="b">print</span>([f() <span class="k">for</span> f <span class="k">in</span> funcs])
+<span class="c"># [2, 2, 2]  ← 全是最后一个值！</span></code></div>
+
+  <h3>原因：闭包绑定变量名，不绑定值</h3>
+  <div class="code-block"><code><span class="c"># 循环结束后 i = 2，三个 lambda 的 i 都指向同一个变量</span>
+<span class="c"># 调用时去查 i 的值，都是 2</span>
+
+<span class="k">import</span> dis
+dis.dis(funcs[<span class="n">0</span>])
+<span class="c"># LOAD_GLOBAL   0 (i)        ← 加载全局变量 i，不是值！</span></code></div>
+
+  <h3>解法：默认参数在定义时求值</h3>
+  <div class="code-block"><code><span class="c"># ✅ 用默认参数"提前绑定"当前值</span>
+funcs = [<span class="k">lambda</span> i=i: i <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(<span class="n">3</span>)]
+<span class="b">print</span>([f() <span class="k">for</span> f <span class="k">in</span> funcs])
+<span class="c"># [0, 1, 2]  ✅</span>
+
+<span class="c"># Python 的默认参数在「函数定义时」求值，不是「调用时」</span>
+<span class="c"># i=i 中的右边 i 在定义那一刻就固定成了当时的值</span>
+f0 = funcs[<span class="n">0</span>]
+<span class="b">print</span>(f0.__defaults__)  <span class="c"># (0,)  ← 值在定义时就存下来了</span></code></div>
+
+  <h3>字节码层面的区别（面试加分）</h3>
+  <table>
+    <tr><th></th><th>延迟绑定 <code>lambda: i</code></th><th>默认参数 <code>lambda i=i: i</code></th></tr>
+    <tr><td>字节码</td><td><code>LOAD_GLOBAL i</code>（每次查变量）</td><td><code>LOAD_FAST i</code>（读局部变量，来自 <code>__defaults__</code>）</td></tr>
+    <tr><td>取值时机</td><td>调用时</td><td><strong>定义时</strong></td></tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- 11. Agent 开发实战 -->
+<!-- ============================================================ -->
+<h2 id="s11"><span class="section-num">11</span>Agent 开发实战场景</h2>
+
+<div class="card">
+  <h3>场景一：LLM 调用重试（类装饰器）</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">LLMRetry</span>:
+    RETRYABLE = (RateLimitError, Timeout, ConnectionError)
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, max_attempts=<span class="n">3</span>, backoff=<span class="n">2</span>):
+        <span class="b">self</span>.max_attempts = max_attempts
+        <span class="b">self</span>.backoff = backoff
+        <span class="b">self</span>.total_attempts = <span class="n">0</span>          <span class="c"># 状态统计</span>
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, func):
+        <span class="d">@functools.wraps</span>(func)
+        <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+            <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(<span class="b">self</span>.max_attempts):
+                <span class="b">self</span>.total_attempts += <span class="n">1</span>
+                <span class="k">try</span>:
+                    <span class="k">return</span> func(*args, **kwargs)
+                <span class="k">except</span> <span class="b">self</span>.RETRYABLE <span class="k">as</span> e:
+                    <span class="k">if</span> i == <span class="b">self</span>.max_attempts - <span class="n">1</span>:
+                        <span class="k">raise</span>
+                    <span class="k">await</span> asyncio.sleep(<span class="b">self</span>.backoff ** i)  <span class="c"># 指数退避</span>
+        <span class="k">return</span> wrapper
+
+    <span class="k">def</span> <span class="f">stats</span>(<span class="b">self</span>):
+        <span class="k">return</span> {<span class="s">"total_retry_attempts"</span>: <span class="b">self</span>.total_attempts}</code></div>
+
+  <h3>场景二：工具调用计时 + 日志（函数装饰器）</h3>
+  <div class="code-block"><code><span class="k">def</span> <span class="f">tool_logger</span>(func):
+    <span class="d">@functools.wraps</span>(func)
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        start = time.perf_counter()
+        <span class="k">try</span>:
+            result = func(*args, **kwargs)
+            elapsed = time.perf_counter() - start
+            logger.info(<span class="s">f"tool=</span>{func.<span class="b">__name__</span>}<span class="s"> status=ok cost=</span>{elapsed:<span class="s">.3f</span>}<span class="s">s"</span>)
+            <span class="k">return</span> result
+        <span class="k">except</span> <span class="b">Exception</span> <span class="k">as</span> e:
+            elapsed = time.perf_counter() - start
+            logger.error(<span class="s">f"tool=</span>{func.<span class="b">__name__</span>}<span class="s"> status=error cost=</span>{elapsed:<span class="s">.3f</span>}<span class="s">s error=</span>{e}<span class="s">"</span>)
+            <span class="k">raise</span>
+    <span class="k">return</span> wrapper</code></div>
+
+  <h3>场景三：Function Calling Schema 生成</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">ToolSchema</span>:
+    <span class="s">"""给 Agent 工具函数自动生成 OpenAI Function Calling Schema"""</span>
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, description=<span class="s">""</span>, **param_descriptions):
+        <span class="b">self</span>.description = description
+        <span class="b">self</span>.param_descriptions = param_descriptions
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, func):
+        <span class="c"># 从类型注解自动推导参数 schema</span>
+        hints = get_type_hints(func)
+        params = {}
+        <span class="k">for</span> name, ptype <span class="k">in</span> hints.items():
+            <span class="k">if</span> name == <span class="s">"return"</span>: <span class="k">continue</span>
+            params[name] = {
+                <span class="s">"type"</span>: <span class="b">self</span>._py_to_json_type(ptype),
+                <span class="s">"description"</span>: <span class="b">self</span>.param_descriptions.get(name, <span class="s">""</span>),
+            }
+        func._schema = {
+            <span class="s">"name"</span>: func.<span class="b">__name__</span>,
+            <span class="s">"description"</span>: <span class="b">self</span>.description,
+            <span class="s">"parameters"</span>: {<span class="s">"type"</span>: <span class="s">"object"</span>, <span class="s">"properties"</span>: params},
+        }
+        <span class="k">return</span> func
+
+<span class="d">@ToolSchema</span>(description=<span class="s">"搜索网页内容"</span>, query=<span class="s">"搜索关键词"</span>, limit=<span class="s">"返回条数"</span>)
+<span class="k">def</span> <span class="f">web_search</span>(query: <span class="b">str</span>, limit: <span class="b">int</span> = <span class="n">10</span>):
+    ...
+
+<span class="c"># web_search._schema 自动生成好，直接传给 LLM</span></code></div>
+
+  <h3>场景四：异步工具调用限流（类装饰器）</h3>
+  <div class="code-block"><code><span class="k">class</span> <span class="f">AsyncRateLimit</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="b">self</span>, max_per_second=<span class="n">5</span>):
+        <span class="b">self</span>.max_per_second = max_per_second
+        <span class="b">self</span>._tokens = max_per_second
+        <span class="b">self</span>._last_refill = time.monotonic()
+        <span class="b">self</span>._lock = threading.Lock()
+
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="b">self</span>, func):
+        <span class="d">@functools.wraps</span>(func)
+        <span class="k">async</span> <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+            <span class="k">with</span> <span class="b">self</span>._lock:
+                now = time.monotonic()
+                <span class="b">self</span>._tokens = <span class="b">min</span>(
+                    <span class="b">self</span>.max_per_second,
+                    <span class="b">self</span>._tokens + (now - <span class="b">self</span>._last_refill) * <span class="b">self</span>.max_per_second
+                )
+                <span class="b">self</span>._last_refill = now
+                <span class="k">if</span> <span class="b">self</span>._tokens < <span class="n">1</span>:
+                    wait = (<span class="n">1</span> - <span class="b">self</span>._tokens) / <span class="b">self</span>.max_per_second
+                    <span class="k">await</span> asyncio.sleep(wait)
+                    <span class="b">self</span>._tokens = <span class="n">0</span>
+                <span class="k">else</span>:
+                    <span class="b">self</span>._tokens -= <span class="n">1</span>
+            <span class="k">return</span> <span class="k">await</span> func(*args, **kwargs)
+        <span class="k">return</span> wrapper</code></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 12. 面试问答速查 -->
+<!-- ============================================================ -->
+<h2 id="s12"><span class="section-num">12</span>面试问答速查</h2>
+
+<div class="card">
+  <h3>Q1: 装饰器的本质是什么？</h3>
+  <blockquote><p>装饰器是一个接受函数作为参数、返回新函数的可调用对象。本质是 AOP（面向切面编程），在函数定义时执行。语法糖 <code>@dec</code> 等价于 <code>func = dec(func)</code>。</p></blockquote>
+
+  <h3>Q2: 为什么必须用 @wraps？</h3>
+  <blockquote><p>因为装饰器返回的是 wrapper 函数，原函数的 <code>__name__</code>、<code>__doc__</code>、类型注解等元信息会丢失。<code>@wraps(func)</code> 将这些信息从原函数复制到 wrapper 上，保持函数签名不变。这对调试、文档生成、IDE 提示都至关重要。</p></blockquote>
+
+  <h3>Q3: 带参数的装饰器怎么写？</h3>
+  <blockquote><p><strong>函数方式</strong>：三层嵌套（外层收参数 → 中层收函数 → 内层包装逻辑）。<strong>类方式</strong>：<code>__init__</code> 收参数 → <code>__call__</code> 收函数。类方式只需要两层，可读性更好，是带参数装饰器的推荐写法。</p></blockquote>
+
+  <h3>Q4: 类装饰器什么时候必须用？</h3>
+  <blockquote><p>① 装饰器需要维护<strong>多个状态变量</strong>（限流 + 缓存 + 统计） ② 需要<strong>暴露额外方法</strong>（如 <code>reset()</code>、<code>stats()</code>） ③ 需要<strong>继承复用</strong>。其余场景函数装饰器足矣。</p></blockquote>
+
+  <h3>Q5: 能装饰类吗？</h3>
+  <blockquote><p>可以。装饰器接受一个类，可以修改类的属性或方法，返回新的类。典型场景：<code>@dataclass</code>、<code>@functools.total_ordering</code>、注册类到全局表等。</p></blockquote>
+
+  <h3>Q6: 多个装饰器叠加的执行顺序？</h3>
+  <blockquote><p><code>@d1 @d2 @d3 def f():</code> 等价于 <code>f = d1(d2(d3(f)))</code>。<strong>定义时从下往上</strong>包装（d3 → d2 → d1），<strong>调用时从上往下</strong>执行（d1 → d2 → d3 → 原函数）。离函数最近的装饰器最后执行包装，最先执行内部的 wrapper 逻辑。</p></blockquote>
+
+  <h3>Q7: partial 和 lambda 有什么区别？什么时候用 partial？</h3>
+  <blockquote><p>partial 保留原函数元信息、可 pickle 序列化、调试友好、C 实现更快。Lambda 不可 pickle，在 multiprocessing / 分布式场景下直接崩溃。需要序列化或大量参数预设时，<strong>必须用 partial</strong>。</p></blockquote>
+
+  <h3>Q8: 装饰器是运行时还是编译时执行的？</h3>
+  <blockquote><p><strong>装饰器本身在模块加载时（函数定义时）执行</strong>，不是调用时。但 wrapper 内部的逻辑在调用时才执行。这意味着装饰器里的耗时操作（如网络请求）会在 import 时就触发，不应该放在装饰器的顶层。</p></blockquote>
+
+  <h3>Q9: 装饰器和上下文管理器什么关系？</h3>
+  <blockquote><p>装饰器给函数"穿上"横切逻辑（AOP），上下文管理器给代码块"包上"前后处理。两者可组合使用：</p>
+<div class="code-block"><code><span class="k">def</span> <span class="f">timing</span>(func):
+    <span class="d">@wraps</span>(func)
+    <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+        <span class="k">with</span> stopwatch():        <span class="c"># 用上下文管理器实现计时</span>
+            <span class="k">return</span> func(*args, **kwargs)
+    <span class="k">return</span> wrapper</code></div>
+  </blockquote>
+
+  <h3>Q10: 装饰器在 asyncio 中怎么写？</h3>
+  <blockquote><p>注意区分被装饰的是同步函数还是异步函数：</p>
+<div class="code-block"><code><span class="c"># 装饰异步函数 → wrapper 也要 async</span>
+<span class="k">def</span> <span class="f">async_retry</span>(max_attempts=<span class="n">3</span>):
+    <span class="k">def</span> <span class="f">decorator</span>(func):
+        <span class="d">@wraps</span>(func)
+        <span class="k">async</span> <span class="k">def</span> <span class="f">wrapper</span>(*args, **kwargs):
+            <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(max_attempts):
+                <span class="k">try</span>:
+                    <span class="k">return</span> <span class="k">await</span> func(*args, **kwargs)
+                <span class="k">except</span> <span class="b">Exception</span>:
+                    <span class="k">if</span> i == max_attempts - <span class="n">1</span>: <span class="k">raise</span>
+                    <span class="k">await</span> asyncio.sleep(<span class="n">1</span>)
+        <span class="k">return</span> wrapper
+    <span class="k">return</span> decorator</code></div>
+  </blockquote>
+</div>
+
+<hr>
+
+<p style="text-align:center;color:var(--text-secondary);margin:40px 0 20px;font-size:0.9em;">
+  📄 Python 装饰器完全指南 · 面向 Agent 开发工程师面试 · 2026-08-09
+</p>
+
+</body>
+</html>

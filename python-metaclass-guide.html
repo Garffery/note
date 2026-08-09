@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 元类完全指南 - 面试向</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --accent: #00b894;
+    --accent-light: #55efc4;
+    --accent-bg: #e8fdf5;
+    --code-bg: #282c34;
+    --code-text: #abb2bf;
+    --keyword: #c678dd;
+    --string: #98c379;
+    --func: #61afef;
+    --comment: #5c6370;
+    --number: #d19a66;
+    --class-name: #e5c07b;
+    --border: #e0e0e0;
+    --red: #e74c3c;
+    --green: #27ae60;
+    --orange: #f39c12;
+    --blue: #3498db;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    padding: 0;
+  }
+  .header {
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 50%, #55efc4 100%);
+    color: white;
+    padding: 60px 40px 50px;
+    text-align: center;
+  }
+  .header h1 { font-size: 2.4em; font-weight: 800; margin-bottom: 12px; letter-spacing: 1px; }
+  .header .subtitle { font-size: 1.1em; opacity: 0.9; margin-bottom: 20px; }
+  .header .tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .header .tag {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.85em;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+  .toc {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 30px 35px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .toc h2 { font-size: 1.2em; margin-bottom: 16px; color: var(--accent); }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+  .toc a:hover { color: var(--accent); }
+  .section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 36px 40px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    font-size: 1.5em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section h2 .num {
+    background: var(--accent);
+    color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
+    font-weight: 700;
+  }
+  .section h3 {
+    font-size: 1.15em;
+    color: var(--text);
+    margin: 24px 0 10px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+  .section h4 {
+    font-size: 1em;
+    margin: 16px 0 8px;
+    color: var(--text);
+  }
+  .section p { margin: 10px 0; color: var(--text-secondary); }
+  .section strong { color: var(--text); }
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.95em;
+  }
+  .callout-info { background: #eef6ff; border-left: 4px solid var(--blue); }
+  .callout-warn { background: #fff8ee; border-left: 4px solid var(--orange); }
+  .callout-tip { background: #f0fdf4; border-left: 4px solid var(--green); }
+  .callout-key { background: var(--accent-bg); border-left: 4px solid var(--accent); }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .code-block {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 4;
+  }
+  .k { color: var(--keyword); }
+  .s { color: var(--string); }
+  .f { color: var(--func); }
+  .c { color: var(--comment); font-style: italic; }
+  .n { color: var(--number); }
+  .cn { color: var(--class-name); }
+  .o { color: var(--code-text); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9em;
+  }
+  th {
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  tr:hover td { background: #f0fdf9; }
+  td code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: var(--red); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-high { background: #ffe0e0; color: #c0392b; }
+  .badge-mid { background: #fff3e0; color: #e67e22; }
+  .badge-star { background: #fff8e1; color: #f39c12; }
+  .diagram {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .diagram .arrow { color: var(--accent-light); }
+  .diagram .label { color: var(--green); font-weight: bold; }
+  .diagram .note { color: var(--comment); }
+  .diagram .hit { color: var(--orange); font-weight: bold; }
+  .qa { margin: 16px 0; }
+  .qa .question {
+    background: var(--accent-bg);
+    padding: 12px 18px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    color: var(--accent);
+    border-left: 4px solid var(--accent);
+  }
+  .qa .answer {
+    background: #f9f9fb;
+    padding: 14px 18px;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid var(--border);
+    border-top: none;
+  }
+  .footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--comment);
+    font-size: 0.85em;
+  }
+  @media (max-width: 600px) {
+    .header { padding: 40px 20px; }
+    .header h1 { font-size: 1.6em; }
+    .section { padding: 24px 20px; }
+    .container { padding: 20px 12px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Python 元类完全指南</h1>
+  <p class="subtitle">从原理到生产实战 | 面试高频考点深度解析</p>
+  <div class="tags">
+    <span class="tag">type vs object</span>
+    <span class="tag">mcs / name / bases / namespace</span>
+    <span class="tag">生产实战场景</span>
+    <span class="tag">__init_subclass__ 替代</span>
+    <span class="tag">面试问答</span>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">元类是什么</a></li>
+    <li><a href="#s2">type vs object 的区别</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s3">四个参数：mcs / name / bases / namespace</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s4">生产场景一：自动注册插件系统</a> <span class="badge badge-star">Agent</span></li>
+    <li><a href="#s5">生产场景二：ORM 字段收集</a></li>
+    <li><a href="#s6">生产场景三：API 接口自动文档生成</a></li>
+    <li><a href="#s7">生产场景四：配置类自动校验</a></li>
+    <li><a href="#s8">生产场景五：接口契约强制</a></li>
+    <li><a href="#s9">生产场景六：AOP 横切关注点</a></li>
+    <li><a href="#s10">元类 vs __init_subclass__ vs 装饰器 vs ABC</a> <span class="badge badge-high">高频</span></li>
+    <li><a href="#s11">面试问答速查</a></li>
+  </ol>
+</div>
+
+<!-- Section 1 -->
+<div class="section" id="s1">
+  <h2><span class="num">1</span>元类是什么</h2>
+
+  <div class="callout callout-key">
+    <strong>一句话定义</strong>
+    元类就是"创建类的类"。普通类创建实例，元类创建类。
+  </div>
+
+  <p>Python 中一切皆对象，<strong>类本身也是对象</strong>。既然是对象，就有创建它的类——创建类的类就是<strong>元类</strong>。</p>
+
+  <div class="code-block"><span class="c"># 普通类创建实例</span>
+<span class="k">class</span> <span class="cn">Dog</span>:
+    <span class="k">def</span> <span class="f">bark</span>(<span class="o">self</span>): <span class="f">print</span>(<span class="s">"汪"</span>)
+
+dog = <span class="cn">Dog</span>()        <span class="c"># Dog 类创建了 dog 实例</span>
+<span class="f">print</span>(<span class="f">type</span>(dog))    <span class="c"># &lt;class 'Dog'&gt;</span>
+
+<span class="c"># 那谁创建了 Dog 类？</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="cn">Dog</span>))    <span class="c"># &lt;class 'type'&gt;  ← type 就是元类！</span></div>
+
+  <div class="diagram"><span class="note">创建链：</span>
+
+  <span class="label">type</span>  ──创建──→  <span class="label">Dog</span>  ──创建──→  dog
+  （元类）           （类）           （实例）
+
+  <span class="note">type 是"类的类"，Dog 是"实例的类"</span></div>
+
+  <div class="callout callout-info">
+    <strong>class 关键字的本质</strong>
+    <code>class Dog:</code> 是一个语法糖，底层调用 <code>type('Dog', bases, namespace)</code> 来创建类对象。元类就是拦截这个 <code>type()</code> 调用，在创建前修改 namespace，在创建后做后处理。
+  </div>
+</div>
+
+<!-- Section 2 -->
+<div class="section" id="s2">
+  <h2><span class="num">2</span>type vs object 的区别 <span class="badge badge-high">高频</span></h2>
+
+  <div class="callout callout-key">
+    <strong>一句话区分</strong>
+    <code>object</code> 是所有类的"爹"（继承维度），<code>type</code> 是所有类的"娘"（创建维度）。每个类都继承自 <code>object</code>，每个类都由 <code>type</code> 创建。
+  </div>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">Dog</span>:
+    <span class="k">pass</span>
+
+<span class="c"># 维度一：谁创建了 Dog？→ type（元类/创建者）</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="cn">Dog</span>))       <span class="c"># &lt;class 'type'&gt;</span>
+
+<span class="c"># 维度二：Dog 继承自谁？→ object（基类/父类）</span>
+<span class="f">print</span>(<span class="cn">Dog</span>.__bases__)   <span class="c"># (&lt;class 'object'&gt;,)</span></div>
+
+  <h3>type 和 object 的循环关系</h3>
+  <p>这是 Python 中最烧脑的一对关系：</p>
+
+  <div class="code-block"><span class="c"># type 是 object 的子类（继承维度）</span>
+<span class="f">print</span>(<span class="f">type</span>.__bases__)     <span class="c"># (&lt;class 'object'&gt;,)  → type 继承自 object</span>
+
+<span class="c"># type 是 object 的元类（创建维度）</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="f">object</span>))       <span class="c"># &lt;class 'type'&gt;       → type 创建了 object</span>
+
+<span class="c"># type 是它自己的元类（自己创建自己）</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="f">type</span>))         <span class="c"># &lt;class 'type'&gt;       → type 创建了自己</span></div>
+
+  <div class="diagram"><span class="note">创建维度（→）和继承维度（←）：</span>
+
+<span class="label">创建</span>:  type ──→ type (自创建)
+        type ──→ object (type 创建了 object)
+        type ──→ Dog (type 创建了 Dog)
+
+<span class="label">继承</span>:  type    ←── object (type 继承 object)
+        Dog    ←── object (Dog 继承 object)
+        object ←── 没有父类 (终极基类)
+
+<span class="note">循环：type 创建了 object，type 又继承自 object</span></div>
+
+  <h3>验证一切</h3>
+  <div class="code-block"><span class="c"># 一切皆对象，一切皆继承自 object</span>
+<span class="f">print</span>(<span class="f">isinstance</span>(<span class="n">42</span>, <span class="f">object</span>))           <span class="c"># True</span>
+<span class="f">print</span>(<span class="f">isinstance</span>(<span class="s">"hello"</span>, <span class="f">object</span>))      <span class="c"># True</span>
+<span class="f">print</span>(<span class="f">isinstance</span>(<span class="cn">Dog</span>, <span class="f">object</span>))          <span class="c"># True  ← 类也是对象</span>
+<span class="f">print</span>(<span class="f">isinstance</span>(<span class="f">type</span>, <span class="f">object</span>))         <span class="c"># True  ← type 也是对象</span>
+
+<span class="c"># 一切类型皆由 type 创建</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="n">42</span>))         <span class="c"># &lt;class 'int'&gt;       → int 创建了 42</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="f">int</span>))        <span class="c"># &lt;class 'type'&gt;      → type 创建了 int</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="f">object</span>))     <span class="c"># &lt;class 'type'&gt;      → type 创建了 object</span>
+<span class="f">print</span>(<span class="f">type</span>(<span class="f">type</span>))       <span class="c"># &lt;class 'type'&gt;      → type 创建了自己</span></div>
+
+  <table>
+    <tr>
+      <th></th>
+      <th><code>type</code>（元类）</th>
+      <th><code>object</code>（基类）</th>
+    </tr>
+    <tr>
+      <td><strong>角色</strong></td>
+      <td>类的创建者</td>
+      <td>类的继承根基</td>
+    </tr>
+    <tr>
+      <td><strong>维度</strong></td>
+      <td>"谁创建了类"</td>
+      <td>"类继承自谁"</td>
+    </tr>
+    <tr>
+      <td><strong>提供什么</strong></td>
+      <td><code>__new__</code> / <code>__init__</code> / <code>__call__</code></td>
+      <td><code>__str__</code> / <code>__eq__</code> / <code>__hash__</code> 等</td>
+    </tr>
+    <tr>
+      <td><strong>数量</strong></td>
+      <td>每个类有且仅有一个元类</td>
+      <td>一个类可以有多个父类</td>
+    </tr>
+    <tr>
+      <td><strong>关系</strong></td>
+      <td><code>type</code> 创建了 <code>object</code></td>
+      <td><code>type</code> 继承自 <code>object</code></td>
+    </tr>
+  </table>
+</div>
+
+<!-- Section 3 -->
+<div class="section" id="s3">
+  <h2><span class="num">3</span>四个参数：mcs / name / bases / namespace <span class="badge badge-high">高频</span></h2>
+
+  <p>元类的 <code>__new__</code> 方法接收四个参数，对应 <code>type(name, bases, dict)</code> 创建类时的四个输入：</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">ToolMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        <span class="c">#          ↑     ↑      ↑       ↑</span>
+        <span class="c">#       元类自己  类名字  父类们   类体命名空间</span>
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)</span></div>
+
+  <table>
+    <tr>
+      <th>参数</th>
+      <th>含义</th>
+      <th>类型</th>
+      <th>示例</th>
+    </tr>
+    <tr>
+      <td><code>mcs</code></td>
+      <td>元类自身（类比 self）</td>
+      <td>type</td>
+      <td><code>ToolMeta</code></td>
+    </tr>
+    <tr>
+      <td><code>name</code></td>
+      <td>被创建的类名</td>
+      <td>str</td>
+      <td><code>'SearchTool'</code></td>
+    </tr>
+    <tr>
+      <td><code>bases</code></td>
+      <td>父类元组</td>
+      <td>tuple</td>
+      <td><code>(BaseTool,)</code></td>
+    </tr>
+    <tr>
+      <td><code>namespace</code></td>
+      <td>类体定义的字典</td>
+      <td>dict</td>
+      <td><code>{'tool_name': 'search', 'run': func}</code></td>
+    </tr>
+  </table>
+
+  <h3>四个参数的来源</h3>
+  <div class="diagram">你写的代码              Python 底层等价调用
+─────────────          ──────────────────────
+class SearchTool(       type(
+    BaseTool,            'SearchTool',        ← name
+    metaclass=ToolMeta   (BaseTool,),          ← bases
+):                       {'tool_name': 'search',  ← namespace
+    tool_name = ...       'run': &lt;function&gt;,
+    def run(): ...        '__module__': 'xxx'}
+)                      )
+
+                     ↓ 元类拦截了这个 type() 调用
+
+ToolMeta.__new__(mcs=ToolMeta, name='SearchTool', bases=(BaseTool,), namespace={...})
+                     ↑自己        ↑类名           ↑父类元组        ↑类体字典</div>
+
+  <h3>namespace 是元类最强大的地方</h3>
+  <p>此时类还没创建，你可以<strong>随意增删改这个字典</strong>，改完再交给 <code>type.__new__</code> 生成最终的类：</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">ToolMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        <span class="c"># ← 在类创建前，还可以改 namespace</span>
+        <span class="c"># 收集所有 Field 类型的属性</span>
+        fields = {<span class="o">k: v</span> <span class="k">for</span> <span class="o">k, v</span> <span class="k">in</span> namespace.items()
+                  <span class="k">if</span> <span class="f">isinstance</span>(<span class="o">v</span>, <span class="cn">Field</span>)}
+        namespace[<span class="s">'_fields'</span>] = fields
+
+        <span class="c"># 甚至可以替换方法</span>
+        <span class="k">for</span> key <span class="k">in</span> <span class="f">list</span>(namespace):
+            <span class="k">if</span> <span class="f">callable</span>(namespace[key]) <span class="k">and not</span> key.startswith(<span class="s">'_'</span>):
+                namespace[key] = log_wrapper(namespace[key])
+
+        <span class="c"># ← 此刻类还不存在，改完才创建</span>
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)</div>
+
+  <div class="callout callout-warn">
+    <strong>对比 __init_subclass__ 为什么做不到这个</strong>
+    <code>__init_subclass__</code> 时类已经创建好了，namespace 已经固化成属性。只能读 <code>cls.tool_name</code>，不能在类创建前替换方法。虽然 <code>setattr(cls, 'run', new_func)</code> 能改，但不如在 namespace 阶段改干净。
+  </div>
+</div>
+
+<!-- Section 4 -->
+<div class="section" id="s4">
+  <h2><span class="num">4</span>生产场景一：自动注册插件系统 <span class="badge badge-star">Agent</span></h2>
+
+  <p>Agent 开发中最真实的需求——开发者写一个 Tool 类就自动注册，不用手动维护注册表。</p>
+
+  <div class="code-block"><span class="c"># 不用元类：每个工具都要手动注册，忘了就丢了</span>
+<span class="k">class</span> <span class="cn">SearchTool</span>:
+    <span class="k">pass</span>
+REGISTRY[<span class="s">'search'</span>] = <span class="cn">SearchTool</span>   <span class="c"># ← 容易忘</span>
+
+<span class="c"># 用元类：定义即注册，零遗漏</span>
+<span class="k">class</span> <span class="cn">ToolMeta</span>(<span class="f">type</span>):
+    registry = {}
+
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        cls = <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+        <span class="k">if</span> name != <span class="s">'BaseTool'</span>:           <span class="c"># 跳过基类</span>
+            key = namespace.get(<span class="s">'tool_name'</span>, name.lower())
+            <span class="cn">ToolMeta</span>.registry[key] = cls
+        <span class="k">return</span> cls
+
+<span class="k">class</span> <span class="cn">BaseTool</span>(<span class="o">metaclass=ToolMeta</span>):
+    tool_name: <span class="f">str</span>
+
+<span class="c"># 子类一定义就自动注册</span>
+<span class="k">class</span> <span class="cn">SearchTool</span>(<span class="cn">BaseTool</span>):
+    tool_name = <span class="s">'search'</span>
+
+<span class="k">class</span> <span class="cn">CalculatorTool</span>(<span class="cn">BaseTool</span>):
+    tool_name = <span class="s">'calculator'</span>
+
+<span class="f">print</span>(<span class="cn">ToolMeta</span>.registry)
+<span class="c"># {'search': SearchTool, 'calculator': CalculatorTool}</span></div>
+
+  <div class="callout callout-info">
+    <strong>生产对应</strong>
+    LangChain 的 <code>BaseTool</code>、Django 的 <code>Model</code> 注册、Flask 的蓝图注册、pytest 的插件发现，底层都是这套机制。
+  </div>
+
+  <h3>为什么用元类而不是装饰器？</h3>
+  <ul style="padding-left: 20px; margin: 10px 0;">
+    <li>装饰器需要在每个类上加 <code>@register</code>，容易漏</li>
+    <li>元类在 <code>class XXX(BaseTool)</code> 的瞬间自动触发，<strong>继承即注册</strong>，更安全</li>
+  </ul>
+</div>
+
+<!-- Section 5 -->
+<div class="section" id="s5">
+  <h2><span class="num">5</span>生产场景二：ORM 字段收集</h2>
+
+  <p>开发者只写 <code>name = Field(str)</code>，元类自动完成字段收集、表名推导——省掉大量样板代码。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">ModelMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        <span class="c"># 在类创建时扫描所有 Field，自动收集成 _fields</span>
+        fields = {}
+        <span class="k">for</span> key, val <span class="k">in</span> <span class="f">list</span>(namespace.items()):
+            <span class="k">if</span> <span class="f">isinstance</span>(<span class="o">val</span>, <span class="cn">Field</span>):
+                val.name = key          <span class="c"># 反向注入字段名</span>
+                fields[key] = val
+        namespace[<span class="s">'_fields'</span>] = fields
+        namespace[<span class="s">'_table'</span>] = name.lower() + <span class="s">'s'</span>  <span class="c"># 自动表名</span>
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+
+<span class="k">class</span> <span class="cn">Field</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="o">self, type_, **opts</span>):
+        self.type = type_
+        self.name = <span class="k">None</span>
+        self.nullable = opts.get(<span class="s">'nullable'</span>, <span class="k">False</span>)
+
+<span class="k">class</span> <span class="cn">User</span>(<span class="o">metaclass=ModelMeta</span>):
+    name = <span class="cn">Field</span>(<span class="f">str</span>, nullable=<span class="k">False</span>)
+    age = <span class="cn">Field</span>(<span class="f">int</span>, nullable=<span class="k">True</span>)
+
+<span class="f">print</span>(<span class="cn">User</span>._fields)    <span class="c"># {'name': Field(str), 'age': Field(int)}</span>
+<span class="f">print</span>(<span class="cn">User</span>._table)     <span class="c"># 'users'</span></div>
+
+  <div class="callout callout-info">
+    <strong>生产对应</strong>
+    Django ORM 的 <code>Model</code>、SQLAlchemy、Peewee 都用元类把类属性转成数据库列定义。Pydantic V1 也用元类收集字段，V2 改用 Rust + <code>__init_subclass__</code>。
+  </div>
+</div>
+
+<!-- Section 6 -->
+<div class="section" id="s6">
+  <h2><span class="num">6</span>生产场景三：API 接口自动文档生成</h2>
+
+  <p>收集所有 <code>@endpoint</code> 装饰的方法，自动生成 OpenAPI 文档，不用手写。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">APIMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        endpoints = {}
+        <span class="k">for</span> key, val <span class="k">in</span> namespace.items():
+            <span class="k">if</span> <span class="f">callable</span>(<span class="o">val</span>) <span class="k">and</span> <span class="f">hasattr</span>(<span class="o">val</span>, <span class="s">'_api_info'</span>):
+                endpoints[val._api_info[<span class="s">'path'</span>]] = {
+                    <span class="s">'method'</span>: val._api_info[<span class="s">'method'</span>],
+                    <span class="s">'summary'</span>: val._api_info.get(<span class="s">'summary'</span>, <span class="s">''</span>),
+                    <span class="s">'func_name'</span>: key,
+                }
+        namespace[<span class="s">'_endpoints'</span>] = endpoints
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+
+<span class="k">def</span> <span class="f">endpoint</span>(<span class="o">path, method='GET', summary=''</span>):
+    <span class="k">def</span> <span class="f">decorator</span>(<span class="o">func</span>):
+        func._api_info = {<span class="s">'path'</span>: path, <span class="s">'method'</span>: method, <span class="s">'summary'</span>: summary}
+        <span class="k">return</span> func
+    <span class="k">return</span> decorator
+
+<span class="k">class</span> <span class="cn">UserAPI</span>(<span class="o">metaclass=APIMeta</span>):
+    <span class="k">@endpoint</span>(<span class="s">'/users'</span>, <span class="s">'GET'</span>, <span class="s">'获取用户列表'</span>)
+    <span class="k">def</span> <span class="f">list_users</span>(<span class="o">self</span>): ...
+
+    <span class="k">@endpoint</span>(<span class="s">'/users/&lt;id&gt;'</span>, <span class="s">'GET'</span>, <span class="s">'获取用户详情'</span>)
+    <span class="k">def</span> <span class="f">get_user</span>(<span class="o">self</span>): ...
+
+<span class="f">print</span>(<span class="cn">UserAPI</span>._endpoints)
+<span class="c"># {'/users': {'method': 'GET', 'summary': '获取用户列表', ...},</span>
+<span class="c">#  '/users/&lt;id&gt;': {'method': 'GET', 'summary': '获取用户详情', ...}}</span></div>
+
+  <div class="callout callout-info">
+    <strong>生产对应</strong>
+    FastAPI 的自动 OpenAPI 文档生成、Django REST Framework 的序列化器字段收集，底层逻辑类似。
+  </div>
+</div>
+
+<!-- Section 7 -->
+<div class="section" id="s7">
+  <h2><span class="num">7</span>生产场景四：配置类自动校验</h2>
+
+  <p>用元类在类定义时自动收集默认值、必填项、类型约束，实现配置自动校验。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">ConfigMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        defaults = {}
+        required = []
+        types = {}
+
+        <span class="k">for</span> key, val <span class="k">in</span> namespace.items():
+            <span class="k">if not</span> key.startswith(<span class="s">'_'</span>) <span class="k">and not</span> <span class="f">callable</span>(<span class="o">val</span>):
+                types[key] = <span class="f">type</span>(<span class="o">val</span>)
+                <span class="k">if</span> val <span class="k">is</span> ...:           <span class="c"># ... 表示必填</span>
+                    required.append(key)
+                <span class="k">else</span>:
+                    defaults[key] = val
+
+        namespace[<span class="s">'_defaults'</span>] = defaults
+        namespace[<span class="s">'_required'</span>] = required
+        namespace[<span class="s">'_types'</span>] = types
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+
+<span class="k">class</span> <span class="cn">AgentConfig</span>(<span class="o">metaclass=ConfigMeta</span>):
+    model = <span class="s">"gpt-4"</span>          <span class="c"># 有默认值</span>
+    temperature = <span class="n">0.7</span>        <span class="c"># 有默认值</span>
+    api_key = ...            <span class="c"># 必填</span>
+    max_tokens = <span class="n">4096</span>
+
+<span class="c"># 自动校验</span>
+<span class="k">def</span> <span class="f">validate_config</span>(<span class="o">config_dict, config_class</span>):
+    <span class="k">for</span> key <span class="k">in</span> config_class._required:
+        <span class="k">if</span> key <span class="k">not in</span> config_dict:
+            <span class="k">raise</span> <span class="cn">ValueError</span>(<span class="s">f"缺少必填配置: {key}"</span>)
+    merged = {**config_class._defaults, **config_dict}
+    <span class="k">for</span> key, val <span class="k">in</span> merged.items():
+        expected = config_class._types.get(key)
+        <span class="k">if</span> expected <span class="k">and not</span> <span class="f">isinstance</span>(<span class="o">val, expected</span>):
+            <span class="k">raise</span> <span class="cn">TypeError</span>(<span class="s">f"{key} 需要 {expected.__name__}"</span>)
+    <span class="k">return</span> merged
+
+cfg = validate_config({<span class="s">'api_key'</span>: <span class="s">'xxx'</span>}, <span class="cn">AgentConfig</span>)
+<span class="c"># {'model': 'gpt-4', 'temperature': 0.7, 'api_key': 'xxx', 'max_tokens': 4096}</span></div>
+</div>
+
+<!-- Section 8 -->
+<div class="section" id="s8">
+  <h2><span class="num">8</span>生产场景五：接口契约强制</h2>
+
+  <p>比 ABC 更早——类定义的瞬间就拦截，CI 阶段就能发现问题。</p>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">ContractMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        <span class="k">if</span> bases:  <span class="c"># 不是接口本身，是子类</span>
+            required = <span class="f">set</span>()
+            <span class="k">for</span> base <span class="k">in</span> bases:
+                required |= <span class="f">getattr</span>(<span class="o">base, '_abstract_methods', set()</span>)
+            missing = required - <span class="f">set</span>(namespace.keys())
+            <span class="k">if</span> missing:
+                <span class="k">raise</span> <span class="cn">TypeError</span>(
+                    <span class="s">f"{name} 未实现接口方法: {missing}"</span>
+                )
+        <span class="k">else</span>:
+            <span class="c"># 接口本身：收集抽象方法</span>
+            namespace[<span class="s">'_abstract_methods'</span>] = {
+                <span class="o">k</span> <span class="k">for</span> <span class="o">k, v</span> <span class="k">in</span> namespace.items()
+                <span class="k">if</span> <span class="f">callable</span>(<span class="o">v</span>) <span class="k">and not</span> k.startswith(<span class="s">'_'</span>)
+            }
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+
+<span class="k">class</span> <span class="cn">AgentInterface</span>(<span class="o">metaclass=ContractMeta</span>):
+    <span class="k">def</span> <span class="f">plan</span>(<span class="o">self, task</span>): ...      <span class="c"># 只声明不实现</span>
+    <span class="k">def</span> <span class="f">execute</span>(<span class="o">self, action</span>): ...
+    <span class="k">def</span> <span class="f">reflect</span>(<span class="o">self, result</span>): ...
+
+<span class="c"># 少实现一个方法，类定义时就直接报错</span>
+<span class="k">class</span> <span class="cn">MyAgent</span>(<span class="cn">AgentInterface</span>):
+    <span class="k">def</span> <span class="f">plan</span>(<span class="o">self, task</span>): ...
+    <span class="k">def</span> <span class="f">execute</span>(<span class="o">self, action</span>): ...
+<span class="c"># TypeError: MyAgent 未实现接口方法: {'reflect'}</span></div>
+</div>
+
+<!-- Section 9 -->
+<div class="section" id="s9">
+  <h2><span class="num">9</span>生产场景六：AOP 横切关注点</h2>
+
+  <p>不需要改任何业务方法，元类在类创建时自动包装——比装饰器更省心，不用每个方法都加 <code>@log</code>。</p>
+
+  <div class="code-block"><span class="k">import</span> functools, time
+
+<span class="k">class</span> <span class="cn">LoggingMeta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace</span>):
+        <span class="k">for</span> key, val <span class="k">in</span> <span class="f">list</span>(namespace.items()):
+            <span class="k">if</span> <span class="f">callable</span>(<span class="o">val</span>) <span class="k">and not</span> key.startswith(<span class="s">'_'</span>):
+                namespace[key] = mcs._add_logging(<span class="o">val, key</span>)
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)
+
+    <span class="k">@staticmethod</span>
+    <span class="k">def</span> <span class="f">_add_logging</span>(<span class="o">func, name</span>):
+        <span class="k">@functools.wraps</span>(<span class="o">func</span>)
+        <span class="k">def</span> <span class="f">wrapper</span>(<span class="o">*args, **kwargs</span>):
+            start = time.time()
+            <span class="k">try</span>:
+                result = func(*args, **kwargs)
+                <span class="f">print</span>(<span class="s">f"[{name}] cost={time.time()-start:.3f}s"</span>)
+                <span class="k">return</span> result
+            <span class="k">except</span> <span class="cn">Exception</span> <span class="k">as</span> e:
+                <span class="f">print</span>(<span class="s">f"[{name}] {type(e).__name__}: {e}"</span>)
+                <span class="k">raise</span>
+        <span class="k">return</span> wrapper
+
+<span class="k">class</span> <span class="cn">APIService</span>(<span class="o">metaclass=LoggingMeta</span>):
+    <span class="k">def</span> <span class="f">fetch_data</span>(<span class="o">self, url</span>): ...
+    <span class="k">def</span> <span class="f">parse_response</span>(<span class="o">self, data</span>): ...
+    <span class="k">def</span> <span class="f">save_to_db</span>(<span class="o">self, record</span>): ...
+<span class="c"># 所有公开方法自动加上耗时统计和异常日志</span></div>
+</div>
+
+<!-- Section 10 -->
+<div class="section" id="s10">
+  <h2><span class="num">10</span>元类 vs __init_subclass__ vs 装饰器 vs ABC <span class="badge badge-high">高频</span></h2>
+
+  <div class="callout callout-key">
+    <strong>面试关键问题：这些场景现在还需要元类吗？</strong>
+    很多场景有更简单的替代。判断标准：<strong>需要"在类创建前修改 namespace"→ 必须元类；只需要"子类创建后做点什么"→ 用 <code>__init_subclass__</code></strong>。
+  </div>
+
+  <table>
+    <tr>
+      <th>需求</th>
+      <th>元类</th>
+      <th>更简单的替代</th>
+      <th>是否必须用元类</th>
+    </tr>
+    <tr>
+      <td>自动注册子类</td>
+      <td>✅</td>
+      <td><code>__init_subclass__</code>（3.6+）</td>
+      <td>❌ 不必须</td>
+    </tr>
+    <tr>
+      <td>收集字段</td>
+      <td>✅</td>
+      <td><code>__init_subclass__</code> + <code>setattr</code></td>
+      <td>❌ 不必须</td>
+    </tr>
+    <tr>
+      <td>自动文档生成</td>
+      <td>✅</td>
+      <td>装饰器 + <code>__init_subclass__</code></td>
+      <td>❌ 不必须</td>
+    </tr>
+    <tr>
+      <td><strong>修改 namespace</strong></td>
+      <td>✅</td>
+      <td>❌ 无法替代</td>
+      <td><strong>✅ 必须</strong></td>
+    </tr>
+    <tr>
+      <td><strong>拦截方法创建</strong></td>
+      <td>✅</td>
+      <td>❌ 无法替代</td>
+      <td><strong>✅ 必须</strong></td>
+    </tr>
+    <tr>
+      <td>接口强制</td>
+      <td>✅</td>
+      <td>ABC / Protocol</td>
+      <td>❌ 不必须</td>
+    </tr>
+  </table>
+
+  <h3>__init_subclass__ 替代示例</h3>
+  <div class="code-block"><span class="c"># Python 3.6+ 推荐写法：替代自动注册逻辑</span>
+<span class="k">class</span> <span class="cn">BaseTool</span>:
+    registry = {}
+    <span class="k">def</span> <span class="f">__init_subclass__</span>(<span class="o">cls, **kwargs</span>):
+        <span class="f">super</span>().__init_subclass__(**kwargs)
+        <span class="cn">BaseTool</span>.registry[cls.tool_name] = cls
+
+<span class="k">class</span> <span class="cn">SearchTool</span>(<span class="cn">BaseTool</span>):
+    tool_name = <span class="s">'search'</span>
+<span class="c"># 自动注册，不需要元类！</span></div>
+
+  <h3>元类 vs __init_subclass__ 核心区别</h3>
+  <table>
+    <tr>
+      <th></th>
+      <th>元类 <code>__new__</code></th>
+      <th><code>__init_subclass__</code></th>
+    </tr>
+    <tr>
+      <td>触发时机</td>
+      <td>类<strong>创建过程中</strong></td>
+      <td>类<strong>创建后</strong></td>
+    </tr>
+    <tr>
+      <td>能否修改 namespace</td>
+      <td><strong>✅ 可以增删改</strong></td>
+      <td>❌ 已经固化</td>
+    </tr>
+    <tr>
+      <td>能否替换方法</td>
+      <td><strong>✅ 在 namespace 中替换</strong></td>
+      <td>⚠️ 只能 <code>setattr</code> 覆盖</td>
+    </tr>
+    <tr>
+      <td>MRO 复杂性</td>
+      <td>引入额外元类 MRO</td>
+      <td>不引入</td>
+    </tr>
+    <tr>
+      <td>推荐度</td>
+      <td>仅在必须时使用</td>
+      <td><strong>现代 Python 首选</strong></td>
+    </tr>
+  </table>
+
+  <div class="callout callout-warn">
+    <strong>元类冲突问题</strong>
+    一个类不能有两个元类，会触发 <code>Metaclass conflict</code> 错误。需要写一个组合元类继承两个元类来解决（Django + ABC 场景会碰到）。这也是 <code>__init_subclass__</code> 更推荐的原因之一。
+  </div>
+</div>
+
+<!-- Section 11 -->
+<div class="section" id="s11">
+  <h2><span class="num">11</span>面试问答速查</h2>
+
+  <div class="qa">
+    <div class="question">Q1: 什么是元类？</div>
+    <div class="answer">
+      元类就是"创建类的类"。普通类创建实例，元类创建类。Python 中 <code>type</code> 是默认元类，<code>class Dog:</code> 底层等价于 <code>type('Dog', bases, namespace)</code>。自定义元类继承 <code>type</code> 并重写 <code>__new__</code>，可以拦截和修改类的创建过程。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q2: type 和 object 的区别？</div>
+    <div class="answer">
+      <code>type</code> 是所有类的元类（创建维度），<code>object</code> 是所有类的基类（继承维度）。存在循环关系：<code>type</code> 创建了 <code>object</code>（<code>type(object) is type</code>），同时 <code>type</code> 继承自 <code>object</code>（<code>type.__bases__ == (object,)</code>），而且 <code>type</code> 是自己的元类（<code>type(type) is type</code>）。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q3: 元类 __new__ 的四个参数是什么？</div>
+    <div class="answer">
+      <code>mcs</code> 是元类自身（类比 self）；<code>name</code> 是字符串类名；<code>bases</code> 是父类元组；<code>namespace</code> 是类体定义的字典。其中 <code>namespace</code> 是元类能发挥威力的核心——此时类还没创建，可以随意增删改这个字典，改完再交给 <code>type.__new__</code> 生成最终的类。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q4: 元类在实际生产中有什么用？</div>
+    <div class="answer">
+      六大场景：① 自动注册插件/工具系统（Agent 框架）② ORM 字段收集（Django/SQLAlchemy）③ API 自动文档生成（FastAPI）④ 配置类自动校验 ⑤ 接口契约强制 ⑥ AOP 横切关注点（自动日志/重试/缓存）。核心价值是消除样板代码。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q5: 元类和 __init_subclass__ 的区别？什么时候必须用元类？</div>
+    <div class="answer">
+      <code>__init_subclass__</code> 在类创建<strong>后</strong>触发，只能读取/修改属性，不能修改 namespace；元类的 <code>__new__</code> 在类创建<strong>过程中</strong>触发，可以修改 namespace 本身（替换方法、删字段、加字段）。<strong>需要修改 namespace 的场景必须用元类</strong>，其他场景应该优先用 <code>__init_subclass__</code>（更简单、不引入 MRO 复杂性）。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q6: 一个类能有两个元类吗？</div>
+    <div class="answer">
+      不能直接用，会触发 <code>Metaclass conflict</code> 错误。需要写一个组合元类继承两个元类来解决。这也是现代 Python 推荐用 <code>__init_subclass__</code> 的原因之一——不引入额外元类 MRO，避免冲突。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q7: 元类为什么能改变类的行为？</div>
+    <div class="answer">
+      因为 <code>class</code> 关键字本质上是语法糖，底层调用 <code>type(name, bases, namespace)</code> 创建类对象。元类就是拦截这个 <code>type()</code> 调用，在创建前修改 namespace，在创建后做后处理。<code>type</code> 本身就是 Python 的默认元类。
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="question">Q8: Pydantic V2 为什么不用元类了？</div>
+    <div class="answer">
+      V1 用元类收集字段，V2 改用 Rust + <code>__init_subclass__</code>。原因：① 性能——Rust 实现比纯 Python 元类快；② 避免 MRO 复杂性——元类容易和其他库冲突；③ <code>__init_subclass__</code> 足够满足字段收集需求，不需要修改 namespace。
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>Python 元类完全指南 | 面试向复习资料</p>
+  <p>覆盖：type vs object · 四参数详解 · 六大生产场景 · __init_subclass__ 替代方案 · 面试问答</p>
+</div>
+
+</div>
+</body>
+</html>
