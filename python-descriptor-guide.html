@@ -13,14 +13,14 @@
     --accent: #6c5ce7;
     --accent-light: #a29bfe;
     --accent-bg: #f0eeff;
-    --code-bg: #282c34;
-    --code-text: #abb2bf;
-    --keyword: #c678dd;
-    --string: #98c379;
-    --func: #61afef;
-    --comment: #5c6370;
-    --number: #d19a66;
-    --class-name: #e5c07b;
+    --code-bg: #f6f8fa;
+    --code-text: #24292e;
+    --keyword: #d73a49;
+    --string: #032f62;
+    --func: #6f42c1;
+    --comment: #6a737d;
+    --number: #005cc5;
+    --class-name: #22863a;
     --border: #e0e0e0;
     --red: #e74c3c;
     --green: #27ae60;
@@ -143,7 +143,7 @@
   .cn { color: var(--class-name); }
   .o { color: var(--code-text); }
   .comment-line { color: var(--comment); font-style: italic; }
-  .highlight-line { background: rgba(255,255,255,0.06); margin: 0 -22px; padding: 0 22px; border-radius: 4px; }
+  .highlight-line { background: rgba(255,235,59,0.15); margin: 0 -22px; padding: 0 22px; border-radius: 4px; }
   /* Table */
   table {
     width: 100%;
@@ -182,8 +182,9 @@
   .badge-green { background: #e8f5e9; color: #2e7d32; }
   /* Diagram */
   .diagram {
-    background: #1e1e2e;
-    color: #cdd6f4;
+    background: #f0f4f8;
+    color: #1a1a2e;
+    border: 1px solid #d0d7de;
     border-radius: 8px;
     padding: 20px 24px;
     margin: 16px 0;
@@ -193,10 +194,10 @@
     overflow-x: auto;
     white-space: pre;
   }
-  .diagram .arrow { color: var(--accent-light); }
-  .diagram .label { color: var(--green); font-weight: bold; }
-  .diagram .note { color: var(--comment); }
-  .diagram .hit { color: var(--orange); font-weight: bold; }
+  .diagram .arrow { color: #6c5ce7; }
+  .diagram .label { color: #22863a; font-weight: bold; }
+  .diagram .note { color: #6a737d; }
+  .diagram .hit { color: #d73a49; font-weight: bold; }
   /* Q&A */
   .qa { margin: 16px 0; }
   .qa .question {
