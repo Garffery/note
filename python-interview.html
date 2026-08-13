@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 面试题 · 大模型应用开发</title>
+<style>
+:root {
+  --bg: #f7f8fb;
+  --card-bg: #ffffff;
+  --text: #1a1a2e;
+  --text-secondary: #555;
+  --text-muted: #888;
+  --border: #e4e7ec;
+  --primary: #4f46e5;
+  --primary-light: #eef2ff;
+  --sidebar-bg: #1e1e2e;
+  --sidebar-text: #cdd6f4;
+  --sidebar-active: #89b4fa;
+  --sidebar-hover: #313244;
+  --cat1: #4f46e5;
+  --cat2: #059669;
+  --cat3: #d97706;
+  --badge-def: #3b82f6;
+  --badge-ans: #059669;
+  --badge-prin: #8b5cf6;
+  --badge-eng: #f59e0b;
+  --badge-q: #0d9488;
+  --badge-proj: #ec4899;
+  --badge-err: #ef4444;
+  --badge-src: #6b7280;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 14px rgba(0,0,0,0.08);
+  --sidebar-w: 300px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 15px;
+}
+/* Sidebar */
+.sidebar {
+  position: fixed; left: 0; top: 0; width: var(--sidebar-w); height: 100vh;
+  background: var(--sidebar-bg); color: var(--sidebar-text);
+  overflow-y: auto; z-index: 100; transition: transform .3s;
+  padding-bottom: 40px;
+}
+.sidebar-header {
+  padding: 24px 20px 16px; border-bottom: 1px solid #313244;
+}
+.sidebar-header h1 { font-size: 16px; font-weight: 700; color: #cba6f7; margin-bottom: 4px; }
+.sidebar-header p { font-size: 12px; color: #6c7086; }
+.search-box {
+  padding: 12px 16px 8px;
+}
+.search-box input {
+  width: 100%; padding: 8px 12px; border: 1px solid #45475a;
+  border-radius: 8px; background: #313244; color: var(--sidebar-text);
+  font-size: 13px; outline: none; transition: border-color .2s;
+}
+.search-box input:focus { border-color: var(--sidebar-active); }
+.search-box input::placeholder { color: #6c7086; }
+.nav { padding: 4px 8px; }
+.nav-category {
+  padding: 16px 12px 6px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; color: #6c7086;
+}
+.nav-category .cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.nav-item {
+  display: block; padding: 7px 12px 7px 24px; font-size: 13px;
+  color: var(--sidebar-text); text-decoration: none; border-radius: 6px;
+  transition: all .15s; line-height: 1.5; position: relative;
+}
+.nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+.nav-item.active { background: var(--sidebar-hover); color: var(--sidebar-active); font-weight: 600; }
+.nav-item.active::before {
+  content: ''; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 16px; background: var(--sidebar-active); border-radius: 2px;
+}
+.nav-item.hidden { display: none; }
+.nav-item .q-num { color: #6c7086; font-size: 12px; }
+/* Content */
+.content {
+  margin-left: var(--sidebar-w); max-width: 880px; padding: 32px 40px 80px;
+}
+.content-header {
+  margin-bottom: 32px; padding: 28px 32px; background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-radius: 14px; color: #fff; box-shadow: var(--shadow-lg);
+}
+.content-header h1 { font-size: 22px; margin-bottom: 8px; }
+.content-header p { font-size: 14px; opacity: .9; }
+.content-header .meta { display: flex; gap: 20px; margin-top: 12px; font-size: 13px; opacity: .85; }
+.content-header .meta span { display: flex; align-items: center; gap: 4px; }
+.category-header {
+  display: flex; align-items: center; gap: 10px; margin: 40px 0 20px;
+  padding-bottom: 10px; border-bottom: 2px solid var(--border);
+}
+.category-header .cat-icon {
+  width: 28px; height: 28px; border-radius: 8px; display: flex;
+  align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff;
+}
+.category-header h2 { font-size: 18px; font-weight: 700; }
+.category-header .cat-count { font-size: 13px; color: var(--text-muted); margin-left: auto; }
+/* Question Card */
+.q-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px 28px; margin-bottom: 20px;
+  box-shadow: var(--shadow); transition: box-shadow .2s, transform .2s;
+}
+.q-card:hover { box-shadow: var(--shadow-lg); }
+.q-card.targeted { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.q-title {
+  font-size: 17px; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 8px;
+}
+.q-title .q-label {
+  font-size: 12px; font-weight: 700; color: var(--primary); background: var(--primary-light);
+  padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+}
+.q-section { margin-bottom: 14px; }
+.q-section:last-child { margin-bottom: 0; }
+.badge {
+  display: inline-block; font-size: 12px; font-weight: 600;
+  padding: 1px 8px; border-radius: 4px; margin-bottom: 6px;
+}
+.badge-def { background: #dbeafe; color: var(--badge-def); }
+.badge-ans { background: #d1fae5; color: var(--badge-ans); }
+.badge-prin { background: #ede9fe; color: var(--badge-prin); }
+.badge-eng { background: #fef3c7; color: var(--badge-eng); }
+.badge-q { background: #ccfbf1; color: var(--badge-q); }
+.badge-proj { background: #fce7f3; color: var(--badge-proj); }
+.badge-err { background: #fee2e2; color: var(--badge-err); }
+.badge-src { background: #f3f4f6; color: var(--badge-src); }
+.q-section p { font-size: 14.5px; color: var(--text); line-height: 1.8; }
+.q-section ul { list-style: none; padding-left: 0; }
+.q-section ul li { font-size: 14.5px; color: var(--text); line-height: 1.8; padding-left: 18px; position: relative; }
+.q-section ul li::before { content: '•'; position: absolute; left: 4px; color: var(--text-muted); }
+.q-section code {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+  font-size: 13px; background: #f1f3f5; color: #e63946; padding: 1px 5px; border-radius: 4px;
+}
+.followup { margin-left: 0; padding: 10px 14px; background: #f8f9fb; border-left: 3px solid var(--badge-q); border-radius: 0 6px 6px 0; margin-top: 8px; }
+.followup .badge { margin-bottom: 4px; }
+/* Mobile toggle */
+.menu-toggle { display: none; }
+@media (max-width: 900px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { transform: translateX(-100%); width: 280px; }
+  .sidebar.open { transform: translateX(0); }
+  .content { margin-left: 0; padding: 16px 16px 60px; }
+  .menu-toggle {
+    display: flex; position: fixed; top: 12px; left: 12px; z-index: 200;
+    width: 40px; height: 40px; border-radius: 8px; border: none;
+    background: var(--sidebar-bg); color: #fff; font-size: 20px;
+    align-items: center; justify-content: center; cursor: pointer;
+  }
+}
+/* Scrollbar */
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: #45475a; border-radius: 3px; }
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>Python 面试题</h1>
+    <p>面向大模型应用开发 · 36 题</p>
+  </div>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="搜索题目关键词…" oninput="filterQuestions()">
+  </div>
+  <nav class="nav" id="nav">
+
+    <div class="nav-category"><span class="cat-dot" style="background:#4f46e5"></span>语言与对象模型</div>
+    <a href="#q1" class="nav-item"><span class="q-num">Q1</span> Python 是解释型语言吗？</a>
+    <a href="#q2" class="nav-item"><span class="q-num">Q2</span> is 和 == 有什么区别？</a>
+    <a href="#q3" class="nav-item"><span class="q-num">Q3</span> 可变对象和不可变对象</a>
+    <a href="#q4" class="nav-item"><span class="q-num">Q4</span> 浅拷贝与深拷贝的区别</a>
+    <a href="#q5" class="nav-item"><span class="q-num">Q5</span> list tuple set dict 怎么选</a>
+    <a href="#q6" class="nav-item"><span class="q-num">Q6</span> dict 为什么平均查询 O(1)</a>
+    <a href="#q7" class="nav-item"><span class="q-num">Q7</span> list 的 append 均摊 O(1)</a>
+    <a href="#q8" class="nav-item"><span class="q-num">Q8</span> Python 参数传递方式</a>
+    <a href="#q9" class="nav-item"><span class="q-num">Q9</span> LEGB 作用域规则</a>
+    <a href="#q10" class="nav-item"><span class="q-num">Q10</span> 闭包是什么，常见坑</a>
+    <a href="#q11" class="nav-item"><span class="q-num">Q11</span> 装饰器的本质</a>
+    <a href="#q12" class="nav-item"><span class="q-num">Q12</span> *args **kwargs 参数类型</a>
+    <a href="#q36" class="nav-item"><span class="q-num">Q36</span> from import 与 import 区别</a>
+
+    <div class="nav-category"><span class="cat-dot" style="background:#059669"></span>协议与内存</div>
+    <a href="#q13" class="nav-item"><span class="q-num">Q13</span> 迭代器和可迭代对象区别</a>
+    <a href="#q14" class="nav-item"><span class="q-num">Q14</span> 生成器有什么优势</a>
+    <a href="#q15" class="nav-item"><span class="q-num">Q15</span> 上下文管理器如何工作</a>
+    <a href="#q16" class="nav-item"><span class="q-num">Q16</span> 异常处理工程原则</a>
+    <a href="#q17" class="nav-item"><span class="q-num">Q17</span> dataclass NamedTuple Pydantic</a>
+    <a href="#q18" class="nav-item"><span class="q-num">Q18</span> 类型注解运行时强制生效吗</a>
+    <a href="#q19" class="nav-item"><span class="q-num">Q19</span> CPython 如何管理内存</a>
+    <a href="#q20" class="nav-item"><span class="q-num">Q20</span> 循环引用一定会泄漏吗</a>
+    <a href="#q21" class="nav-item"><span class="q-num">Q21</span> __slots__ 有什么作用</a>
+    <a href="#q22" class="nav-item"><span class="q-num">Q22</span> GIL 是什么</a>
+    <a href="#q23" class="nav-item"><span class="q-num">Q23</span> 如何处理 Python 内存问题</a>
+
+    <div class="nav-category"><span class="cat-dot" style="background:#d97706"></span>并发与工程实践</div>
+    <a href="#q24" class="nav-item"><span class="q-num">Q24</span> 线程进程协程怎么选</a>
+    <a href="#q25" class="nav-item"><span class="q-num">Q25</span> asyncio 事件循环是什么</a>
+    <a href="#q26" class="nav-item"><span class="q-num">Q26</span> coroutine Task Future 关系</a>
+    <a href="#q27" class="nav-item"><span class="q-num">Q27</span> gather 与 TaskGroup 怎么选</a>
+    <a href="#q28" class="nav-item"><span class="q-num">Q28</span> asyncio 取消为什么容易出错</a>
+    <a href="#q29" class="nav-item"><span class="q-num">Q29</span> 如何限制异步调用 LLM 并发</a>
+    <a href="#q30" class="nav-item"><span class="q-num">Q30</span> 异步代码中调用阻塞函数</a>
+    <a href="#q31" class="nav-item"><span class="q-num">Q31</span> 竞态条件，asyncio 会有吗</a>
+    <a href="#q32" class="nav-item"><span class="q-num">Q32</span> 多进程的代价是什么</a>
+    <a href="#q33" class="nav-item"><span class="q-num">Q33</span> Python 项目如何管理依赖</a>
+    <a href="#q34" class="nav-item"><span class="q-num">Q34</span> 如何测试 RAG/Agent 服务</a>
+    <a href="#q35" class="nav-item"><span class="q-num">Q35</span> LLM 服务日志应记录什么</a>
+  </nav>
+</aside>
+
+<!-- Content -->
+<main class="content">
+
+  <div class="content-header">
+    <h1>Python 面试题 · 大模型应用开发</h1>
+    <p>面向大模型应用开发，除语言机制外，重点说明它们对异步 API、RAG/Agent 服务和工程可靠性的影响</p>
+    <div class="meta">
+      <span>📚 36 题</span>
+      <span>🗂️ 3 大板块</span>
+      <span>🔗 来源: github.com/fxyy6666</span>
+    </div>
+  </div>
+
+  <!-- ====== Category 1: 语言与对象模型 ====== -->
+  <div class="category-header">
+    <div class="cat-icon" style="background:var(--cat1)">1</div>
+    <h2>语言与对象模型</h2>
+    <span class="cat-count">Q1 – Q12, Q36</span>
+  </div>
+
+  <!-- Q1 -->
+  <div class="q-card" id="q1" data-text="解释型 编译型 字节码 bytecode pyc CPython PyPy JIT Cython NumPy SIMD profiling">
+    <div class="q-title"><span class="q-label">Q1</span>Python 是解释型语言吗？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>"解释型/编译型"描述实现与执行方式，不是语言规范的绝对分类。CPython 通常先把 <code>.py</code> 源码编译为字节码，再由 Python 虚拟机解释执行；其他实现可采用 JIT 或不同编译路径。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>通常说 Python 是解释型语言，但更准确地说：在主流 CPython 中，源码先解析、编译成 bytecode，可能缓存为 <code>.pyc</code>，再由解释器执行。它仍有编译阶段，只是通常不直接生成独立机器码。PyPy 可 JIT，Cython 可生成 C，所以不能用"解释型"推导 Python 永远慢；性能取决于实现、算法、I/O 和热点是否进入本地库。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p><code>.pyc</code> 缓存主要省去重复解析和字节码编译，不省去虚拟机执行。CPython 可用 <code>dis</code> 查看 bytecode；版本变化时字节码格式可能不同。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>LLM API 服务大部分时间等待网络，Python 解释开销不是主要瓶颈；JSON 解析或向量计算热点可交给用 C/Rust 实现并释放 GIL 的库，而非先重写整个服务。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`.pyc` 会让程序运行速度大幅提升吗？</strong> 它主要缩短模块导入时的编译开销，函数执行仍由虚拟机完成，因此长期运行服务的吞吐通常不会因此显著提升。缓存失效还受 Python 版本和源文件变化控制。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么 NumPy 往往比 Python 循环快？</strong> NumPy 把批量计算放到优化的本地代码中，减少 Python 对象和字节码循环开销，还可利用 SIMD 与连续内存。优势来自实现路径，而非 Python 语法突然被编译。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span>
+      <p>先用 profiling 判断瓶颈是 Python CPU、网络等待还是外部模型，避免凭语言标签做架构决策。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span>
+      <ul><li>认为解释型语言完全没有编译阶段。</li><li>把所有服务延迟都归因于 Python 本身。</li></ul>
+    </div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="q-card" id="q2" data-text="is == identity __eq__ None 单例 哨兵 小整数驻留 字符串驻留 NotImplemented hash">
+    <div class="q-title"><span class="q-label">Q2</span><code>is</code> 和 <code>==</code> 有什么区别？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p><code>is</code> 检查两个引用是否指向同一对象，即 identity；<code>==</code> 调用相等性协议，通常通过 <code>__eq__</code> 比较值或业务语义。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>is</code> 比对象身份，<code>==</code> 比相等语义。判断 <code>None</code>、单例哨兵应用 <code>is</code>；字符串、列表、数字和领域对象的值比较用 <code>==</code>。不能依赖小整数或字符串驻留让 <code>is</code>"碰巧成立"，这是实现优化而非语言保证。自定义 <code>__eq__</code> 还要考虑返回 <code>NotImplemented</code>、哈希一致性和比较副作用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p><code>a is b</code> 不可重载，近似比较对象标识；<code>a == b</code> 会进行富比较分派。若重写相等性并让对象可哈希，必须满足相等对象 hash 相等，否则 dict/set 行为错误。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>缓存未命中使用 <code>MISSING = object()</code> 哨兵，判断 <code>value is MISSING</code>，能区分合法缓存值 <code>None</code>；比较 Pydantic 模型业务字段则按明确序列化或字段规则，不比 identity。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么 `a is 256` 之类写法不可靠？</strong> CPython 可能缓存部分整数和驻留字符串，使对象暂时相同，但范围、构造方式和实现都可能变化。值语义必须用 <code>==</code>，编译器甚至会对字面量 identity 比较警告。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`None` 为什么推荐用 `is None`？</strong> <code>None</code> 是进程内单例，身份判断表达的正是"是否为这个哨兵"；<code>==</code> 可能触发自定义对象的 <code>__eq__</code>，产生意外结果或副作用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用缓存哨兵或未设置字段解释 identity 的实际用途。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>用 <code>is</code> 比较字符串内容。</li><li>重写 <code>__eq__</code> 后仍保留不一致的默认哈希。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="q-card" id="q3" data-text="可变 不可变 list dict set int str tuple 默认参数 hashable dict key 线程安全">
+    <div class="q-title"><span class="q-label">Q3</span>可变对象和不可变对象如何理解？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>可变对象可在 identity 不变时修改内部状态；不可变对象创建后其可观察值不能原地改变，所谓修改通常产生新对象。可变性与变量重新绑定是不同概念。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>list、dict、set 通常可变，int、str、tuple 通常不可变；变量只是对象引用，<code>x += ...</code> 对不同类型可能是原地修改或重新绑定。可变对象作为默认参数会跨调用共享，是常见 bug；作为 dict key 则要求哈希在生命周期内稳定，所以一般不可哈希。tuple 自身不可变，但内部可引用可变对象，不能简单等同"深度不可变"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>函数传入的是对象引用，别名会观察到原地修改；重新赋值只改变局部名字绑定。不可变性使对象更适合作为 key 和共享值，但线程安全还取决于其引用对象与复合操作。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>不要写 <code>def add_message(messages=[]):</code>，应默认 <code>None</code> 后每次创建新列表。Agent State 更新可优先返回新结构或受控 patch，减少多个节点共享可变 dict 的隐式副作用。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>tuple 一定可以作为 dict key 吗？</strong> 不一定。只有所有元素都可哈希时 tuple 才可哈希；包含 list 的 tuple 仍不可作为 key。可哈希要求 hash 在对象生命周期稳定。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>不可变对象一定线程安全吗？</strong> 单个不可变值不能被原地改写，但复合操作、容器引用和重新绑定仍可能竞态；tuple 内若包含可变对象也可能被间接修改。线程安全不能只由外层类型判断。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>结合默认参数、共享 Agent State 和缓存 key 说明可变性的工程影响。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>把变量重新赋值误认为原对象被修改。</li><li>认为 tuple 包含任何内容都可哈希。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="q-card" id="q4" data-text="浅拷贝 深拷贝 copy.copy copy.deepcopy memo __deepcopy__ 循环引用 连接 锁 模型客户端">
+    <div class="q-title"><span class="q-label">Q4</span>浅拷贝与深拷贝的区别？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>浅拷贝创建新的外层容器，但内部元素仍引用原对象；深拷贝递归复制对象图，并使用 memo 处理共享引用与循环，具体行为可由对象协议定制。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>copy.copy</code>、切片或 <code>dict.copy</code> 通常是浅拷贝，修改嵌套可变对象会同时影响原副本；<code>copy.deepcopy</code> 尝试递归复制，但成本高，也不适合连接、锁、模型客户端等资源对象。工程上优先明确复制哪些字段，或使用不可变数据与 Pydantic/dataclass 的受控更新，避免为"保险"对大型 Agent State 全量深拷贝。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>deepcopy 用 memo 保持对象图中的共享关系并避免循环递归，但自定义 <code>__deepcopy__</code> 可改变行为。函数、模块等通常不会被真正复制；外部资源没有合理复制语义。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RAG 配置浅拷贝后修改 <code>retrieval.filters</code> 会污染全局默认配置。修复为每次从不可变 schema 构造请求配置，或只复制嵌套 filter 字段。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>深拷贝一定完全独立吗？</strong> 不一定。不可复制对象可能按原引用保留，自定义协议也可选择共享；外部资源状态更无法复制。应按类型测试并定义边界，而不是依赖"deep"字面含义。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>深拷贝为什么可能很慢？</strong> 它遍历整个可达对象图并分配大量对象，大型消息、向量和工具结果会放大 CPU 与内存。结构化 patch 或 copy-on-write 更适合频繁状态更新。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用嵌套配置污染或 Agent State 分支说明浅拷贝 bug 与更合理的更新策略。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>以为 <code>new = old.copy()</code> 会复制所有嵌套层。</li><li>对含客户端和锁的对象直接 deepcopy。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="q-card" id="q5" data-text="list tuple set dict 容器选择 有序 去重 哈希 OrderedDict 复杂度 RAG 排名">
+    <div class="q-title"><span class="q-label">Q5</span>list、tuple、set、dict 怎么选？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>四类内置容器分别面向有序可变序列、不可变序列记录、唯一元素集合和键值映射；选择应依据语义、操作复杂度、顺序、重复、哈希与并发修改需求。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>需要有序、可重复、按位置访问用 list；固定结构或希望表达不可变记录可用 tuple，但有字段语义时优先 dataclass/NamedTuple；去重和成员判断用 set；按稳定 key 查询用 dict。现代 Python 的 dict 保持插入顺序，但它仍是映射，不应代替所有序列。set/dict 的 key 必须可哈希，成员平均 O(1)，最坏情况与扩容需另外理解。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>list 是动态数组，tuple 更紧凑且可在元素可哈希时作为 key；set/dict 基于哈希表，换取空间获得快速查找。语义清晰通常比微小性能差异更重要。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RAG 候选按排名保留用 list，已见 chunk_id 去重用 set，chunk_id 到元数据用 dict；固定的 <code>(tenant_id, index_version)</code> 可作为缓存 key tuple。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>dict 有序后能否替代 OrderedDict？</strong> 普通 dict 保证插入顺序，很多场景足够；OrderedDict 仍提供更明确的重排操作和顺序敏感相等语义。按实际 API 需求选择。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么 set 不适合保存检索排名？</strong> set 的核心语义是唯一性，迭代顺序不代表相关性排名；转换为 set 会丢失顺序。应使用 list 保序，再用辅助 set 去重。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用 RAG 候选流说明四种容器各自职责与复杂度。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>为去重把有序结果直接转 set 后返回。</li><li>把 tuple 当作带字段校验的业务模型。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q6 -->
+  <div class="q-card" id="q6" data-text="dict 哈希表 O(1) hash 冲突 探测 扩容 __eq__ __hash__ 可变 key 幂等">
+    <div class="q-title"><span class="q-label">Q6</span>dict 为什么平均查询是 O(1)？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>dict 使用哈希表，将 key 的 hash 映射到表中探测位置，再通过冲突解决找到键值；在负载因子受控、哈希分布良好时，平均只需常数次探测。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>查询先算 <code>hash(key)</code>，再根据表大小定位槽位；若冲突按探测序列继续，并用 <code>==</code> 确认真实 key。CPython 会在负载达到阈值时扩容，保持平均 O(1)。但最坏可退化，hash 计算本身也可能与 key 长度有关。key 必须 hash 稳定，所以可变 list/dict 不能直接作为 key，自定义 <code>__eq__</code> 与 <code>__hash__</code> 必须一致。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>O(1) 是以哈希操作视为常数的均摊结论，不代表无碰撞或不分配内存。扩容会偶发 O(n)，摊到多次插入后仍平均常数。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>用 dict 保存 request_id 到任务状态可快速查找，但进程内 dict 不能承担分布式幂等；多实例仍需数据库/Redis 原子结构和和过期策略。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>哈希冲突时如何判断 key 相同？</strong> hash 相同只决定候选位置，dict 还会比较对象 identity 或 <code>==</code>；不同 key 可有相同 hash 并共存。相等对象必须具有相同 hash。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>dict 查找真的是严格 O(1) 吗？</strong> 是平均/均摊意义。恶劣碰撞可退化，长字符串 hash 也需遍历内容；安全实现会用随机化等措施降低可构造碰撞攻击。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>解释 hash、冲突、相等校验和扩容，不只背"底层是哈希表"。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为相同 hash 的 key 一定相等。</li><li>用可变业务对象作 key 后修改参与 hash 的字段。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q7 -->
+  <div class="q-card" id="q7" data-text="list append 均摊 O(1) 动态数组 over-allocation 扩容 insert pop deque asyncio.Queue 字符串 join">
+    <div class="q-title"><span class="q-label">Q7</span>list 的 append 为什么是均摊 O(1)？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>CPython list 是保存对象引用的动态数组，预留大于当前长度的容量；多数 append 直接写入空槽，容量不足时分配更大数组并复制引用，因此单次最坏 O(n)、长期均摊 O(1)。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>list 不会每 append 一次都重新分配，它使用 over-allocation 留出额外容量。普通 append 只写一个指针，是 O(1)；偶尔扩容需要申请更大连续内存并复制 n 个引用，是 O(n)，但扩容不频繁，分摊到一系列 append 后为 O(1)。这不代表 append 无内存峰值，也不代表在列表头部插入快。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>动态数组提供 O(1) 索引和良好缓存局部性；<code>insert(0, x)</code>、<code>pop(0)</code> 需要移动后续元素，是 O(n)，队列应使用 deque 或 asyncio.Queue。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>流式 token 可追加到 list 后一次 <code>''.join</code>，避免每次字符串相加创建新对象；但无限会话历史不能只 append，需窗口、持久化和容量限制。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么字符串循环 `+=` 可能低效？</strong> 字符串不可变，每次拼接通常生成新字符串并复制已有内容，整体可能接近 O(n²)。收集片段到 list 后 join 能先计算总长度并一次构造。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>list 可以安全当 FIFO 队列吗？</strong> 尾部 append 和 pop 高效，但头部 pop(0) 需要移动元素。同步场景用 collections.deque，异步生产消费用有界 asyncio.Queue 还能表达背压。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>联系 token 聚合与异步队列说明均摊复杂度和数据结构选择。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>把均摊 O(1) 说成每次严格 O(1)。</li><li>用 list.pop(0) 实现高吞吐任务队列。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02</p></div>
+  </div>
+
+  <!-- Q8 -->
+  <div class="q-card" id="q8" data-text="参数传递 call by sharing 对象引用 形参 实参 可变对象 默认参数 None 哨兵 mutate">
+    <div class="q-title"><span class="q-label">Q8</span>Python 的参数传递是什么方式？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>Python 采用 call by sharing，也常称"对象引用传递"：形参获得实参对象的引用副本；函数可修改传入的可变对象，但给形参重新绑定不会改变调用方名字。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>它不是传统"值传递/引用传递"二选一。调用时对象引用被绑定到局部形参；<code>lst.append</code> 修改同一对象，调用方能看到；<code>lst = [...]</code> 只是让局部名字指向新对象，调用方绑定不变。不可变对象看似值传递，是因为不能原地修改。API 设计应明确函数是否 mutate 输入，避免隐式修改共享配置和 Agent State。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>名字与对象分离。参数绑定发生在新局部作用域，对象是否可变决定能否观察到状态变化；容器内部对象也可能通过别名被修改。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p><code>def add_filter(config): config['filters'].append(...)</code> 会修改调用方嵌套结构；更安全做法是接收不可变模型或返回显式 patch，并在类型与文档中说明。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>如何在函数内交换调用方两个变量？</strong> 仅重新绑定形参无法改变调用方名字；应返回新值让调用方执行 <code>a, b = swap(a, b)</code>，或显式修改一个共享容器，但后者语义更隐晦。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么默认可变参数会跨调用共享？</strong> 默认值在函数定义时求值一次，之后每次缺省调用都绑定同一对象。应使用 <code>None</code> 哨兵并在函数内部新建容器。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用共享配置被修改的 bug 解释对象引用、原地修改和重新绑定。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>笼统说 Python 全是引用传递。</li><li>为避免副作用对所有参数无差别深拷贝。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q9 -->
+  <div class="q-card" id="q9" data-text="LEGB 作用域 Local Enclosing Global Builtins nonlocal UnboundLocalError 词法作用域 闭包 late binding contextvars">
+    <div class="q-title"><span class="q-label">Q9</span>LEGB 作用域规则是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>LEGB 是 Python 名字解析顺序：Local 局部、Enclosing 闭包外层、Global 模块全局、Builtins 内建。赋值默认创建当前局部绑定，<code>global</code> 和 <code>nonlocal</code> 可改变绑定目标。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>读取名字按 L→E→G→B 查找；函数体内只要存在对某名字的赋值，默认就把它视为局部，所以赋值前读取可能触发 UnboundLocalError。<code>nonlocal</code> 修改最近的闭包绑定，<code>global</code> 修改模块级绑定。工程上少依赖可变全局状态，尤其异步服务中全局"当前用户"会造成请求串线，应通过参数或 context 传递。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>作用域是静态确定的词法规则，而不是按运行时执行到哪一行决定。闭包捕获的是名字绑定，不是定义时自动复制值，这也解释 late binding。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模块级 <code>current_tenant</code> 在并发请求中被覆盖会越权；改为每请求不可变 context 显式传入，或谨慎使用 contextvars，而非依赖 global。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么会出现 UnboundLocalError？</strong> 编译器看到函数内对名字赋值，就将其判为 local；即使读取发生在赋值前，亦不会回退 global。使用参数、改名或明确 global，但通常应减少全局写。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`nonlocal` 与 `global` 有什么区别？</strong> nonlocal 绑定最近的 enclosing 函数作用域，要求该绑定已存在；global 指向当前模块命名空间。两者都影响可读性，应谨慎使用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>将 LEGB 与异步请求上下文隔离联系起来，体现不是只背顺序。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为读取会按 LEGB，但赋值也会自动修改找到的外层变量。</li><li>用模块全局保存租户和会话状态。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02</p></div>
+  </div>
+
+  <!-- Q10 -->
+  <div class="q-card" id="q10" data-text="闭包 free variables __closure__ cell late binding lambda 循环 functools.partial nonlocal 内存泄漏">
+    <div class="q-title"><span class="q-label">Q10</span>闭包是什么，常见坑是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>闭包是函数及其引用的词法外层环境组合，使外层函数返回后，内部函数仍可访问 free variables。Python 闭包捕获名字的 cell，而非总是在创建时复制当前值。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>闭包可用于工厂函数、装饰器和封装状态。常见坑是循环中的 late binding：多个 lambda 都引用同一个循环变量，调用时看到最终值；可用默认参数 <code>lambda x=i: x</code> 或 <code>functools.partial</code> 冻结。若要重新绑定外层变量需 <code>nonlocal</code>。闭包持有大对象也会延长生命周期，服务中需注意内存和并发共享状态。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>free variable 存在 <code>__closure__</code> cell 中，调用时读取 cell 当前内容。默认参数在函数创建时求值，因此可用于捕获当时值，但应保证语义清楚。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>循环注册工具 handler 时直接 <code>lambda: call(tool)</code>，最终所有 handler 指向最后一个 tool。使用 <code>partial(call, tool)</code>，并在单测中验证每个工具名到 handler 的映射。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么 lambda 循环变量会变成最后一个值？</strong> 函数捕获同一个变量 cell，而循环结束后 cell 保存最终值；不是每次创建都复制。默认参数或 partial 会把当前对象保存为独立参数。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>闭包会导致内存泄漏吗？</strong> 它会延长被捕获对象生命周期，但引用释放后通常可回收；若闭包被全局缓存或回调长期持有，大对象就持续占用。应只捕获必要数据并可注销回调。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用工具注册 late binding bug 和修复解释闭包机制。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为闭包自动复制所有外部值。</li><li>工厂函数无意捕获完整客户端或大型状态。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q11 -->
+  <div class="q-card" id="q11" data-text="装饰器 高阶函数 @decorator functools.wraps async wrapper 重试 鉴权 缓存 trace __wrapped__ 顺序">
+    <div class="q-title"><span class="q-label">Q11</span>装饰器的本质是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>装饰器是接受可调用对象并返回可调用对象的高阶机制，<code>@decorator</code> 语法等价于定义后执行 <code>func = decorator(func)</code>；可用于横切关注点或注册元数据。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>装饰器本质是函数重绑定。常用于鉴权、重试、trace、缓存和注册，但 wrapper 要用 <code>functools.wraps</code> 保留名称、文档和 <code>__wrapped__</code>，异步函数需要 async wrapper 并正确 await，不能把同步阻塞逻辑套进事件循环。装饰器的执行时机包括导入时创建和调用时 wrapper，两者要区分；业务异常也不能被通用装饰器误吞。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>带参数装饰器多一层工厂：配置 → decorator → wrapper。多个装饰器按自下而上应用、调用时自外向内，顺序影响鉴权、缓存和重试语义。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模型调用使用 <code>@trace_model</code> 和 <code>@retry_transient</code>，重试应位于 trace 内外取决于是否要每个 attempt 独立 span；异步 wrapper 使用 <code>async def</code> 并在 finally 记录 usage。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么需要 `functools.wraps`？</strong> 它复制关键元数据并设置 <code>__wrapped__</code>，有利于调试、文档、签名检查和框架依赖注入。没有它，FastAPI 等工具可能看到错误函数信息。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>多个装饰器顺序有什么影响？</strong> <code>@A @B def f</code> 等价于 <code>f=A(B(f))</code>。缓存放在鉴权外可能跨用户泄漏，重试放在事务外/内也有不同副作用，因此顺序必须按语义设计和测试。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用 trace + retry + auth 的顺序说明装饰器不是语法糖背诵。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>async 函数使用普通 wrapper 后返回未 await coroutine。</li><li>缓存装饰器位于授权之外导致权限绕过。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02、P03</p></div>
+  </div>
+
+  <!-- Q12 -->
+  <div class="q-card" id="q12" data-text="args kwargs positional-only keyword-only 斜杠 星号 inspect.signature bind Pydantic schema 校验">
+    <div class="q-title"><span class="q-label">Q12</span><code>*args</code>、<code>**kwargs</code> 与参数类型有哪些？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>Python 函数参数包括 positional-only、positional-or-keyword、var-positional <code>*args</code>、keyword-only 和 var-keyword <code>**kwargs</code>；<code>/</code> 与 <code>*</code> 可显式限定调用方式。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>*args</code> 收集额外位置参数为 tuple，<code>**kwargs</code> 收集额外关键字为 dict；定义中的 <code>/</code> 前参数只能按位置，单独 <code>*</code> 后参数只能按关键字。明确签名比滥用 kwargs 更利于类型检查、IDE、API 文档和兼容升级。转发 wrapper 时可用 <code>*args/**kwargs</code>，但边界层仍应通过 Pydantic 或显式 schema 校验，不能让任意字段穿透到工具。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>调用时参数先按签名绑定，可用 <code>inspect.signature().bind</code> 检查。可变默认值问题与参数类别无关，默认表达式仍只在定义时求值一次。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>工具函数定义 <code>def search(query: str, /, *, tenant: str, top_k: int=10)</code>，强制安全上下文和配置以关键字传入；模型 schema 不暴露由服务端注入的 tenant。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么 keyword-only 参数适合配置项？</strong> 调用处显式写名字，可避免多个布尔/整数位置参数混淆，未来新增可选参数也更兼容。对 API 和工具包装尤其有利。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`**kwargs` 为什么会削弱接口质量？</strong> 任意键让拼写错误延迟到运行时，类型与文档不明确，还可能把敏感参数意外透传。内部通用转发可以使用，但边界要白名单和 schema 校验。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用工具函数把用户参数与服务端安全上下文分离，说明签名设计价值。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>所有函数都用 args/kwargs 追求"灵活"。</li><li>直接把模型生成 kwargs 传给数据库或外部 SDK。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P04</p></div>
+  </div>
+
+  <!-- Q36 -->
+  <div class="q-card" id="q36" data-text="from import import module 名字绑定 引用快照 实时查找 重新绑定 原地修改 模块命名空间 __dict__ 属性访问 配置热更新">
+    <div class="q-title"><span class="q-label">Q36</span><code>from module import name</code> 和 <code>import module</code> 有什么区别？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p><code>from module import name</code> 在导入时于当前命名空间创建一个新绑定，指向该时刻 <code>module.name</code> 所指对象，之后与源模块脱钩；<code>import module</code> 则绑定模块对象本身，<code>module.name</code> 每次访问都通过模块 <code>__dict__</code> 实时查找，永远看到最新值。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>本质区别在名字查找时机。<code>from x import y</code> 是一次性"引用快照"——import 时把当前对象绑定到本地名字 <code>y</code>，之后源模块用 <code>=</code> 重新绑定 <code>y</code>，本地名字不会变。<code>import x; x.y</code> 是属性访问，每次都查 <code>x.__dict__['y']</code>，永远看到最新值。但若源模块只做原地修改（<code>dict.update</code>、<code>list.append</code>），因为两种方式指向同一个可变对象，都能看到变化。差别只在"重新绑定名字"时才暴露。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p><code>from x import y</code> 执行时等价于先 <code>import x</code> 再执行 <code>y = getattr(x, 'y')</code>，赋值发生在导入方命名空间。之后本地 <code>y</code> 与模块 <code>x</code> 中的 <code>y</code> 成为两个独立名字，碰巧指向同一对象。<code>import x</code> 则只在本地绑定 <code>x</code> 这个名字（指向模块对象），<code>x.y</code> 是动态属性查找协议，每次访问都走 <code>type(x).__getattr__</code> 或 <code>x.__dict__</code>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>配置热更新场景：<code>config.py</code> 中 <code>DB_URL = "old"</code>，若 <code>service.py</code> 用 <code>from config import DB_URL</code>，运行时执行 <code>config.DB_URL = "new"</code> 后 service 仍持有旧值，导致"改了配置不生效"。安全做法：用 <code>import config</code> 方式访问 <code>config.DB_URL</code>；或将配置放在可变容器中只改内容不重新绑定名字，如 <code>config.DB['url'] = "new"</code>，则两种导入方式均能看到变化。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么原地修改两种方式都能看到？</strong> import 时绑定的是对象引用，双方指向同一个可变对象。<code>dict.update</code>、<code>list.append</code> 修改的是对象内容，不是重新绑定名字，因此持有同一引用的方都能观察到。差别仅在源模块用 <code>=</code> 重新绑定名字（指向新对象）时出现。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>模块的全局变量是全局共享的吗？</strong> Python 的"全局"是模块级，不是进程级。同模块函数间共享；跨模块通过 import 建立引用（按上述两种方式行为不同）；跨线程同进程共享（需加锁）；跨 asyncio Task 同线程也共享（需 <code>contextvars</code> 隔离）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用配置热更新"改了不生效"的 bug 说明 from import 引用快照与 module 实时查找的本质差异，引出工程上的配置管理最佳实践。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 <code>from import</code> 和 <code>import module</code> 在所有场景完全等价。</li><li>用 <code>from import</code> 引入运行时会被重新绑定的配置、单例或状态对象。</li><li>混淆"重新绑定名字"（指向新对象）与"原地修改对象"（改变同一对象内容）。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>补充题（基于代码验证）</p></div>
+  </div>
+
+  <!-- ====== Category 2: 协议与内存 ====== -->
+  <div class="category-header">
+    <div class="cat-icon" style="background:var(--cat2)">2</div>
+    <h2>协议与内存</h2>
+    <span class="cat-count">Q13 – Q23</span>
+  </div>
+
+  <!-- Q13 -->
+  <div class="q-card" id="q13" data-text="迭代器 可迭代对象 __iter__ __next__ StopIteration for 循环 generator 一次性消费 token stream">
+    <div class="q-title"><span class="q-label">Q13</span>迭代器和可迭代对象有何区别？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>可迭代对象实现 <code>__iter__</code> 并能返回迭代器；迭代器实现 <code>__iter__</code> 返回自身和 <code>__next__</code> 逐项产出，耗尽时抛出 <code>StopIteration</code>。一个可迭代对象可以每次创建新的迭代器。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>list 是可迭代对象但不是迭代器，<code>iter(list)</code> 得到有状态迭代器；迭代器通常只能消费一次，而容器可反复迭代。<code>for</code> 循环内部调用 iter 和 next，并捕获 StopIteration。工程上要警惕把 generator/iterator 先消费用于日志，后续逻辑得到空结果；流式数据应明确单次消费、错误和关闭语义。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>迭代器保存当前位置，将遍历状态与容器分离；Iterable 协议支持惰性序列和无限流。<code>iter(callable, sentinel)</code> 还可按哨兵重复调用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模型 SDK 返回 token iterator，调试代码若执行 <code>list(stream)</code>，随后 SSE 无内容。正确做法是在单次循环中同时记录与转发，或显式 tee 并控制缓冲。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么 iterator 通常不能重复遍历？</strong> 它维护单一当前位置，next 会不可逆推进，耗尽后继续 next 仍应 StopIteration。若需要重放，应保留源数据、创建新 iterator 或受控缓存。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`for` 循环如何工作？</strong> 先调用 <code>iter(obj)</code> 得到迭代器，再反复 <code>next()</code>，遇到 StopIteration 正常结束；其他异常向外传播。自定义迭代器不应把真实错误伪装成 StopIteration。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用模型 token 流的一次性消费说明协议和工程陷阱。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为任何 Iterable 本身都有 <code>__next__</code>。</li><li>为统计长度先耗尽生成器再继续使用。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q14 -->
+  <div class="q-card" id="q14" data-text="生成器 yield 惰性迭代器 send throw close 帧暂停 yield from async generator 流式 token 内存">
+    <div class="q-title"><span class="q-label">Q14</span>生成器有什么优势？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>生成器是由含 <code>yield</code> 的函数或生成器表达式创建的惰性迭代器，暂停时保存执行帧与局部状态，下一次迭代从暂停点继续。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>生成器按需产生元素，适合大文件、流式 token 和管道处理，能降低峰值内存并自然表达逐项转换。它的代价是单次消费、错误可能延迟到迭代时发生，且持有帧中的资源和对象。需要及时关闭，文件/网络资源最好与上下文管理器组合。惰性不等于自动并行，也不等于没有缓冲。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p><code>yield</code> 返回值并挂起帧；<code>send</code> 可把值传回，<code>throw/close</code> 向生成器注入异常或 GeneratorExit。生成器表达式比等价列表推导不预先构造全量结果。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>解析百万行日志时生成器逐行产生结构化事件，后续批量 100 条写入评测库，内存与文件大小无关；finally 中关闭文件并记录失败位置。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>生成器一定更快吗？</strong> 不一定。它主要降低内存和首项延迟，每项恢复帧也有开销；数据较小且需多次遍历时 list 可能更快。应按内存、复用与性能测试选择。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`yield from` 有什么作用？</strong> 它把子迭代器的产出和 send/throw/return 协议委托给外层生成器，简化组合。错误和资源关闭仍需理解委托边界。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>同步模型流可用生成器，异步网络流应使用 async generator 并支持取消与 <code>aclose</code>。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>把生成器转 list 后仍声称是流式低内存。</li><li>生成器持有文件却从不关闭或消费完。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02</p></div>
+  </div>
+
+  <!-- Q15 -->
+  <div class="q-card" id="q15" data-text="上下文管理器 __enter__ __exit__ __aenter__ __aexit__ with async with contextlib contextmanager asynccontextmanager 资源释放">
+    <div class="q-title"><span class="q-label">Q15</span>上下文管理器如何工作？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>上下文管理器实现同步 <code>__enter__/__exit__</code> 或异步 <code>__aenter__/__aexit__</code> 协议，在代码块进入与离开时可靠获取和释放资源，离开包括正常返回和异常。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>with</code> 调用 enter 获取资源，块结束后无论成功还是抛异常都会调用 exit；exit 返回真值会抑制异常，应谨慎。文件、锁、数据库事务、trace span 和临时目录都适合。异步连接使用 <code>async with</code>，释放可 await。也可用 <code>contextlib.contextmanager/asynccontextmanager</code> 以 generator 写，但 yield 前后必须严格对应获取与清理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p><code>__exit__(exc_type, exc, tb)</code> 得到异常信息，负责清理并决定是否传播。多个上下文按栈逆序退出，类似结构化资源管理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模型调用 span 用 <code>async with trace_span()</code>，内部超时或取消时 <code>__aexit__</code> 仍记录错误与 usage 并释放并发令牌，避免只在 happy path 清理。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`__exit__` 返回 True 会怎样？</strong> 当前异常被视为已处理，不再向外传播。除非上下文语义明确允许吞掉特定异常，否则通常返回 False，避免隐藏失败。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`contextmanager` 中 yield 前后分别做什么？</strong> yield 前获取并产出资源，yield 后放在 finally 中释放；块内异常会在 yield 点重新抛入生成器，可选择记录后继续传播。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>结合并发令牌、连接和 trace 说明异常/取消路径仍清理资源。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>在 exit 中无差别返回 True。</li><li>async 资源却使用同步 with，释放过程无法 await。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02</p></div>
+  </div>
+
+  <!-- Q16 -->
+  <div class="q-card" id="q16" data-text="异常处理 try except finally raise from raise e 自定义异常 CancelledError BaseException 重试 幂等 trace_id">
+    <div class="q-title"><span class="q-label">Q16</span>Python 异常处理有哪些工程原则？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>异常处理是在合适抽象层捕获预期失败，保留异常因果与上下文，将其转换为稳定错误契约，同时保证清理、重试和观测，而不是简单阻止进程报错。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>只捕获能处理的具体异常，未知异常继续传播给统一边界；使用 <code>raise NewError(...) from exc</code> 保留 cause；参数/业务拒绝、暂态依赖和内部 bug 分类，重试只针对幂等暂态错误；资源清理用 finally/with。日志在负责处理的层记录一次，带 trace_id 但不泄露 Prompt/密钥。不要 <code>except Exception: pass</code>，也别把 CancelledError 等控制异常误吞。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>异常是控制流与诊断信息。底层应抛领域可解释错误，上层映射 HTTP 或任务状态；重复多层记录同一栈会制造噪声。异常组在结构化并发中需要按类型处理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模型适配器将供应商 429 转 <code>RateLimited(retry_after)</code> 并保留 cause；网关按总 deadline 重试，最终 API 转标准 error 事件。鉴权失败从不重试。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>什么时候自定义异常？</strong> 当调用方需要依据稳定语义采取不同动作时，例如 RetryableToolError、PermissionDenied；不要为每个函数建异常类。异常层次应小而明确。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`raise` 与 `raise e` 有何区别？</strong> 在 except 中裸 <code>raise</code> 保留原 traceback；<code>raise e</code> 会改变 traceback 起点。转换异常时使用 <code>raise New(...) from e</code> 明确因果链。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>给出从供应商错误到领域错误、重试策略和 API 契约的映射。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>捕获 BaseException，连退出和取消都吞掉。</li><li>每一层都打印同一异常完整栈。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02、P03</p></div>
+  </div>
+
+  <!-- Q17 -->
+  <div class="q-card" id="q17" data-text="dataclass NamedTuple Pydantic BaseModel frozen slots 验证 JSON Schema strict 类型转换 FastAPI">
+    <div class="q-title"><span class="q-label">Q17</span>dataclass、NamedTuple 和 Pydantic 如何选择？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>dataclass 通过声明字段生成普通 Python 数据类方法；NamedTuple 是具名、tuple 兼容的不可变记录；Pydantic BaseModel 依据类型注解执行运行时解析、验证和序列化，适合不可信边界数据。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>内部领域对象、数据已可信且追求低开销用 dataclass；需要 tuple 语义、轻量不可变和按位置兼容可用 NamedTuple；API 请求、配置、工具参数和模型结构化输出用 Pydantic，因为需要运行时校验、JSON Schema 和明确错误。不要把类型注解等同验证，也不要在极热内部循环无差别构造重型模型。不可变需求可显式配置。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>dataclass 默认不验证运行时类型，frozen 也不是深度不可变；NamedTuple 继承 tuple；Pydantic 可能默认进行类型转换，安全边界可使用 strict 模式避免意外 coercion。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>FastAPI 入参和 Agent tool schema 使用 Pydantic；检索器内部候选使用 slots dataclass；缓存 key 用不可变 tuple/NamedTuple，职责分开。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>Pydantic 会不会自动保证业务正确？</strong> 它保证声明的字段与验证器约束，不会自动知道用户授权、订单存在或跨字段业务状态。认证与领域规则仍在服务层执行。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>frozen dataclass 是否完全不可变？</strong> 只阻止字段重新赋值，字段引用的 list/dict 仍可修改，也可通过底层手段绕过。需要深度不可变时使用不可变成员并控制暴露。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>按"外部不可信边界 vs 内部可信数据"说明选型，而不是比较语法多少。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>API 直接接收裸 dict 并相信类型注解。</li><li>认为 Pydantic 的字符串转整数永远符合业务安全。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P03、P04</p></div>
+  </div>
+
+  <!-- Q18 -->
+  <div class="q-card" id="q18" data-text="类型注解 type hint mypy pyright 运行时验证 Any object __annotations__ Pydantic typeguard strict 前向引用">
+    <div class="q-title"><span class="q-label">Q18</span>类型注解会在运行时强制生效吗？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>Python 类型注解主要是供静态类型检查器、IDE、文档与运行时框架读取的元数据，语言默认不会在函数调用时自动强制参数和返回值类型。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>def f(x: int) -> str</code> 仍可在运行时接收字符串，除非 Pydantic、typeguard 或自定义代码显式验证。类型注解的价值是让 mypy/pyright 在 CI 提前发现接口错误，并让 FastAPI/Pydantic 生成 schema。工程上要区分"静态可信内部接口"和"外部不可信输入"：后者必须运行时验证，不能因为有 annotation 就直接使用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>注解通常存在 <code>__annotations__</code>，泛型主要在静态层面表达关系；<code>Any</code> 会退出检查，过度使用会削弱收益。前向引用和延迟求值行为与 Python 版本有关，应遵循项目版本。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>工具函数标注 <code>top_k: int</code> 不能阻止模型传 <code>"all"</code>；调用前用 Pydantic strict schema 验证范围，再交给已通过静态检查的内部函数。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>静态类型检查能发现所有 bug 吗？</strong> 不能，它依赖注解完备度且不执行真实业务，不发现权限、数据质量和大多数运行时状态问题。它是工程防线之一，不替代测试和验证。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`Any` 和 `object` 有什么区别？</strong> Any 允许几乎任意操作并传播不检查；object 表示未知对象，使用前需 isinstance 或协议缩窄。边界用 object/Unknown 配合验证通常比无界 Any 更安全。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>说明静态检查与 Pydantic 运行时校验各自职责。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>以为注解会让 CPython 自动拒绝错误类型。</li><li>为消除类型报错大量使用 Any。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P03、P04</p></div>
+  </div>
+
+  <!-- Q19 -->
+  <div class="q-card" id="q19" data-text="CPython 内存管理 引用计数 分代GC cyclic garbage collector allocator arena del tracemalloc RSS __del__">
+    <div class="q-title"><span class="q-label">Q19</span>CPython 如何管理内存？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>CPython 主要用引用计数管理对象生命周期，并由分代循环垃圾回收器处理容器间的引用环；小对象分配还使用专门的 allocator 和内存池以降低系统分配开销。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>对象引用数降到零通常立即释放其 Python 对象资源；相互引用时计数不为零，由 cyclic GC 检测可达性并回收。<code>del</code> 删除的是一个名字引用，不保证对象立即从进程 RSS 消失，因为还有其他引用、allocator 可能保留 arena，或本地库持有内存。文件和连接不能依赖 GC，应使用 with 显式释放。诊断用 tracemalloc、gc 和对象增长对比。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>引用计数带来及时回收但每次引用操作有成本；分代 GC 假设新对象更容易死亡，主要跟踪可能参与环的容器。RSS、Python heap 和 GPU/本地库内存是不同指标。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RAG worker 处理大 PDF 后 RSS 不降，不一定泄漏。用 tracemalloc 比较快照，若 Python 对象稳定，检查解析库本地缓存和 allocator；通过 worker 生命周期或复用策略控制峰值。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`del x` 会立即释放内存吗？</strong> 它只移除当前绑定；若无其他引用，对象通常析构，但内存可能留在 Python allocator 中供复用而不归还 OS。本地资源应显式 close。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么不建议依赖 `__del__` 释放关键资源？</strong> 执行时机受引用环、解释器退出和异常影响，析构逻辑也难处理。上下文管理器提供明确、可测试的生命周期。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>区分对象回收、进程 RSS 与外部资源，展示基于快照的排查思路。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>RSS 不下降就断言存在 Python 泄漏。</li><li>用 gc.collect 作为所有内存问题的修复。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q20 -->
+  <div class="q-card" id="q20" data-text="循环引用 引用环 cyclic GC weakref 全局registry 回调 内存泄漏 tracemalloc gc referrer">
+    <div class="q-title"><span class="q-label">Q20</span>循环引用一定会泄漏吗？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>循环引用是对象图中存在引用环，使引用计数无法降为零；CPython 的 cyclic GC 通常能回收不可达环，但仍可能因外部强引用、不可释放资源或本地扩展问题造成长期占用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>不一定。纯 Python 容器形成的不可达环通常由分代 GC 回收。真正的"泄漏"常是缓存、全局 registry、事件 handler 等仍从根可达，或 C 扩展/外部资源没有正确释放。现代 Python 能处理许多带 finalizer 的环，但复杂析构仍应避免。排查先看对象是否持续增长与引用链，而不是看到环就手动 gc.collect。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>GC 从被跟踪对象中识别外部不可达集合；<code>weakref</code> 可建立不增加生命周期的引用，适合 observer/cache，但回调和线程仍可能形成强引用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>Agent callback 闭包捕获 session，session 又保存 callback；如果 session 从全局 dict 删除，环可回收；若 registry 从未删除 key，则仍可达，问题是生命周期管理而非 GC 无能。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>什么时候使用 weakref？</strong> 缓存、观察者或父指针不应拥有对象生命周期时可用；读取后对象可能已消失，代码需处理 None。核心业务状态不应只靠弱引用保存。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>如何找到是谁引用了对象？</strong> 用 tracemalloc 定位分配增长，再用 gc/referrer 工具或内存 profiler 检查引用链；调试工具本身可能创建引用，需在隔离环境验证。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>区分"有环""不可达"和"从根仍可达"三个概念。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>循环引用必然永久泄漏。</li><li>定时 gc.collect 掩盖全局容器无界增长。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q21 -->
+  <div class="q-card" id="q21" data-text="__slots__ 内存布局 描述符 __dict__ frozen dataclass slots=True weakref MRO 继承 内存优化">
+    <div class="q-title"><span class="q-label">Q21</span><code>__slots__</code> 有什么作用？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p><code>__slots__</code> 声明实例允许的属性槽位，使实例通常不再为任意属性创建 <code>__dict__</code>，可减少大量同构对象的内存，并限制动态加属性。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>__slots__</code> 主要是内存布局优化，不是访问控制或通用性能开关。对百万级轻量对象可能显著省内存，对少量业务模型收益有限，却会增加继承、弱引用、序列化和动态属性兼容复杂度。使用前应测量对象数量和内存；dataclass 可用 <code>slots=True</code>。若需要 weakref 还要包含相应槽位。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>普通实例属性存在每对象 dict 中，slots 让解释器按固定描述符存储。子类若未声明 slots 仍可能重新拥有 <code>__dict__</code>；多继承也有布局限制。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>离线评测加载数百万条轻量 <code>ScoredChunk</code>，slots dataclass 可降低内存；在线只有几十个请求对象时，不为微小收益牺牲 Pydantic 的验证便利。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`__slots__` 能防止用户修改属性吗？</strong> 不能，它只限制未声明属性；已声明字段仍可赋值。不可变需 frozen/属性控制，安全权限更不应依赖 Python 属性限制。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么继承时容易踩坑？</strong> 子类若无 slots 会创建 dict，失去部分收益；多个非空 slot 基类可能布局冲突。需要按 MRO 和序列化框架做兼容测试。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用大量候选对象的测量结果说明何时值得使用，不把它包装成必选优化。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 slots 会让对象完全不可变。</li><li>未 profiling 就给所有类加 slots。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q22 -->
+  <div class="q-card" id="q22" data-text="GIL Global Interpreter Lock 引用计数 字节码 多线程 CPU密集 IO密集 asyncio 多进程 NumPy 释放GIL 线程安全">
+    <div class="q-title"><span class="q-label">Q22</span>GIL 是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>在主流带 GIL 的 CPython 构建中，Global Interpreter Lock 保证同一进程内任一时刻通常只有一个线程执行 Python bytecode，用于简化解释器对象与引用计数的并发管理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>GIL 限制 CPU 密集纯 Python 线程的多核并行，但不等于 Python 不能并发：线程在网络 I/O、sleep 和许多释放 GIL 的 C 扩展中可并发，asyncio 也用单线程协作并发。CPU 密集任务可用多进程、本地库或独立服务。GIL 也不保证业务线程安全，多步操作和外部状态仍可能竞态。具体行为要按 Python 版本与构建验证。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>线程会在解释器调度点切换；单条看似简单语句可能由多条 bytecode 构成。I/O API 释放 GIL 后其他线程执行，因此网络服务仍可受益于线程，但事件循环通常更可控。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>LLM API 调用是 I/O 密集，可用 async/线程并发；PDF OCR 的纯 Python CPU 处理放进进程 worker。向量计算若在 NumPy 本地代码中释放 GIL，可通过压测决定线程收益。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>GIL 能否保证 dict 操作线程安全？</strong> 某些单步操作在特定 CPython 实现中看似原子，但组合的检查再写入仍会竞态，且不应依赖实现细节。共享业务状态使用锁、队列或数据库原子操作。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>asyncio 能绕过 GIL 吗？</strong> 不能让纯 Python CPU 同时在多核执行；它通过 I/O 等待时切换协程提高并发。CPU 任务仍会阻塞事件循环，需 offload。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>按 I/O、CPU 和本地库三类负载选择并发模型，避免泛化结论。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>说有 GIL 所以线程完全没用。</li><li>认为有 GIL 就无需锁和幂等。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02</p></div>
+  </div>
+
+  <!-- Q23 -->
+  <div class="q-card" id="q23" data-text="内存问题 tracemalloc RSS 快照 引用链 缓存 队列 闭包 trace 高水位 worker重启 泄漏排查">
+    <div class="q-title"><span class="q-label">Q23</span>如何发现和处理 Python 内存问题？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>内存诊断是区分 Python 对象增长、本地扩展/GPU 内存、缓存与碎片，通过监控、快照、引用分析和可复现负载定位生命周期异常，再从根因控制容量。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>先确认现象：RSS、Python heap、对象数还是 GPU 显存增长，是否随请求持续且 GC 后不稳定。用固定流量复现，tracemalloc 对比前后 snapshot 定位分配栈，按类型统计增长，检查全局缓存、队列、闭包、trace 和未关闭响应；本地库用对应 profiler。修复生命周期和有界容量，worker 回收只能作为防护，不代替根因。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>高水位不等于泄漏，allocator 复用内存会让 RSS 不立即下降；真正问题是活对象或不可控峰值持续增长。诊断时一次只改变一个变量，并观察斜率。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>压测 30 分钟 RSS 线性增长，tracemalloc 显示 trace exporter 队列持有完整 Prompt。修复为有界队列和脱敏摘要，确认对象数与 RSS 在热身后稳定。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>tracemalloc 看不到增长怎么办？</strong> 可能来自 C 扩展、mmap、GPU 或子进程；检查进程内存映射、库自带指标和对象存储缓冲，并缩小组件做对照。也可能只是 allocator 高水位。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>定期重启 worker 是合理方案吗？</strong> 可作为隔离第三方库泄漏和控制峰值的暂时护栏，但应设置优雅排水并继续定位根因；过度依赖重启会掩盖容量问题和中断任务。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>按指标—复现—快照—引用—修复—回归讲一次排查闭环。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>只看任务管理器就认定 Python heap 泄漏。</li><li>每请求调用 gc.collect 作为性能优化。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、E01</p></div>
+  </div>
+
+  <!-- ====== Category 3: 并发与工程实践 ====== -->
+  <div class="category-header">
+    <div class="cat-icon" style="background:var(--cat3)">3</div>
+    <h2>并发与工程实践</h2>
+    <span class="cat-count">Q24 – Q35</span>
+  </div>
+
+  <!-- Q24 -->
+  <div class="q-card" id="q24" data-text="线程 进程 协程 选择 asyncio 多进程 GIL I/O密集 CPU密集 FastAPI TaskGroup 消息队列 worker">
+    <div class="q-title"><span class="q-label">Q24</span>线程、进程、协程怎么选？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>线程是进程内由 OS 调度的共享内存执行单元；进程拥有独立地址空间并可多核并行；协程是用户态协作式任务，在显式 await 点让出执行权。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>大量高并发网络 I/O 优先 asyncio，前提是依赖真正异步；已有阻塞 I/O SDK 可用有界线程池；纯 Python CPU 密集用多进程或独立 worker；释放 GIL 的数值库需压测线程效果。选择还看隔离、取消、状态共享和启动成本。常见架构是 async API 处理模型/向量 I/O，消息队列把 OCR、解析等 CPU/长任务交给进程 worker。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>协程切换成本低但一个阻塞函数会卡住整个事件循环；线程共享数据方便却有竞态；进程隔离强但序列化和通信昂贵。混用时必须给各层并发设边界。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>FastAPI 用 TaskGroup 并行检索和模型网络调用；同步供应商 SDK 暂放 16 线程池；PDF OCR 进入多进程 worker，结果通过对象存储和 task_id 传递。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>I/O 密集为什么不一定都用线程？</strong> 线程可行，但数千连接会带来线程栈、调度与取消复杂度；async 在高连接数下更轻量。若 SDK 只同步且并发有限，线程反而简单，需按规模选择。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>进程间如何共享大对象？</strong> pickle 传输会复制且成本高，可使用共享内存、mmap、对象存储引用或让数据本地化；共享方案增加生命周期和同步复杂度，优先只传小 ID。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用负载类型与失败隔离推导选择，而不是背"CPU 进程、I/O 线程"。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>在 async API 中直接运行 CPU 循环。</li><li>多进程任务消息携带完整模型和大文档对象。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02、P03</p></div>
+  </div>
+
+  <!-- Q25 -->
+  <div class="q-card" id="q25" data-text="事件循环 event loop asyncio.run 协作式调度 selector ready queue await 阻塞 time.sleep event-loop lag to_thread">
+    <div class="q-title"><span class="q-label">Q25</span>asyncio 的事件循环是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>事件循环是 asyncio 的协作式调度核心，管理就绪任务、定时器和 I/O 多路复用；协程在 await 未完成对象时挂起，loop 在 I/O 就绪后恢复对应 Task。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>事件循环通常单线程运行很多协程，优势来自 I/O 等待期间切换，而不是并行执行 Python CPU。<code>await</code> 只有等待非阻塞对象时才让出；同步 SDK、<code>time.sleep</code> 或 CPU 循环会阻塞整个 loop。应用入口用 <code>asyncio.run</code> 管理生命周期，库代码不应随意嵌套创建 loop。监控 event-loop lag，并让数据库、HTTP 客户端和队列都使用异步接口。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>loop 反复处理 ready queue、定时任务和 selector 事件。协作式调度意味着协程必须主动到达 await 点；长时间不让出会导致其他请求饥饿。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RAG API 同时 await BM25 和向量检索，网络等待时 loop 服务其他请求；PDF 解析 CPU 循环则转进程 worker，避免所有 SSE 心跳停顿。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`await` 是否一定切换协程？</strong> 不一定。若 await 的对象已完成，可能立即继续；只有尚未完成并把控制权交还 loop 时才切换。因此在 CPU 循环里写无意义 await 也不是可靠优化。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么不能在运行中的 loop 里调用 `asyncio.run`？</strong> <code>asyncio.run</code> 要创建并管理新的事件循环，嵌套会冲突。库应暴露 async API 让调用方 await，必要时另提供明确同步包装给无 loop 环境。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>说明 I/O 就绪调度、阻塞风险和 event-loop lag，而不是说"单线程高并发"。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 async 函数自动在后台线程运行。</li><li>在 async 路由中调用 time.sleep。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02、P03</p></div>
+  </div>
+
+  <!-- Q26 -->
+  <div class="q-card" id="q26" data-text="coroutine Task Future create_task pending cancelled gather awaitable 结构化并发 ExceptionGroup">
+    <div class="q-title"><span class="q-label">Q26</span>coroutine、Task、Future 有何关系？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>coroutine object 是调用 async function 得到的可等待计算描述；Task 将 coroutine 调度到事件循环并管理其状态；Future 是表示将来单个结果或异常的低层 awaitable，Task 是 Future 的特化。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>调用 <code>async def</code> 不会立即执行，只产生 coroutine；直接 await 会在当前任务中执行，<code>create_task</code> 才将其并发调度。Task 保存 pending/running/done/cancelled 状态和异常；Future 常用于把回调式结果桥接到 await。创建 Task 后必须保存引用、等待或明确管理生命周期，否则异常可能无人获取，任务也可能越过请求边界。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>await Task/Future 会挂起当前 Task 直到目标完成。Task 取消通过注入 CancelledError 协作传播；Future 通常由库或事件循环完成，业务不应随意 set_result 已完成对象。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>并行检索用 TaskGroup 创建两个 Task，退出作用域前全部完成或取消；后台摄取不使用"fire-and-forget"裸 Task，而是进入持久队列。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>忘记 await coroutine 会怎样？</strong> 协程不会真正执行，通常出现"coroutine was never awaited"警告，资源和业务逻辑都未发生。类型检查和测试应把该警告视为失败。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`create_task` 后是否就可以不管？</strong> 不可以。需保存强引用并观察异常、设置取消和关闭策略；请求内工作用结构化并发，长后台工作用任务队列，避免进程退出时静默丢失。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>结合并行检索和后台任务说明三者生命周期。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>调用 async 函数就认为已开始执行。</li><li>用 create_task 偷偷执行需要可靠完成的业务写入。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02</p></div>
+  </div>
+
+  <!-- Q27 -->
+  <div class="q-card" id="q27" data-text="asyncio.gather TaskGroup 结构化并发 return_exceptions ExceptionGroup 失败联动 RRF BM25 Dense Semaphore">
+    <div class="q-title"><span class="q-label">Q27</span><code>asyncio.gather</code> 与 TaskGroup 怎么选？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p><code>gather</code> 聚合多个 awaitable 并按输入顺序返回结果；TaskGroup 提供结构化并发作用域，子任务生命周期受作用域管理，一个任务非取消异常时会取消其余任务并以 ExceptionGroup 传播。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>新代码中相互属于同一操作、要求失败联动和无任务泄漏时优先 TaskGroup；gather 适合已有 awaitable 的简单结果聚合，或明确需要 <code>return_exceptions=True</code> 独立收集各结果。两者都不会自动限制并发。要先定义部分失败语义：混合检索可容忍一路失败则每个任务内部标准化结果；强一致子步骤则让异常取消兄弟任务。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>结构化并发保证作用域退出时子任务已结束，使取消和资源清理可推理。gather 的异常与取消语义需要按 Python 版本准确理解，不能假设一个失败总会自动停止所有其他任务。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RRF 的 BM25/Dense 两路允许一路降级，各任务捕获可预期依赖错误并返回状态；若用户取消，TaskGroup 统一取消两路并释放连接。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`return_exceptions=True` 有什么风险？</strong> 异常被当作结果返回，调用方若忘记逐项检查会把失败数据继续处理。只在部分失败是明确业务语义时使用，并转换为类型化结果。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>TaskGroup 中一个任务失败会怎样？</strong> 首个非取消异常通常触发其余任务取消，退出时抛 ExceptionGroup；代码需让子任务正确处理取消，并可用 except* 按类型处理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用"失败是否联动"而非 API 新旧决定选型。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>用 gather 启动上千请求却没有 Semaphore。</li><li>return_exceptions 后不检查异常对象。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02</p></div>
+  </div>
+
+  <!-- Q28 -->
+  <div class="q-card" id="q28" data-text="asyncio 取消 CancelledError task.cancel 协作式 finally shield timeout 清理 资源释放 幂等 unknown">
+    <div class="q-title"><span class="q-label">Q28</span>asyncio 的取消为什么容易出错？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>asyncio 取消是协作式控制流：Task.cancel 请求在下一个可取消点向协程注入 <code>CancelledError</code>，代码必须清理资源并继续传播；阻塞代码和吞异常会延迟或破坏取消。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>取消不是强杀。协程要到 await 点才接收 CancelledError，收到后在 finally 释放锁、连接和 Semaphore，然后通常重新 raise。宽泛捕获异常、长 CPU 循环或不支持取消的 SDK 会让任务继续运行。timeout 本质也常通过取消实现，清理逻辑需有界；关键收尾可谨慎 shield，但不能用 shield 让整个请求脱离用户取消。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>取消可能在几乎任何 await 发生，代码的不变量要在 await 前后设计。若在状态更新一半时取消，需事务、幂等或补偿恢复一致性。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>模型流取消后 async generator 在 finally 关闭 HTTP response、归还并发令牌并记录 usage；已开始的写工具转 unknown 状态，由 operation_id 查询，而非假设取消成功。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么不要吞掉 CancelledError？</strong> 吞掉后上层以为任务已取消，实际仍占资源或执行副作用，结构化并发也无法正常退出。只在完成必要清理时暂时捕获，最后重新抛出。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>`asyncio.shield` 何时使用？</strong> 仅用于必须短暂完成的原子收尾，如提交已完成结果；外层仍收到取消，内部任务需被保存和观察。长模型调用不应整体 shield。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>说明取消注入点、finally 清理、不可取消副作用与状态恢复。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 task.cancel 会立即终止线程或网络请求。</li><li>except BaseException 后不重新抛取消。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02、E07</p></div>
+  </div>
+
+  <!-- Q29 -->
+  <div class="q-card" id="q29" data-text="并发限制 Semaphore 有界队列 连接池 RPM TPM token bucket deadline 背压 embedding 批处理 429 P95">
+    <div class="q-title"><span class="q-label">Q29</span>如何限制异步调用大模型 API 的并发？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>异步并发限制使用 Semaphore、有界队列、连接池和多维配额约束在途模型请求，并配合 deadline、限流与公平调度保护供应商和自身资源。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>不要对全部输入直接 <code>gather</code>。为每个模型/供应商设置 Semaphore，入口按租户限制并发、RPM 与 TPM，连接池大小与 Semaphore 协调；等待许可也计入总 deadline，超时快速失败。批处理任务用有界 worker pool，失败重试仍占同一预算。容量通过压测和供应商配额确定，监控 in-flight、queue wait、429 和 P95。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>Semaphore 控制并发数但不控制速率和 Token，需与 token bucket 组合。应在发起网络调用前获取，在 finally 释放；避免持有许可期间进行无关 CPU 工作。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>Embedding 批处理全局并发 20、每租户 4，TPM 令牌桶预扣预计 token；等待超过 2 秒则任务留在队列，不继续堆积协程。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>Semaphore 数量怎么定？</strong> 从供应商并发/速率限制、连接池和目标延迟出发压测，逐步增加直到吞吐不再提升或 P95/429 恶化，再留安全余量；不同模型单独配置。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么还要限制队列？</strong> Semaphore 只限制执行，等待协程仍可能无界占内存并让用户超时。有界队列和等待 deadline 提供真正背压。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>给出并发、速率、Token、队列四层控制与实际指标。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>一个全局 Semaphore 控制所有不同容量下游。</li><li>在异常路径忘记释放许可。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02、P03、E07</p></div>
+  </div>
+
+  <!-- Q30 -->
+  <div class="q-card" id="q30" data-text="阻塞函数 asyncio.to_thread executor 线程池 进程池 CPU密集 GIL deadline 幂等 offload PDF OCR">
+    <div class="q-title"><span class="q-label">Q30</span>异步代码中如何调用阻塞函数？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>阻塞函数需从事件循环线程 offload 到有界线程池、进程池或独立任务 worker，以避免阻塞其他协程；具体选择取决于 I/O、CPU、取消和隔离需求。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>优先替换为原生 async SDK。短暂阻塞 I/O 可用 <code>asyncio.to_thread</code> 或受控 executor，但线程池必须有界，函数超时后线程未必停止；CPU 密集纯 Python 用进程池或消息队列 worker。向 executor 传递必要的 context，设置总 deadline，晚到结果丢弃；高风险副作用仍需幂等，不能以取消 Future 假装底层未执行。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>offload 让 event loop 不被阻塞，但没有消除工作量。线程池排队、连接和内存仍受容量约束；进程池参数需序列化，启动和 IPC 有成本。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>旧 PDF 解析库同步且 CPU 重，API 不用 to_thread 大规模执行，而是上传后进入进程 worker；少量同步元数据查询暂放容量 8 的线程池。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`to_thread` 超时后线程会停止吗？</strong> 通常不会强制终止底层函数，外层只停止等待。函数需支持自身 timeout/取消，或让线程继续完成并丢弃结果；容量计算仍要包含它。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么 CPU 任务更适合进程？</strong> 纯 Python CPU 线程受 GIL 限制，多进程可利用多核并提供故障隔离；代价是启动、内存和序列化，因此应批量化并传小数据引用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>强调 offload 不等于取消和无限容量，并给出 I/O/CPU 分流。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>把所有阻塞函数无界提交默认线程池。</li><li>外层 timeout 后立即重复有副作用调用。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P02、P03</p></div>
+  </div>
+
+  <!-- Q31 -->
+  <div class="q-card" id="q31" data-text="竞态条件 race condition asyncio.Lock check-then-act 数据库唯一约束 upsert 幂等 fencing 分布式锁">
+    <div class="q-title"><span class="q-label">Q31</span>竞态条件是什么，单线程 asyncio 会有吗？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>竞态条件是结果依赖多个执行单元不可控的交错顺序，导致检查与更新之间的不变量被破坏。单线程 asyncio 在 await 点发生协程切换，同样可能出现逻辑竞态。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>会。虽然同一时刻只有一个协程执行 Python 代码，但 <code>读取余额 → await → 写回</code> 之间其他协程可修改状态，造成丢失更新。解决要减少跨 await 的共享可变状态，使用 asyncio.Lock 保护进程内临界区，或用数据库事务、唯一约束、CAS 和幂等处理跨进程状态。锁不能跨实例，也不要持锁等待慢模型调用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>原子性是业务操作级而非"单线程"自动提供。任何 await 都是潜在调度点；外部数据库和 API 还有多进程/分布式并发，必须在共享资源所在层保证不变量。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>两个请求同时检查"任务未创建"，await 数据库后都创建。修复为数据库唯一键和 upsert，应用锁只减少本实例重复，唯一约束做最终兜底。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>`asyncio.Lock` 是否线程安全、跨进程？</strong> 它用于同一事件循环内协程协调，不是线程或分布式锁。跨进程一致性应由数据库、Redis 原子操作或具 fencing 的分布式协调保证。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么不能长时间持锁 await 外部 API？</strong> 慢或超时会阻塞所有等待者，放大尾延迟，还可能死锁。通常先在锁内保留状态，锁外执行幂等操作，再用版本检查提交结果。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用 check-then-act 跨 await 解释 asyncio 竞态，并落到数据库约束。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>单线程就认为所有多步操作原子。</li><li>用进程内锁保证多实例幂等。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P02、E07</p></div>
+  </div>
+
+  <!-- Q32 -->
+  <div class="q-card" id="q32" data-text="多进程 代价 pickle IPC 序列化 内存 copy-on-write fork spawn 连接池 worker崩溃 僵尸任务 优雅停机">
+    <div class="q-title"><span class="q-label">Q32</span>多进程的代价是什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>多进程通过独立地址空间获得多核并行与故障隔离，代价包括进程启动、重复内存、IPC/序列化、状态同步、调度与运维复杂度。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>多进程适合纯 Python CPU 密集和强隔离任务，但对象不能像线程一样直接共享，参数/结果通常 pickle 传输；大模型、向量和文档复制会造成高内存和 IPC 成本。每进程还会建立独立数据库/HTTP 连接，放大下游压力。应传 task_id 或共享存储引用，批量任务，控制进程数，并处理 worker 崩溃、僵尸任务和优雅停机。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>fork 可能初始 copy-on-write，但任何写入会复制页面，带线程/连接的父进程状态也不宜直接继承；spawn 更干净但启动更慢。平台差异要求在目标环境测试。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>OCR worker 只从队列接收 object_key，进程内加载必要模型并复用，结果写对象存储；不把 100MB PDF 或模型实例通过 multiprocessing Queue 传递。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么进程数不是越多越好？</strong> 超过 CPU、内存和 I/O 容量后上下文切换、内存争用和连接数增加，吞吐反而下降。以压测选择，并为宿主和下游留余量。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>多进程中全局变量是否共享？</strong> 默认各进程有独立副本，修改不会自动同步；共享内存或 Manager 需显式同步且有成本。业务状态应放可靠外部存储。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>说明为何只传 ID、如何复用进程内资源和控制连接总数。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>通过 pickle 传递不可信或巨大对象。</li><li>每个 worker 数量增加但数据库连接池不做总量规划。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、E07</p></div>
+  </div>
+
+  <!-- Q33 -->
+  <div class="q-card" id="q33" data-text="依赖管理 pyproject.toml uv Poetry pip-tools 锁文件 SBOM 虚拟环境 漏洞扫描 requirements.txt 安全升级">
+    <div class="q-title"><span class="q-label">Q33</span>Python 项目如何管理依赖？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>依赖管理包括声明直接依赖和 Python 版本、解析并锁定传递版本与哈希、隔离环境、持续安全更新和可复现构建。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p><code>pyproject.toml</code> 声明项目元数据和直接依赖，使用 uv/Poetry/pip-tools 等生成锁文件，应用项目通常提交锁以保证开发、CI 和生产一致；虚拟环境隔离。区分 runtime/dev/optional 依赖，设置支持的 Python 版本；CI 从干净环境安装并运行测试、漏洞/许可证扫描。升级通过自动 PR 和回归，不直接在生产 <code>pip install -U</code>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>只固定直接依赖不够，传递依赖变化也会破坏构建；锁版本仍需扫描和更新。库与最终应用的锁策略不同：库发布声明兼容范围，应用部署锁定完整环境。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>RAG 服务锁定 LangChain、Pydantic 与底层 HTTP 包的解析结果，CI 验证 lock 与 pyproject 同步，容器用同一 lock 构建并生成 SBOM。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>requirements.txt 和 pyproject 有何关系？</strong> pyproject 是现代项目的声明与构建配置；requirements/lock 可作为解析后的部署输入，具体工具不同。关键是区分人工维护的直接意图和机器锁定的完整解。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>锁版本会不会阻碍安全升级？</strong> 锁定提供可控变更，不代表永不升级。应定期扫描并通过自动化 PR 更新，在测试和质量集验证后发布，紧急漏洞走加速流程。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>覆盖声明、锁定、隔离、CI、扫描和升级，而非只说用了 venv。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>只在本机 pip freeze，环境不可复现。</li><li>将密钥和私有仓库凭证写进依赖文件。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01、P06、E06</p></div>
+  </div>
+
+  <!-- Q34 -->
+  <div class="q-card" id="q34" data-text="测试 RAG Agent pytest 单测 集成 端到端 黄金集 Recall Faithfulness 注入安全 故障注入 429 超时 流中断">
+    <div class="q-title"><span class="q-label">Q34</span>如何测试一个 RAG/Agent Python 服务？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>RAG/Agent 服务测试由确定性单元测试、组件契约、可重置集成环境、端到端任务与统计质量/安全评测组成，分别验证代码不变量和概率系统表现。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>用 pytest 单测切分、过滤、状态机、缓存 key、权限、幂等和错误映射；模型/工具用行为真实 fake 模拟流、429、超时和 malformed call；在临时向量库/数据库做集成；少量 E2E 验证完整链路；黄金集测 Recall、Faithfulness、任务成功与注入安全。异步测试要检查取消和资源释放，固定版本但不对自然语言逐字断言。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>概率模型应被确定性控制器包围。普通 CI 优先快且稳定，真实供应商 smoke 和大规模质量集按定时/发布运行；每个线上 bad case 应转为可复现 fixture。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p>测试工具超时后同一幂等键只写一次；测试无权限文档绝不进入 Prompt；RAG 集成 fixture 固定三个文档，断言证据 ID 而非整段回答措辞。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>模型输出不确定，断言怎么写？</strong> 优先断言 schema、必需事实、引用来源、禁止内容和状态不变量；质量用多样本统计和校准 Judge，必要时低 temperature 只降低波动，不假装完全确定。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>哪些错误必须做故障注入？</strong> 429/5xx、连接/读取超时、流中断、向量库部分失败、消息重复、工具未知结果、取消和恢复，并验证重试预算、幂等和终态。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>按代码、契约、集成、质量、安全五层列真实用例。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>所有测试都 mock 成一个成功字符串。</li><li>只测答案，不测越权工具和重复副作用。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P06、R07、E01、E03</p></div>
+  </div>
+
+  <!-- Q35 -->
+  <div class="q-card" id="q35" data-text="日志 结构化日志 trace_id request_id 脱敏 PII JSON schema 采样 metrics 可观测性 token 成本 version">
+    <div class="q-title"><span class="q-label">Q35</span>一个 Python LLM 服务的日志应记录什么？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>结构化日志记录可操作的离散事件与诊断上下文，并通过 trace/request/task ID、版本和错误分类关联链路；内容遵循最小化、脱敏与保留策略。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>记录时间、level、service、event、trace/request/task ID、tenant 的不可逆标识、模型/Prompt/索引版本、阶段耗时、Token/成本、重试 attempt、标准错误码与终态。工具调用记录工具名和脱敏参数摘要，不默认记录完整 Prompt、文档、密钥或思维链。日志使用 JSON schema，异常只在负责处理层记录一次，采样高频成功事件，安全和写操作审计单独保留。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>日志用于事件细节，指标用于聚合，Trace 用于路径。过多高基数和原文既昂贵又泄露；过少版本与 correlation ID 又无法复现。字段 schema 应稳定并有访问分级。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-eng">工程示例</span>
+      <p><code>model_call_completed</code> 包含 model_version、prompt_version、input/output_tokens、latency_ms 和 finish_reason；错误事件含 provider_request_id 与内部 code，但 API key 和用户原文被过滤。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么不能记录完整 Prompt 方便排查？</strong> 其中可能有 PII、内部文档和密钥，会把日志平台变成新的泄漏面。需要原文时做授权采样、脱敏、加密、短保留和审计访问。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>日志里能放 user_id 吗？</strong> 按政策使用伪名化或内部关联 ID，并限制访问与保留；不要把它作为 metrics label。删除和审计需求需有映射与传播机制。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>给出日志字段样例，并解释隐私、采样和三类可观测信号边界。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>发生异常就打印所有环境变量和请求体。</li><li>多层重复记录同一 traceback 形成噪声。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P03、E01、E02、E05</p></div>
+  </div>
+
+</main>
+
+<script>
+// Active nav highlighting via IntersectionObserver
+const navItems = document.querySelectorAll('.nav-item');
+const cards = document.querySelectorAll('.q-card');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-80px 0px -70% 0px' });
+cards.forEach(c => observer.observe(c));
+
+// Search filter
+function filterQuestions() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  navItems.forEach(item => {
+    if (!q) { item.classList.remove('hidden'); return; }
+    const text = item.textContent.toLowerCase();
+    const cardId = item.getAttribute('href').slice(1);
+    const card = document.getElementById(cardId);
+    const cardText = card ? card.getAttribute('data-text') || '' : '';
+    if (text.includes(q) || cardText.includes(q)) {
+      item.classList.remove('hidden');
+    } else {
+      item.classList.add('hidden');
+    }
+  });
+  // Hide empty categories
+  document.querySelectorAll('.nav-category').forEach(cat => {
+    let next = cat.nextElementSibling;
+    let hasVisible = false;
+    while (next && !next.classList.contains('nav-category')) {
+      if (next.classList.contains('nav-item') && !next.classList.contains('hidden')) {
+        hasVisible = true; break;
+      }
+      next = next.nextElementSibling;
+    }
+    cat.style.display = hasVisible ? '' : 'none';
+  });
+}
+
+// Close sidebar on mobile when clicking a nav item
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    if (window.innerWidth <= 900) {
+      document.querySelector('.sidebar').classList.remove('open');
+    }
+  });
+});
+</script>
+
+</body>
+</html>
