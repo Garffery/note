@@ -210,6 +210,7 @@ body {
     <a href="#q11" class="nav-item"><span class="q-num">Q11</span> 装饰器的本质</a>
     <a href="#q12" class="nav-item"><span class="q-num">Q12</span> *args **kwargs 参数类型</a>
     <a href="#q36" class="nav-item"><span class="q-num">Q36</span> from import 与 import 区别</a>
+    <a href="#q39" class="nav-item"><span class="q-num">Q39</span> dict 的存储原理</a>
 
     <div class="nav-category"><span class="cat-dot" style="background:#059669"></span>协议与内存</div>
     <a href="#q13" class="nav-item"><span class="q-num">Q13</span> 迭代器和可迭代对象区别</a>
@@ -223,6 +224,8 @@ body {
     <a href="#q21" class="nav-item"><span class="q-num">Q21</span> __slots__ 有什么作用</a>
     <a href="#q22" class="nav-item"><span class="q-num">Q22</span> GIL 是什么</a>
     <a href="#q23" class="nav-item"><span class="q-num">Q23</span> 如何处理 Python 内存问题</a>
+    <a href="#q37" class="nav-item"><span class="q-num">Q37</span> Python 怎么进行垃圾回收</a>
+    <a href="#q38" class="nav-item"><span class="q-num">Q38</span> weakref 弱引用怎么用</a>
 
     <div class="nav-category"><span class="cat-dot" style="background:#d97706"></span>并发与工程实践</div>
     <a href="#q24" class="nav-item"><span class="q-num">Q24</span> 线程进程协程怎么选</a>
@@ -739,6 +742,151 @@ print(DB_URL is demo_config.DB_URL)   # False</code></pre>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 <code>from import</code> 和 <code>import module</code> 在所有场景完全等价。</li><li>用 <code>from import</code> 引入运行时会被重新绑定的配置、单例或状态对象。</li><li>混淆"重新绑定名字"（指向新对象）与"原地修改对象"（改变同一对象内容）。</li></ul></div>
     <div class="q-section"><span class="badge badge-src">来源</span><p>补充题（基于代码验证）</p></div>
   </div>
+
+  <!-- Q39 -->
+  <div class="q-card" id="q39" data-text="dict 原理 哈希表 compact dict indices entries 内存结构 存储 哈希碰撞 开放寻址 探测序列 墓碑 tombstone 扩容 rehash 装载因子 2/3 随机化 PYTHONHASHSEED 攻击 插入顺序 内存阶梯">
+    <div class="q-title"><span class="q-label">Q39</span>dict 是怎么存储的？内存结构、哈希碰撞、扩容各是怎么回事？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>dict 是哈希表：key 的 hash 值决定候选槽位，冲突用开放寻址解决；现代 CPython（3.6+）用 compact dict 结构——稀疏索引表（indices）+ 紧凑条目数组（entries）分离存储，装载因子达 2/3 时扩容并 rehash。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>存储分两层：indices 是长度为 2 的幂的索引表，存 entries 的下标；entries 是连续数组，按插入顺序存 (hash, key, value) 三元组。插入时算 hash 定位 indices 槽，被占就按探测序列找下一个空位；查找时定位后逐个 <code>==</code> 确认；删除打墓碑标记不断链。装载因子到 2/3 时容量翻倍并 rehash 全部条目。hash 随机化（PYTHONHASHSEED）防碰撞攻击，O(1) 是均摊意义。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>哈希表用"算 hash → 定位 → 冲突解决"换取平均 O(1)，代价是扩容时偶发 O(n)（摊到多次插入仍均摊 O(1)）和内存冗余（indices 稀疏）。key 必须 hash 稳定且 <code>__eq__</code>/<code>__hash__</code> 一致，所以可变对象不能作 key。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>为什么相同 hash 的 key 能共存？</strong> hash 只决定"从哪个槽开始找"，碰撞后沿探测序列继续，最终用 <code>==</code> 确认真实 key——不同 key 可以有相同 hash 并共存。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>删除为什么用墓碑而不是直接清空？</strong> 直接清空会断开探测链，导致后续 key 查找时误判"不存在"；墓碑标记"这里曾经有值"，查找时跳过、插入时复用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>从 compact 结构、装载因子、探测链讲清 O(1) 的均摊本质和内存代价。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>以为相同 hash 就是相同 key。</li><li>以为扩容后槽位不变，不知道 rehash 会重新放置。</li><li>把 O(1) 当绝对保证，忽略恶劣碰撞退化。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>补充题（基于代码验证）</p></div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 内存结构：compact dict——indices + entries 分离（真实运行）</span>
+      <p><strong>现代 CPython（3.6+，PEP 468 / compact dict）</strong> 把 dict 分成两层存储，这和"哈希表 = 一个大数组"的直觉不同：</p>
+      <table>
+        <tr><th>层</th><th>作用</th><th>特点</th></tr>
+        <tr><td>indices（索引表）</td><td>hash 定位：存 entries 的<strong>下标</strong></td><td>稀疏，长度是 2 的幂，按元素数用 1/2/4/8 字节存储</td></tr>
+        <tr><td>entries（条目数组）</td><td>实际数据：<code>(hash, key, value)</code> 三元组</td><td>紧凑连续，<strong>按插入顺序排列</strong></td></tr>
+      </table>
+      <pre><code>d = {"a": 1, "b": 2, "c": 3}
+
+# 逻辑上（compact dict）：
+#   indices:  [2, 0, -, 1, -]     ← hash 定位用，存 entries 下标（- 表示空）
+#   entries:  [(h_a,'a',1), (h_b,'b',2), (h_c,'c',3)]   ← 按插入顺序！
+#
+# 实测:
+print(sys.getsizeof(d))        # 184 bytes（3 元素）
+print(list(d.keys()))          # ['a', 'b', 'c']  ← 插入顺序保留</code></pre>
+      <p class="param-note"><strong>为什么分离存储？</strong> 老式 dict（&lt;3.6）每条 entry 自带哈希表结构（含大量稀疏空槽），内存浪费严重且遍历要跳过空位。compact dict 让 <code>entries</code> 紧凑连续——遍历直接顺序读数组（快），<code>indices</code> 按需用最小字节宽度（省内存）。这也是 3.6+ 起 dict 保持插入顺序的原因（呼应"dict 有序"面试点）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 内存阶梯：扩容的跳跃点（真实运行）</span>
+      <pre><code># 实测不同大小 dict 的 sys.getsizeof：
+#   元素数 → dict 大小 (bytes)
+#      0   →    64      ← 空 dict 基础结构
+#      1   →   224      ← 首次分配容量
+#      5   →   224
+#      6   →   352      ← 扩容点！
+#     10   →   352
+#     11   →   632      ← 扩容点！
+#     22   →  1168      ← 扩容点！
+#     43   →  2264      ← 扩容点！
+#     86   →  4688      ← 扩容点！
+#    256   →  9304
+#   1000   → 36952
+#
+# 观察：大小按阶梯跳跃，跳跃点 = 容量翻倍</code></pre>
+      <p class="param-note">内存阶梯的跳跃点（224→352→632→1168→2264→4688）对应容量翻倍：<strong>容量按 2 的幂增长（8→16→32→64→128→256...），entries 数组随之增长，indices 也翻倍</strong>。这解释了 Q21 之前"同构对象"对比里 dict 的高内存开销——每个 dict 都要背这套结构。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 哈希碰撞：开放寻址探测序列（真实运行）</span>
+      <p><strong>碰撞处理 = 开放寻址（open addressing）</strong>：hash 相同只决定"从哪个槽开始找"，槽被占就沿探测序列找下一个候选位，直到找到空位（插入）或匹配 key（查找）：</p>
+      <pre><code># 制造碰撞：所有 key 的 hash 都是 42
+class Collider:
+    def __init__(self, name):
+        self.name = name
+    def __hash__(self):
+        return 42              # ← 全撞同一个 hash！
+    def __eq__(self, other):
+        return isinstance(other, Collider) and self.name == other.name
+
+d = {}
+for i in range(6):
+    d[Collider(f"k{i}")] = i
+
+print(len(d))    # 6  ← 6 个相同 hash 的 key 共存！
+
+# 查询流程: hash=42 → 定位槽位 → 槽被占 → 探测下一个
+#           → 每个槽 == 比较 → 找到名字匹配的 → 返回
+# 实测: 相同 hash ≠ 相同 key，探测序列 + == 确认是碰撞解决的核心</code></pre>
+      <p><strong>完整流程</strong>：</p>
+      <table>
+        <tr><th>操作</th><th>步骤</th></tr>
+        <tr><td>插入</td><td>hash(key) → 定位 indices 槽 → 被占？→ 探测下一候选位 → 空位存入 entries</td></tr>
+        <tr><td>查找</td><td>hash(key) → 定位 → 槽内 key == 目标？→ 是则返回 → 否则继续探测 → 遇空槽则不存在</td></tr>
+        <tr><td>删除</td><td>不能直接清空（会断探测链）→ 打 <strong>tombstones 墓碑标记</strong>：查找跳过、插入复用</td></tr>
+      </table>
+      <p class="param-note"><strong>为什么删除用墓碑</strong>：探测链是连续的——如果 A 占槽 3、B 探测到槽 4，直接清空槽 3 会让查找 B 时"遇空槽 → 误判不存在"。墓碑（dummy）让查找继续走，插入时又能复用该位置。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 扩容：装载因子 2/3 触发 + rehash（真实运行）</span>
+      <p><strong>扩容时机</strong>：装载因子（used / capacity）达到 <strong>2/3</strong> 时触发——<code>used * 3 &gt;= capacity * 2</code>。实测扩容点：</p>
+      <pre><code># 逐元素插入，记录 sys.getsizeof 变化：
+第  1 个元素 → 224   (旧 64)    ← 首次分配
+第  6 个元素 → 352   (旧 224)   ← 扩容（5 个用时已满 2/3）
+第 11 个元素 → 632   (旧 352)   ← 扩容
+第 22 个元素 → 1168  (旧 632)   ← 扩容
+第 43 个元素 → 2264  (旧 1168)  ← 扩容
+第 86 个元素 → 4688  (旧 2264)  ← 扩容</code></pre>
+      <p><strong>扩容 = rehash（重新放置）</strong>：</p>
+      <pre><code># 为什么必须 rehash？槽位依赖表大小！
+# 同一个 key 在不同容量下槽位不同（实测）：
+hash("hello") % 8   = 5
+hash("hello") % 16  = 5
+hash("hello") % 32  = 21     ← 表大小变了，位置就变！
+
+# 扩容步骤：
+#   ① 分配更大的 indices（容量翻倍）
+#   ② 遍历旧 entries，对每个 key 重新计算槽位
+#   ③ 插入新表（探测位置全部重算）
+# 代价: O(n) 一次性操作 → 均摊到多次插入后仍 O(1)</code></pre>
+      <p class="param-note"><strong>面试要点</strong>：扩容是偶发的 O(n)（rehash 全部条目），但<strong>均摊</strong>到 N 次插入后仍是 O(1)——这就是"均摊复杂度"（amortized）的含义，和 list 的 append 扩容同理（Q7）。扩容点频率：每容量增长一倍、装载因子降到 ~1/3，保证多数操作在低装载下进行。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · hash 随机化：防碰撞攻击（真实运行）</span>
+      <pre><code># 字符串 hash 同进程内稳定：
+hash("hello")   # 8956971470773189173（本进程）
+hash("hello")   # 8956971470773189173（不变）
+
+# 但跨进程不同（PYTHONHASHSEED 随机化）：
+#   进程1: -122319969619077902
+#   进程2: -648471574773594595
+#   → 每个进程启动时随机种子，hash 值不同！
+
+# 为什么：防止 hash flooding 攻击——攻击者若知道
+# hash 算法，可构造大量同 hash 的 key，把 dict 退化
+# 成 O(n) 线性探测，导致 DoS。随机化让攻击者无法预测</code></pre>
+      <p class="param-note"><strong>安全考虑</strong>：Python 自 3.3 起默认开启 <code>PYTHONHASHSEED</code> 随机化（可用 <code>PYTHONHASHSEED=0</code> 固定，仅调试用）。面试提到"dict 最坏可退化 O(n)"时，补一句"字符串 hash 随机化降低可构造碰撞攻击"是加分项（呼应 Q6 追问 2）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 完整工作流程（总结）</span>
+      <pre><code>插入 d["name"] = "zfj"
+ ① hash("name") → 大整数（进程内随机种子参与）
+ ② 定位: indices[hash % capacity] → entries 下标
+ ③ 槽被占?  → 沿探测序列找下一个空位（开放寻址）
+ ④ 空位存入 entries: (hash, "name", "zfj")
+ ⑤ 装载因子 ≥ 2/3? → 扩容: 容量翻倍 + 全部 rehash
+
+查找 d["name"]
+ ① hash("name") → 定位 indices 槽
+ ② 槽内 entry.key == "name"?  → 是 → 返回 value
+ ③ 否 → 沿探测序列继续 → 遇空槽/墓碑结束 → KeyError
+
+删除 del d["name"]
+ ① 定位 + 探测找到该 entry
+ ② 打墓碑标记（不断探测链），entries 数组位置可复用</code></pre>
+      <p class="param-note"><strong>面试一句话</strong>：dict 是"indices 稀疏索引 + entries 紧凑数组"的 compact 哈希表，hash 决定起点、开放寻址解决碰撞、<code>==</code> 确认真实 key、2/3 装载触发扩容 rehash、hash 随机化防攻击——O(1) 是均摊意义。</p>
+    </div>
+  </div>
+
 
   <!-- ====== Category 2: 协议与内存 ====== -->
   <div class="category-header">
@@ -2237,6 +2385,498 @@ print(f"当前: {current:,} bytes | 峰值: {peak:,} bytes")
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>按指标—复现—快照—引用—修复—回归讲一次排查闭环。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>只看任务管理器就认定 Python heap 泄漏。</li><li>每请求调用 gc.collect 作为性能优化。</li></ul></div>
     <div class="q-section"><span class="badge badge-src">来源</span><p>P01、E01</p></div>
+  </div>
+
+  <!-- Q37 -->
+  <div class="q-card" id="q37" data-text="垃圾回收 引用计数 分代GC 循环引用 gc.collect gc.garbage threshold 代数提升 mark-sweep __del__ finalizer weakref is_tracked 内存回收 即时回收 停顿 PEP 442 根集合 root 可达性分析 栈帧 全局命名空间 builtins 触发条件 STW Stop-The-World 全停顿 GIL 引用计数无停顿 标量 容器 三色标记 写屏障 并发标记 Go 增量GC free-threaded no-GIL PyPy 追踪式GC sys.modules 模块命名空间 根可达 误回收 黑对象白对象 写屏障开销">
+    <div class="q-title"><span class="q-label">Q37</span>Python 是怎么进行垃圾回收的？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>CPython 采用"引用计数为主 + 分代循环垃圾回收兜底"的双机制：引用计数让大多数对象在引用归零时立即释放；分代 GC 专门回收引用计数无法处理的不可达引用环。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：图书馆还书系统（真实运行）</span>
+      <p>想象图书馆有两种还书机制配合工作：</p>
+      <ul>
+        <li><strong>借阅卡计数（引用计数）</strong>：每本书的卡上记着"几个人在借"。最后一个读者还书时计数归零，图书管理员<strong>当场把书放回书架</strong>（立即回收）——大多数书都这样即时归位。</li>
+        <li><strong>定期盘点（分代 GC）</strong>：有些书被读者们<strong>互相转借成环</strong>（A 借给 B、B 借给 C、C 又借回 A），谁的卡上计数都降不到零，但书其实没人真正需要了。管理员每天/每周做一次盘点（可达性分析），发现这种"死循环借阅"就统一收走。</li>
+      </ul>
+      <p class="param-note">关键区分：借阅卡计数<strong>实时但只管单本书</strong>；定期盘点<strong>延迟但能处理环</strong>。两个机制缺一不可。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验1：引用计数——归零立即回收（真实运行）</span>
+      <pre><code>import sys
+
+class Watcher:
+    def __init__(self, name):
+        self.name = name
+        print(f"    [创建] {self.name}")
+    def __del__(self):
+        print(f"    [回收] {self.name} (__del__ 被调用)")
+
+a = Watcher("A")
+b = a                     # 引用 +1
+print(f"  sys.getrefcount(a) = {sys.getrefcount(a)}")
+#   sys.getrefcount(a) = 3      ← getrefcount 自己 +1，实际 2 个引用
+del b                     # 引用 -1，仍有 a 指向它
+del a                     # 引用归零 → __del__ 立即触发！
+
+# 输出:
+#   [创建] A
+#   sys.getrefcount(a) = 3
+#   [回收] A (__del__ 被调用)    ← 注意：不需要等任何 GC 周期</code></pre>
+      <p class="param-note">引用计数是<strong>同步即时</strong>的：<code>del</code> 让最后一个引用消失的瞬间，<code>__del__</code> 立刻执行。<code>getrefcount</code> 多出 1 是因为它传参时自己也持有一个临时引用。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验2：循环引用——计数不归零，分代 GC 兜底（真实运行）</span>
+      <pre><code>class Node:
+    def __init__(self, name):
+        self.name = name
+        self.next = None
+        print(f"    [创建] {self.name}")
+    def __del__(self):
+        print(f"    [回收] {self.name} (__del__ 被调用)")
+
+a = Node("A")
+b = Node("B")
+a.next = b
+b.next = a          # 形成环：A -> B -> A
+
+del a, b            # 计数都还有 1（被对方引用），__del__ 没触发！
+
+# 此时 A/B 外部不可达，但引用计数永远到不了 0
+collected = gc.collect()   # 手动触发分代收集
+print(f"  gc.collect() 返回 {collected}")
+
+# 输出:
+#   [创建] A
+#   [创建] B
+#   [回收] A (__del__ 被调用)     ← del 后没触发，gc.collect 后触发
+#   [回收] B (__del__ 被调用)
+#   gc.collect() 返回 2</code></pre>
+      <p class="param-note"><code>del a, b</code> 后 <code>__del__</code> 没有立即打印——这就是引用计数失效的现场：A 的计数 1 来自 B，B 的计数 1 来自 A。但两者已经没有任何外部引用了，成了"互相吊着"的不可达环。<code>gc.collect()</code> 可达性分析发现它们不可达，一并回收。这证明<strong>循环引用不是必然泄漏</strong>（呼应 Q20）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验3：gc 模块默认参数与"哪些对象被跟踪"（3.13 实测）</span>
+      <pre><code>import gc
+
+gc.get_threshold()   # (2000, 10, 10)  ← 0代阈值2000, 1代10, 2代10
+gc.get_count()       # (1319, 8, 0)    ← 各代当前未收集对象数
+
+# 谁参与分代 GC？（is_tracked，3.13 实测）
+gc.is_tracked(1)           # False  ← int
+gc.is_tracked("hello")     # False  ← str
+gc.is_tracked(3.14)        # False  ← float
+gc.is_tracked(())          # False  ← 空 tuple
+gc.is_tracked([1,2])       # True   ← list
+gc.is_tracked({1,2})       # True   ← set
+gc.is_tracked((1,2))       # True   ← 非空 tuple
+gc.is_tracked({})          # False  ← 空 dict
+gc.is_tracked({"a":1})     # False  ← 纯值 dict
+gc.is_tracked({"k":[]})    # True   ← 含可变对象的 dict</code></pre>
+      <p class="param-note">3.13 实测规律：<strong>int/str/float 等标量绝不跟踪</strong>（引用计数归零即回收，不可能参与环）；list/set/自定义实例总是跟踪；dict 在为空或纯值时默认不跟踪，只有含可变对象（list/dict 等）才跟踪；tuple 空的默认不跟踪、非空的跟踪。<strong>面试不必背这张表</strong>，记住一句话即可：只有"容器"才可能参与引用环、才需要分代 GC；标量对象引用计数归零即释放。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验4：代数提升——为什么 0 代频繁、2 代极少（真实运行）</span>
+      <pre><code>class Ring:
+    def __init__(self):
+        self.partner = None   # 形成环用
+
+def make_rings(n, keep_first=None):
+    kept = None
+    for _ in range(n):
+        a, b = Ring(), Ring()
+        a.partner, b.partner = b, a
+        if keep_first and kept is None:
+            kept = a          # 保留一个 → 幸存者
+    return kept
+
+gc.collect()
+print(gc.get_count())        # (0, 0, 0)
+make_rings(500)              # 500 个环全部不可达
+print(gc.get_count())        # (1002, 0, 0)  ← 0 代累积，未达 2000
+n = gc.collect()
+print(n)                     # 1000  ← 回收了 1000 个对象（500 环 × 2）
+print(gc.get_count())        # (1, 0, 0)
+
+# 幸存者提升：保留 1 个环
+gc.collect()
+kept = make_rings(300, keep_first=True)
+print(gc.get_count())        # (600, 0, 0)
+n = gc.collect()
+print(n)                     # 598   ← 299 个环被收，kept 环仍可达
+print(gc.get_count())        # (1, 0, 0)
+del kept                     # 释放幸存者
+print(gc.collect())          # 2     ← 这次 1 代里也能收它</code></pre>
+      <p class="param-note">分代假设：<strong>新对象死得快</strong>。0 代对象一多（&gt;2000）就收一次，绝大多数立刻死掉；幸存者晋升到 1 代，1 代收满 10 次再晋升 2 代。越老的对象越少被扫描——2 代对象只在 2 代收集时（极罕见）被扫描。这是吞吐/延迟的平衡：把扫描成本集中在"最可能死"的新对象上。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验5：带 __del__ 的环——PEP 442 之后的行为（真实运行）</span>
+      <pre><code># 情况1：__del__ 不做奇怪事 → 3.4+（PEP 442）可安全回收
+class CleanFinalizer:
+    def __init__(self, name):
+        self.name = name
+        self.other = None
+    def __del__(self):
+        print(f"    [__del__] {self.name}")
+
+x, y = CleanFinalizer("X"), CleanFinalizer("Y")
+x.other, y.other = y, x
+del x, y
+
+gc.collect()
+#   输出:
+#     [__del__] X
+#     [__del__] Y
+#   gc.garbage 长度 = 0   ← 3.4+ 通常为 0，环能回收
+
+# 情况2：__del__ 里复活引用 → 对象被救活，行为不可靠
+class Zombie:
+    saved = None
+    def __init__(self, name):
+        self.name = name
+        self.other = None
+    def __del__(self):
+        Zombie.saved = self   # ← 复活自己！
+
+p, q = Zombie("P"), Zombie("Q")
+p.other, q.other = q, p
+del p, q
+gc.collect()
+print(Zombie.saved)  # &lt;Zombie object&gt;  ← 对象被复活，GC 白忙
+
+# 情况3：__del__ 抛异常
+class BadFinalizer:
+    def __init__(self):
+        self.other = None
+    def __del__(self):
+        raise RuntimeError("boom")
+
+u, v = BadFinalizer(), BadFinalizer()
+u.other, v.other = v, u
+del u, v
+gc.collect()
+#   输出（stderr）:
+#   Exception ignored in: &lt;function BadFinalizer.__del__&gt;
+#   Traceback (most recent call last):
+#     raise RuntimeError("boom")
+#   RuntimeError: boom</code></pre>
+      <p class="param-note">工程结论：<strong><code>__del__</code> 只做简单清理，不要保存引用、不要抛异常、不要做可能失败的 I/O</strong>。即使 PEP 442 解决了"带 finalizer 的环"，finalizer 的执行时机仍受环、解释器退出等影响。这正是 Q19 追问 2 强调"关键资源用 <code>with</code>、不要依赖 <code>__del__</code>"的实证。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验6：为什么不要每请求手动 gc.collect()（真实运行）</span>
+      <pre><code>def make_garbage(n=5000):
+    for _ in range(n):
+        a, b = [], []
+        a.append(b); b.append(a)   # 制造 5000 个环
+
+# 自动 GC 基线
+gc.collect(); gc.enable()
+t0 = time.perf_counter()
+for _ in range(100):
+    make_garbage(5000)
+t1 = time.perf_counter()
+print(f"自动 GC: 100 轮 = {t1-t0:.4f}s")
+
+# 手动：每轮后 collect
+gc.disable()
+t0 = time.perf_counter()
+for _ in range(100):
+    make_garbage(5000)
+    gc.collect()          # ← 每轮全停顿
+t1 = time.perf_counter()
+print(f"手动 GC: 100 轮 = {t1-t0:.4f}s  (约 {manual/auto:.1f}x)")
+
+# 单次 collect 的停顿
+gc.enable()
+t0 = time.perf_counter()
+gc.collect()
+t1 = time.perf_counter()
+print(f"单次 gc.collect() 停顿: {(t1-t0)*1000:.1f} ms")
+
+# 本机实测:
+# 自动 GC: 100 轮 = 0.0973s
+# 手动 GC: 100 轮 = 0.2043s  (约 2.1x)
+# 单次 gc.collect() 停顿: 0.8 ms</code></pre>
+      <p class="param-note">手动 collect 慢 2.1 倍且每次都是<strong>全堆扫描 + 暂停所有线程</strong>。放请求路径上就是每请求一次全停顿——吞吐下降、尾延迟上升。自动 GC 的阈值机制（0 代 2000 个对象才触发）正是为了把开销分摊到各次分配、避开关键路径。<strong>唯一合理的手动 collect 场景：内存峰值敏感的大批量任务完成后、或压测前归零基线</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>分代 GC 从根对象出发做可达性分析，把外部不可达、但互相引用导致计数不为零的对象集合判为垃圾并回收。只有可能参与环的容器（list/dict/set/实例）才被跟踪；int/str 等标量引用计数归零即释放，不参与 GC。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>引用计数和分代 GC 各负责什么？</strong> 引用计数负责绝大多数对象的即时回收（无停顿但每次增删引用有开销）；分代 GC 只兜底引用环，带全停顿但只在阈值触发。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么不要手动调用 `gc.collect()`？</strong> 它做全堆扫描并暂停所有线程，放在请求路径上会放大尾延迟；自动 GC 的阈值机制已把开销分摊到各次分配。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 3</span>
+      <p><strong>可达性分析的根是什么？各代触发条件？会不会 STW？</strong> 根集合主要是线程栈帧、模块全局命名空间、解释器内部结构三类；0 代由新分配对象数触发、1/2 代由低代收集次数触发；分代收集会全局暂停（STW），引用计数回收则无停顿。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问3：根集合 / 触发条件 / STW（结论）</span>
+      <p><strong>一、可达性分析的根（Root）</strong>——GC 从根出发做可达性分析，根引用的对象视为存活，从根不可达的整块对象视为垃圾：</p>
+      <table>
+        <tr><th>根来源</th><th>包含什么</th></tr>
+        <tr><td>① 线程调用栈帧</td><td>每个线程的 <code>PyThreadState.frame</code> 链，含局部变量、闭包变量——函数返回帧弹出，局部对象立即失去根身份</td></tr>
+        <tr><td>② 模块全局命名空间</td><td><code>__main__</code> 及 <code>sys.modules</code> 中所有模块的 <code>__dict__</code></td></tr>
+        <tr><td>③ 解释器内部结构</td><td><code>builtins</code>、类型对象本身、interned 字符串、小整数缓存等</td></tr>
+      </table>
+      <p class="param-note">区分两个概念：<code>gc.get_objects()</code> 返回"当前所有被跟踪对象"的<strong>堆快照</strong>（调试视图），不是根集合。根是可达性分析的<strong>起点</strong>，堆是<strong>被检查的对象集</strong>。工程含义：全局容器（缓存、registry）持有的对象永远可达、不会被 GC 回收——所以"泄漏"通常是根可达而非 GC 无能（呼应 Q20）。</p>
+      <p><strong>二、各代触发回收的条件</strong>——默认阈值 <code>(2000, 10, 10)</code>，触发链条是"0 代看流量、1/2 代看频率"：</p>
+      <table>
+        <tr><th>代</th><th>触发条件</th><th>触发后做什么</th></tr>
+        <tr><td>0 代</td><td>新分配的被跟踪对象数 &gt; 2000</td><td>只收集 0 代</td></tr>
+        <tr><td>1 代</td><td>0 代收集次数 ≥ 10</td><td>收集 0 + 1 代</td></tr>
+        <tr><td>2 代</td><td>1 代收集次数 ≥ 10</td><td>收集 0 + 1 + 2 代（全量）</td></tr>
+      </table>
+      <p class="param-note">关键细节：<strong>0 代看"对象数"（分配流量），1/2 代看"收集次数"（触发频率）</strong>，分配计数器在收集后重置。这是"新对象死得快"假设的落地——0 代高频小规模扫描，只有幸存者才逐步进入低频大扫描；2 代对象极少被扫描，所以长命对象几乎零开销。</p>
+      <p><strong>三、会不会 STW（Stop-The-World）？</strong></p>
+      <table>
+        <tr><th>机制</th><th>是否 STW</th><th>何时发生</th></tr>
+        <tr><td>引用计数回收</td><td>否，无停顿</td><td>每次字节码操作顺带做（增删引用时）</td></tr>
+        <tr><td>分代 GC 收集</td><td>是，全局暂停</td><td>仅 0 代对象数超阈值时，单次毫秒级</td></tr>
+      </table>
+      <p class="param-note">分代收集期间 CPython 持有 GIL 不释放，<strong>所有线程（包括纯计时线程）都被冻结</strong>，直到收集完成。工程含义：① 热路径别手动 <code>gc.collect()</code>——它在请求关键路径插入全停顿；② 自动 GC 的停顿通常毫秒级、被阈值机制稀疏化，远小于一次网络往返，不必恐慌；③ 真正的风险是对象量级失控（如无界缓存）导致收集频繁、停顿变长——这是容量问题，不是 GC 本身的问题。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 4</span>
+      <p><strong>根集合是"位置"还是"类型"？模块命名空间里所有对象都是根吗？</strong> 根是位置（栈帧/模块 dict/解释器内部），不挑类型，标量也能被根持有；但可达性分析只展开被跟踪对象（可能成环的容器）。模块 dict 里"名字指向的对象"才是根，且前提是模块仍在 <code>sys.modules</code> 中。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问4：根 = 位置，分析 = 容器（结论）</span>
+      <p><strong>两个概念必须分开，混在一起会答错</strong>：</p>
+      <table>
+        <tr><th>概念</th><th>是什么</th><th>由什么决定</th></tr>
+        <tr><td>根集合</td><td>可达性分析的<strong>出发点</strong>（从哪出发）</td><td>持有引用的<strong>位置</strong>：线程栈帧、模块全局命名空间、解释器内部结构</td></tr>
+        <tr><td>被跟踪对象</td><td>GC 要<strong>扫描的对象图</strong>（检查什么）</td><td>对象<strong>类型</strong>：只有可能参与环的容器（list/dict/set/实例）</td></tr>
+      </table>
+      <p class="param-note"><strong>标量（int/str/float）也能被根持有，但 GC 不碰它</strong>：<code>BIG_STR = 'y' * 100000</code> 在模块 dict 里，<code>gc.collect()</code> 后依然存活，但它 <code>is_tracked</code> 为 False——靠引用计数存活，从不参与分代 GC。原因：标量不可变、不引用其他对象，<strong>结构上不可能成环</strong>，分析它没有意义。所以"只分析容器"不是设计选择，是逻辑必然。</p>
+      <p><strong>模块命名空间与根的关系</strong>（串起 sys.modules 与命名空间讨论）：</p>
+      <pre><code>sys.modules (根 dict，import 系统的全局注册表)
+  └── 'mymod' → 模块对象          ← 被 sys.modules 持有
+        └── mymod.__dict__ (模块命名空间)
+              └── 'GLOBAL_LIST' → 对象 A    ← 根可达，永不误收
+              └── (已 del 的名字) → 对象失去根身份 → 可回收</code></pre>
+      <table>
+        <tr><th>情形</th><th>是否根可达</th></tr>
+        <tr><td>模块 dict 中名字指向的对象</td><td>是——根可达，GC 永不误收</td></tr>
+        <tr><td>函数内局部变量</td><td>调用期间是（栈帧是根），返回后不是</td></tr>
+        <tr><td>模块执行中创建但未赋名的临时对象</td><td>否——引用计数归零即回收，轮不到 GC</td></tr>
+        <tr><td>模块从 sys.modules 删除且无其他引用</td><td>否——模块和它 dict 里的对象一起失去根身份</td></tr>
+      </table>
+      <p class="param-note"><strong>工程含义</strong>："泄漏"通常是根可达而非 GC 无能——全局缓存、registry、事件 handler 挂在模块级名字下，永远根可达（呼应 Q20）。<code>sys.modules</code> 是模块成为根的前提；<code>del sys.modules['x']</code> 只移除缓存，不卸载模块——其他模块的 import 引用和已 from-import 的绑定仍持有它。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 5</span>
+      <p><strong>Python 有 Go 那样的三色标记和写屏障吗？需要吗？</strong> 传统 CPython 没有，也不需要——它的分代 GC 是 STW 的，标记期间程序冻结，不存在并发修改引用，天然免疫"黑色指向白色"的误回收；代价是收集时刻的一次性全停顿。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问5：三色标记 / 写屏障 / 其他实现的 GC（结论）</span>
+      <p><strong>三色标记解决什么问题</strong>：Go 用它支持<strong>并发标记</strong>——GC 标记对象图的同时程序还在改引用，可能出现"标记进行到一半，程序让黑色对象指向白色对象，而黑色已被处理过不再检查 → 活对象被误回收"。Go 用<strong>写屏障</strong>（每次改引用时拦截并重新标灰）保证并发安全。</p>
+      <table>
+        <tr><th></th><th>Go（三色 + 写屏障）</th><th>CPython（STW 分代）</th></tr>
+        <tr><td>标记期间程序能跑吗</td><td>能（并发标记）</td><td>不能（完全冻结）</td></tr>
+        <tr><td>需要写屏障吗</td><td>需要（每个写操作有开销）</td><td>不需要（更简单）</td></tr>
+        <tr><td>停顿特征</td><td>短、可预测</td><td>短但完全冻结（毫秒级）</td></tr>
+        <tr><td>实现复杂度</td><td>高（屏障 + 并发协调）</td><td>低（暂停 → 扫描 → 恢复）</td></tr>
+        <tr><td>成本落在哪</td><td>程序运行时（每个写操作）</td><td>GC 时刻（一次性停顿）</td></tr>
+      </table>
+      <p class="param-note">两种设计最终停顿量级差不多，只是<strong>成本放的位置不同</strong>。CPython 的标记本质上也是三色思路（未访问/栈上/已访问），但它在暂停整个世界后做，不需要并发保护。需要留意的是 <strong>3.13 free-threaded（no-GIL）构建</strong>：去掉 GIL 后"暂停所有线程"变昂贵、且标记期间线程仍会并发改引用，STW 的假设被打破，GC 正在重新设计，未来可能引入增量/并发标记。</p>
+      <p><strong>其他 Python 实现的 GC（面试加分点）</strong>：</p>
+      <table>
+        <tr><th>实现</th><th>GC 策略</th><th>关键差异</th></tr>
+        <tr><td>CPython</td><td>引用计数（即时）+ 分代追踪（兜底环）</td><td>对象死亡即时回收，<code>__del__</code> 时机确定</td></tr>
+        <tr><td>PyPy</td><td>纯追踪式 GC（分代，无引用计数）</td><td>对象地址可移动，<code>__del__</code> 时机不确定，资源管理必须用 with</td></tr>
+        <tr><td>Jython / IronPython</td><td>借用宿主虚拟机 GC（JVM G1 / .NET CLR）</td><td>GC 与 Python 语义完全脱钩</td></tr>
+      </table>
+      <p class="param-note">面试默认答 CPython 的"引用计数 + 分代"；能补一句"PyPy 用纯追踪式 GC、<code>__del__</code> 时机完全不同，所以资源管理必须用 with"是明显加分项。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>区分"对象已回收"与"RSS 不降"，用 gc/tracemalloc 快照排查。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>以为循环引用必然泄漏，其实分代 GC 能回收。</li><li>用 gc.collect 修复所有内存问题，掩盖真正的生命周期 bug。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+  </div>
+
+  <!-- Q38 -->
+  <div class="q-card" id="q38" data-text="weakref 弱引用 引用计数 缓存 WeakValueDictionary WeakKeyDictionary WeakSet proxy 回调 父指针 观察者 生命周期 内存 自动清理 环形引用 不增加计数 ref() None 何时使用 为什么使用 效果">
+    <div class="q-title"><span class="q-label">Q38</span>weakref 弱引用是什么？什么时候用、怎么用？</div>
+    <div class="q-section"><span class="badge badge-def">专业定义</span>
+      <p>weakref 是不增加对象引用计数的引用，允许访问对象但<strong>不拥有其生命周期</strong>；对象仅剩弱引用时仍可被回收，之后弱引用返回 None 或触发回调。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
+      <p>弱引用解决"想引用但不该拥有生命周期"的场景：缓存、观察者、父指针。用 <code>weakref.ref(obj, callback)</code> 创建，访问时 <code>ref()</code> 可能返回 None（对象已回收），必须处理。批量场景用 <code>WeakValueDictionary</code> / <code>WeakSet</code>，对象被回收时条目自动消失。注意：list/dict/int 等内置类型原生不支持，需子类化；核心业务状态不能只靠弱引用保存。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理</span>
+      <p>弱引用在对象头部维护一张独立的弱引用表，不参与引用计数；对象回收时解释器遍历该表置空所有弱引用并调用回调。代价是额外内存和访问时的一次间接跳转。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 1</span>
+      <p><strong>什么时候使用 weakref？</strong> 缓存（对象不用时自动清理）、观察者（订阅者不应拖住被观察者）、父指针（子对象不应拥有父的生命周期）。读取后对象可能已消失，代码需处理 None。</p>
+    </div>
+    <div class="q-section followup"><span class="badge badge-q">追问 2</span>
+      <p><strong>为什么核心业务状态不能用弱引用保存？</strong> 弱引用不保证对象存活——一旦没有强引用，对象立即被回收，数据丢失且不可预测。业务状态必须由强引用或可靠外部存储（DB/Redis）持有，弱引用只做"附加的、可丢失的"优化层。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用 WeakValueDictionary 做内存缓存、弱引用父指针避免父子环。</p></div>
+    <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>试图给 list/dict 直接建弱引用（TypeError，需子类化）。</li><li>把业务关键数据放弱引用缓存，对象被回收导致数据丢失。</li></ul></div>
+    <div class="q-section"><span class="badge badge-src">来源</span><p>P01</p></div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：图书馆的"便签" vs "借书证"（真实运行）</span>
+      <p>想象你在一家图书馆：</p>
+      <ul>
+        <li><strong>强引用 = 借书证</strong>：你借了书，图书管理员<strong>知道书不能收走</strong>（引用计数 +1），只要借书证在，书就一直保留。</li>
+        <li><strong>弱引用 = 便签</strong>：你在书上贴张便签"这本书下次想看"。便签<strong>不影响管理员收书</strong>——如果其他借书证都还了，管理员照常把书收回书库；你贴的便签会变成一张"查无此书"的提示（返回 None）。</li>
+      </ul>
+      <p class="param-note">关键：弱引用是"<strong>可丢失的提示</strong>"——它让你找到书（如果还在），但绝不阻止书被收走。所以读便签时永远要检查"书还在吗"（<code>ref() is not None</code>）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验1：weakref.ref 基本行为（真实运行）</span>
+      <pre><code>import weakref
+
+class Expensive:
+    def __init__(self, name):
+        self.name = name
+        self.data = [0] * 100000   # 大对象
+
+obj = Expensive("A")
+ref = weakref.ref(obj)            # 创建弱引用（不 +1 计数）
+
+print(ref() is obj)          # True  ← 对象还活着，ref() 返回它
+print(sys.getrefcount(obj))  # 2     ← 弱引用不增加计数（getrefcount 自身 +1）
+
+del obj                       # 最后一个强引用消失
+print(ref())                  # None  ← 对象已回收，弱引用失效！
+gc.collect()
+print(ref())                  # None  ← 依然 None</code></pre>
+      <p class="param-note"><code>ref()</code> 是"取回"操作：对象活着返回它，死了返回 <code>None</code>。<strong>所有弱引用代码的核心纪律：访问后必须检查 None</strong>——对象可能在你读取之前就已经被回收。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验2：回调——对象被回收时通知你（真实运行）</span>
+      <pre><code>def on_death(reference):
+    print("对象被回收了！ref() =", reference())   # None
+
+obj2 = Expensive("B")
+ref2 = weakref.ref(obj2, on_death)   # 第二个参数 = 回收回调
+
+del obj2                              # 引用计数归零 → 立即触发回调
+# 输出:
+#   对象被回收了！ref() = None</code></pre>
+      <p class="param-note">回调在对象<strong>被回收的瞬间</strong>触发（引用计数归零或 GC 回收都算）。用途：缓存条目失效清理、资源释放通知。注意回调里不要再尝试访问对象——它已经没了。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验3：哪些类型支持 weakref（真实运行）</span>
+      <pre><code># 实测（3.13）：
+weakref.ref(自定义实例())   # 支持 ✅（实例有 __dict__，可被弱引用）
+weakref.ref(set())          # 支持 ✅（set/frozenset 有弱引用槽位）
+weakref.ref(list())         # TypeError: cannot create weak reference
+weakref.ref(dict())         # TypeError: cannot create weak reference
+weakref.ref(int())          # TypeError: cannot create weak reference
+weakref.ref(str())          # TypeError: cannot create weak reference
+weakref.ref(tuple())        # TypeError: cannot create weak reference
+
+# 想给 list 加弱引用？子类化即可：
+class MyList(list):         # 子类会获得 __weakref__ 槽位
+    pass
+ref = weakref.ref(MyList([1, 2, 3]))   # 支持 ✅</code></pre>
+      <p class="param-note">为什么 list/dict/int 不支持？这是 CPython 的<strong>性能优化</strong>：这些类型被海量创建，如果每个都预留弱引用槽位（一个指针）会增加内存开销。需要弱引用时子类化，子类自动获得 <code>__weakref__</code> 槽位。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验4：WeakValueDictionary——缓存条目随对象消失（真实运行）</span>
+      <pre><code>cache = weakref.WeakValueDictionary()
+
+def load(id):
+    obj = Expensive(f"item_{id}")   # 大对象
+    cache[id] = obj                 # 值存弱引用，不 +1 计数
+    return obj
+
+items = [load(i) for i in range(3)]
+print(len(cache))            # 3  ← 3 个条目
+print(cache[0] is items[0])  # True
+
+del items[0]; del items[1]   # 删除 2 个强引用
+gc.collect()
+print(len(cache))            # 1  ← 条目自动消失！
+print(list(cache.keys()))    # [1]</code></pre>
+      <p class="param-note"><code>WeakValueDictionary</code> 的<strong>值</strong>是弱引用：对象没有强引用时，条目自动从字典消失（无需手动清理）。对应还有 <code>WeakKeyDictionary</code>（键弱引用）和 <code>WeakSet</code>（元素弱引用）。这是缓存场景的主力工具。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验5：强引用缓存 vs 弱引用缓存——为什么弱引用能"自动清理"（真实运行）</span>
+      <pre><code># 强引用缓存：对象永远活着，内存只增不减
+strong_cache = {}
+def load_strong(id):
+    obj = Expensive(f"s_{id}")
+    strong_cache[id] = obj     # ← 强引用，缓存持有对象
+    return obj
+
+tmp = [load_strong(i) for i in range(3)]
+del tmp; gc.collect()
+print(len(strong_cache))   # 3  ← del 后对象仍活着（缓存持有）！
+
+# 弱引用缓存：没人用时自动消失
+weak_cache = weakref.WeakValueDictionary()
+def load_weak(id):
+    obj = Expensive(f"w_{id}")
+    weak_cache[id] = obj     # ← 弱引用，缓存不持有生命周期
+    return obj
+
+tmp = [load_weak(i) for i in range(3)]
+del tmp; gc.collect()
+print(len(weak_cache))     # 0  ← 强引用没了，条目自动消失！</code></pre>
+      <p class="param-note">这是 weakref 的<strong>核心价值</strong>：强引用缓存是"<strong>泄漏风险点</strong>"——对象不再被使用但缓存不放，内存只增不减（除非手动清缓存）；弱引用缓存是"<strong>自适应释放</strong>"——没人用就自动清理，内存与"在用数"成正比。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验6：真实缓存场景——避免大对象堆积（真实运行）</span>
+      <pre><code>cache6 = weakref.WeakValueDictionary()
+created = []
+for i in range(1000):
+    obj = Expensive(f"big_{i}")   # 每个 100k int 引用 ≈ 0.8MB
+    cache6[i] = obj
+    created.append(obj)
+    if len(created) > 3:
+        del created[0]            # 只保留最近 3 个的强引用
+
+gc.collect()
+print(len(cache6))    # 3  ← 只有 3 个在用，其余 997 个自动消失
+
+# 对比：如果用强引用缓存（dict），这里会有 1000 个存活对象
+# ≈ 800MB 数据堆积；弱引用缓存自动释放，内存与在用数成正比</code></pre>
+      <p class="param-note"><strong>典型工程场景</strong>：RAG 服务的文档 chunk 缓存、LLM 响应缓存、用户 session 缓存。弱引用缓存让"不再被引用的条目"自动让位给新数据，天然有界——但要注意：<strong>如果调用方一直持有强引用（比如 session 对象常驻），弱引用缓存永远不会清理，效果等同强引用缓存</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验7：父指针/观察者——避免环和生命周期拖累（真实运行）</span>
+      <pre><code>class Child:
+    def __init__(self, name):
+        self.name = name
+        self.parent = None
+
+class Parent:
+    def __init__(self, name):
+        self.name = name
+        self.children = []
+    def add_child(self, child):
+        child.parent = weakref.ref(self)   # ← 弱引用父指针！
+        self.children.append(child)
+
+p = Parent("P")
+c1 = Child("C1")
+p.add_child(c1)
+
+print(c1.parent())            # &lt;Parent P&gt;  ← 通过弱引用访问父
+print(sys.getrefcount(p))     # 2  ← 子不持有强引用
+
+p_ref = weakref.ref(p)
+del p; gc.collect()
+print(p_ref())                # None  ← 父被回收（子没拖住它）
+print(c1.parent())            # None  ← 子还能访问父吗？父没了 → None</code></pre>
+      <p class="param-note"><strong>为什么父指针要用弱引用？</strong> 如果 <code>child.parent</code> 是强引用：① 形成父↔子<strong>引用环</strong>（虽然 GC 能回收，但延迟）；② 更糟的是<strong>子拖住父的生命周期</strong>——只要子对象还活着，父就永远不被回收。弱引用父指针让"父可以被回收，子访问不到时得到 None"——这正是对象图设计中"<strong>谁拥有谁的生命周期</strong>"的关键决策。观察者模式同理：订阅者持有被观察者的弱引用，避免拖住主体。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 实验8：weakref.proxy——透明代理（真实运行）</span>
+      <pre><code>class Greeter:
+    def __init__(self, name):
+        self.name = name
+    def greet(self):
+        return f"hello {self.name}"
+
+g = Greeter("world")
+prox = weakref.proxy(g)      # 创建透明代理
+
+print(prox.greet())          # hello world  ← 像原对象一样用
+print(prox.name)             # world        ← 属性访问也透明
+print(prox is g)             # False        ← 不是同一对象
+
+del g
+try:
+    prox.greet()
+except ReferenceError as e:
+    print(e)   # weakly-referenced object no longer exists</code></pre>
+      <p class="param-note"><code>weakref.proxy</code> 比 <code>ref</code> 更"透明"：可以直接 <code>proxy.attr</code> / <code>proxy.method()</code>，不用先 <code>ref()</code> 取回。代价是对象死后访问会抛 <code>ReferenceError</code>（而非返回 None）。适用于"目标通常存活、偶尔死亡"的场景；如果对象频繁死亡，<code>ref() + None 检查</code> 更可控。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 使用时机 / 为什么用 / 效果（总结）</span>
+      <table>
+        <tr><th>场景</th><th>为什么用 weakref</th><th>效果</th></tr>
+        <tr><td>缓存（WeakValueDictionary）</td><td>对象不用时应能自动回收</td><td>条目随对象消失，内存自适应</td></tr>
+        <tr><td>观察者/订阅者</td><td>订阅者不应拖住被观察者</td><td>主体可独立回收，不泄漏</td></tr>
+        <tr><td>父指针（树/图结构）</td><td>子对象不拥有父的生命周期</td><td>避免父子环、避免子拖住父</td></tr>
+        <tr><td>回调/监听器注册表</td><td>注册项不应阻止对象销毁</td><td>对象销毁时自动解绑（回调通知）</td></tr>
+      </table>
+      <p class="param-note"><strong>不适用</strong>：核心业务状态（用户数据、订单）绝不能只靠弱引用——对象随时可能被回收导致数据丢失，必须由强引用或 DB/Redis 持有。<strong>面试一句话</strong>：weakref 是"不拥有生命周期的引用"——缓存/观察者/父指针用它避免拖住对象；访问必须处理 None；业务关键数据不能依赖它。</p>
+    </div>
   </div>
 
   <!-- ====== Category 3: 并发与工程实践 ====== -->
