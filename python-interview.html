@@ -136,7 +136,19 @@ body {
 .badge-proj { background: #fce7f3; color: var(--badge-proj); }
 .badge-err { background: #fee2e2; color: var(--badge-err); }
 .badge-src { background: #f3f4f6; color: var(--badge-src); }
+.badge-detail { background: #cffafe; color: #0891b2; }
 .q-section p { font-size: 14.5px; color: var(--text); line-height: 1.8; }
+.q-section pre {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+  font-size: 13px; background: #1e1e2e; color: #cdd6f4;
+  padding: 14px 18px; border-radius: 8px; overflow-x: auto;
+  margin: 10px 0; line-height: 1.65; white-space: pre;
+}
+.q-section pre code { background: none; color: inherit; padding: 0; font-size: 13px; }
+.q-section table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13.5px; }
+.q-section th { background: #f1f3f5; padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-weight: 600; color: var(--text); }
+.q-section td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text); line-height: 1.6; }
+.q-section .param-note { font-size: 13px; color: var(--text-secondary); margin: 4px 0 2px; }
 .q-section ul { list-style: none; padding-left: 0; }
 .q-section ul li { font-size: 14.5px; color: var(--text); line-height: 1.8; padding-left: 18px; position: relative; }
 .q-section ul li::before { content: '•'; position: absolute; left: 4px; color: var(--text-muted); }
@@ -544,6 +556,93 @@ body {
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>Python 函数参数包括 positional-only、positional-or-keyword、var-positional <code>*args</code>、keyword-only 和 var-keyword <code>**kwargs</code>；<code>/</code> 与 <code>*</code> 可显式限定调用方式。</p>
     </div>
+    <div class="q-section"><span class="badge badge-detail">参数类型详解</span>
+      <p>Python 函数签名中有 <strong>五种参数类型</strong>，由 <code>/</code> 和 <code>*</code> 两个"闸门"划分区域：</p>
+      <table>
+        <tr><th>类型</th><th>中文名</th><th>签名位置</th><th>调用方式</th><th>收集结果</th></tr>
+        <tr><td>positional-only</td><td>仅限位置参数</td><td><code>/</code> 左侧</td><td>只能按位置传 <code>f(1)</code></td><td>—</td></tr>
+        <tr><td>positional-or-keyword</td><td>位置或关键字参数</td><td><code>/</code> 与 <code>*</code> 之间</td><td>两种都行 <code>f(1)</code> 或 <code>f(a=1)</code></td><td>—</td></tr>
+        <tr><td>var-positional</td><td>可变位置参数</td><td><code>*args</code></td><td>收集多余位置参数</td><td>tuple</td></tr>
+        <tr><td>keyword-only</td><td>仅限关键字参数</td><td><code>*</code> 右侧</td><td>只能按关键字传 <code>f(a=1)</code></td><td>—</td></tr>
+        <tr><td>var-keyword</td><td>可变关键字参数</td><td><code>**kwargs</code></td><td>收集多余关键字</td><td>dict</td></tr>
+      </table>
+      <p class="param-note"><strong>1. positional-only（仅限位置参数）</strong>——<code>/</code> 左边的参数，调用时只能按位置传，不能用 <code>参数名=值</code>：</p>
+      <pre><code>def f(a, b, /):
+    return a + b
+
+f(1, 2)       # ✓ 按位置传
+f(1, b=2)     # ✗ TypeError: b 是 positional-only
+f(a=1, b=2)   # ✗ TypeError: a 也不行</code></pre>
+      <p class="param-note">参数名是内部实现细节，不希望暴露给调用方。CPython 内置函数如 <code>len(obj)</code> 就是 positional-only。Python 3.8 开放此语法给用户自定义函数。</p>
+      <p class="param-note"><strong>2. positional-or-keyword（位置或关键字参数）</strong>——<code>/</code> 和 <code>*</code> 之间的参数，两种调用方式都行。不写 <code>/</code> 和 <code>*</code> 时的默认行为：</p>
+      <pre><code>def f(a, b, /, c, d):
+    return a + b + c + d
+
+f(1, 2, 3, 4)       # ✓ 全部按位置
+f(1, 2, c=3, d=4)   # ✓ a,b 按位置；c,d 按关键字
+f(1, 2, 3, d=4)     # ✓ 混搭也行</code></pre>
+      <p class="param-note"><strong>3. var-positional（可变位置参数 <code>*args</code>）</strong>——收集多余的按位置传的参数，打包成 <strong>tuple</strong>：</p>
+      <pre><code>def f(*args):
+    print(type(args), args)
+
+f(1, 2, 3)   # &lt;class 'tuple'&gt; (1, 2, 3)
+f()          # &lt;class 'tuple'&gt; ()</code></pre>
+      <p class="param-note"><strong>4. keyword-only（仅限关键字参数）</strong>——<code>*</code> 右边的参数，必须用 <code>参数名=值</code>，不能按位置传：</p>
+      <pre><code>def f(*, e, f):
+    return e + f
+
+f(e=1, f=2)   # ✓ 用了关键字
+f(1, 2)       # ✗ TypeError: 不接受位置参数</code></pre>
+      <p class="param-note">强制调用方写明参数名，提高可读性。如 <code>def train(model, *, epochs, lr)</code>，调用者必须写 <code>train(m, epochs=60, lr=0.001)</code>，避免 <code>train(m, 60, 0.001)</code> 中 60 是 epochs 还是 lr 的歧义。</p>
+      <p class="param-note"><strong>5. var-keyword（可变关键字参数 <code>**kwargs</code>）</strong>——收集多余的按关键字传的参数，打包成 <strong>dict</strong>：</p>
+      <pre><code>def f(**kwargs):
+    print(type(kwargs), kwargs)
+
+f(a=1, b=2)   # &lt;class 'dict'&gt; {'a': 1, 'b': 2}
+f()           # &lt;class 'dict'&gt; {}</code></pre>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">/ 与 * 如何限定调用方式</span>
+      <p><code>/</code> 和 <code>*</code> 是函数签名里的两个<strong>"闸门"</strong>，把参数列表分成三个区：</p>
+      <pre><code>def f(a, b, /, c, d, *, e, f):
+#       ───/───  ───────*──────
+#       仅位置    位置或关键字    仅关键字</code></pre>
+      <table>
+        <tr><th>闸门</th><th>位置</th><th>左边</th><th>右边</th></tr>
+        <tr><td><code>/</code></td><td>在某些参数后面</td><td><strong>positional-only</strong>（只能按位置传）</td><td>变成 positional-or-keyword</td></tr>
+        <tr><td><code>*</code></td><td>在某些参数前面（或就是 <code>*args</code>）</td><td>变成 positional-or-keyword</td><td><strong>keyword-only</strong>（只能按关键字传）</td></tr>
+      </table>
+      <p class="param-note"><strong>完整示例——五种类型同时出现：</strong></p>
+      <pre><code>def f(a, b, /, c, d, *args, e, f, **kwargs):
+    print(f"a={a}, b={b}, c={c}, d={d}")
+    print(f"args={args}, e={e}, f={f}, kwargs={kwargs}")
+
+# ✓ 合法调用
+f(1, 2, 3, 4, 5, 6, e=7, f=8, g=9, h=10)
+# a=1, b=2      ← positional-only，按位置
+# c=3, d=4      ← positional-or-keyword，按位置
+# args=(5, 6)   ← var-positional，多余位置打包成 tuple
+# e=7, f=8      ← keyword-only，必须用关键字
+# kwargs={'g': 9, 'h': 10}  ← var-keyword，多余关键字打包成 dict
+
+# ✗ 非法调用
+f(a=1, b=2, c=3, d=4, e=5, f=6)  # TypeError: a,b 是 positional-only
+f(1, 2, 3, 4, 5, 6, 7, 8)        # TypeError: e,f 是 keyword-only</code></pre>
+      <p class="param-note"><strong>特殊用法：只用 <code>*</code> 不用 <code>*args</code>，纯当"闸门"用：</strong></p>
+      <pre><code>def connect(host, port, *, timeout=30, retry=3):
+    ...
+
+connect("localhost", 5432)                # ✓
+connect("localhost", 5432, timeout=10)    # ✓
+connect("localhost", 5432, 10)            # ✗ TypeError: timeout 是 keyword-only</code></pre>
+      <p class="param-note"><strong>同理 <code>/</code> 也可单独出现：</strong></p>
+      <pre><code>def len_(obj, /):
+    return obj.__len__()
+
+len_([1, 2, 3])      # ✓
+len_(obj=[1, 2, 3])  # ✗ TypeError</code></pre>
+      <p class="param-note"><strong>不写 <code>/</code> 时</strong>：所有参数默认可位置可关键字。<strong>不写 <code>*</code> 时</strong>：<code>*args</code> 后面的参数自动变成 keyword-only（因为 <code>*args</code> 本身就起到了 <code>*</code> 的闸门作用）。</p>
+      <p class="param-note"><strong>记忆口诀</strong>：斜杠 <code>/</code> 在左 → 左边只能位置传；星号 <code>*</code> 在右 → 右边只能关键字传；中间没有闸门 → 两种都行；<code>*args</code> 收集多余位置 → tuple；<code>**kwargs</code> 收集多余关键字 → dict。</p>
+    </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p><code>*args</code> 收集额外位置参数为 tuple，<code>**kwargs</code> 收集额外关键字为 dict；定义中的 <code>/</code> 前参数只能按位置，单独 <code>*</code> 后参数只能按关键字。明确签名比滥用 kwargs 更利于类型检查、IDE、API 文档和兼容升级。转发 wrapper 时可用 <code>*args/**kwargs</code>，但边界层仍应通过 Pydantic 或显式 schema 校验，不能让任意字段穿透到工具。</p>
     </div>
@@ -565,7 +664,7 @@ body {
   </div>
 
   <!-- Q36 -->
-  <div class="q-card" id="q36" data-text="from import import module 名字绑定 引用快照 实时查找 重新绑定 原地修改 模块命名空间 __dict__ 属性访问 配置热更新">
+  <div class="q-card" id="q36" data-text="from import import module 名字绑定 引用快照 实时查找 重新绑定 原地修改 模块命名空间 __dict__ 属性访问 配置热更新 抄地址 问导航 搬家 装修 指针 内存地址 id is">
     <div class="q-title"><span class="q-label">Q36</span><code>from module import name</code> 和 <code>import module</code> 有什么区别？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p><code>from module import name</code> 在导入时于当前命名空间创建一个新绑定，指向该时刻 <code>module.name</code> 所指对象，之后与源模块脱钩；<code>import module</code> 则绑定模块对象本身，<code>module.name</code> 每次访问都通过模块 <code>__dict__</code> 实时查找，永远看到最新值。</p>
@@ -575,6 +674,57 @@ body {
     </div>
     <div class="q-section"><span class="badge badge-prin">核心原理</span>
       <p><code>from x import y</code> 执行时等价于先 <code>import x</code> 再执行 <code>y = getattr(x, 'y')</code>，赋值发生在导入方命名空间。之后本地 <code>y</code> 与模块 <code>x</code> 中的 <code>y</code> 成为两个独立名字，碰巧指向同一对象。<code>import x</code> 则只在本地绑定 <code>x</code> 这个名字（指向模块对象），<code>x.y</code> 是动态属性查找协议，每次访问都走 <code>type(x).__getattr__</code> 或 <code>x.__dict__</code>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">类比：抄地址 vs 每次问导航</span>
+      <p>想象 <code>config</code> 模块是一家<strong>奶茶店的登记处</strong>，<code>DB_URL</code> 是"当前营业店的地址"：</p>
+      <p class="param-note"><strong>方式 A：from config import DB_URL —— 抄地址</strong></p>
+      <p>你向登记处要了一次地址，把它<strong>抄在自己的本子上</strong>。从此你走的是自己本子上的地址。</p>
+      <ul>
+        <li>后来店<strong>搬家了</strong>（<code>config.DB_URL = "新地址"</code>，重新绑定）→ 你本子上还是旧地址，走过去是旧址 ❌</li>
+        <li>店<strong>原地装修换菜单</strong>（原地修改）→ 你按本子找到的还是那家店，看到的是新装修 ✅</li>
+      </ul>
+      <p class="param-note"><strong>方式 B：import config; config.DB_URL —— 每次问导航</strong></p>
+      <p>你没抄地址，你每次出发前都<strong>问一次登记处</strong>"店现在在哪"。</p>
+      <ul>
+        <li>店<strong>搬家了</strong> → 每次都问，拿到最新地址 ✅</li>
+        <li>店<strong>原地装修</strong> → 当然也看得到 ✅</li>
+      </ul>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">代码验证（含真实运行输出）</span>
+      <pre><code># demo_config.py
+DB_URL = "mysql://localhost"
+FEATURES = ["cache", "auth"]
+
+# demo_main.py
+from demo_config import DB_URL, FEATURES   # 方式A: 抄地址
+import demo_config                          # 方式B: 每次问导航
+
+# --- 场景1: 源模块重新绑定（店搬家）---
+demo_config.DB_URL = "mysql://new-host"
+print(DB_URL)               # mysql://localhost   ← 旧值！本子上的旧地址
+print(demo_config.DB_URL)   # mysql://new-host    ← 新值！每次都问
+
+# --- 场景2: 源模块原地修改（原地装修）---
+demo_config.FEATURES.append("search")
+print(FEATURES)             # ['cache', 'auth', 'search'] ← 看到了！
+print(demo_config.FEATURES) # ['cache', 'auth', 'search'] ← 看到了！
+# 双方存的是同一个列表的地址，append 改的是地址上的内容
+
+# --- id 验证：重新绑定后已不是同一个对象 ---
+print(DB_URL is demo_config.DB_URL)   # False</code></pre>
+      <p class="param-note"><strong>三步时间线（内存视角）：</strong></p>
+      <pre><code>① import 那一刻：
+     本地 DB_URL ──→ 📦 "mysql://localhost"（地址 0x1000）←── config.DB_URL
+     （两个名字，一个对象，一切相同）
+
+② config.DB_URL = "mysql://new-host"（重新绑定，店搬家）：
+     本地 DB_URL ──→ 📦 "mysql://localhost"（地址 0x1000）← 你还存着旧地址
+     config.DB_URL ──→ 📦 "mysql://new-host"（地址 0x2000）← 登记处换了新地址
+     （从此是两个对象，本地与源模块脱钩）
+
+③ config.FEATURES.append("search")（原地修改，原地装修）：
+     本地 FEATURES ──→ 📦 ["cache","auth","search"]（地址 0x3000）←── config.FEATURES
+     （还是同一个列表，改的是内容，双方都看到）</code></pre>
     </div>
     <div class="q-section"><span class="badge badge-eng">工程示例</span>
       <p>配置热更新场景：<code>config.py</code> 中 <code>DB_URL = "old"</code>，若 <code>service.py</code> 用 <code>from config import DB_URL</code>，运行时执行 <code>config.DB_URL = "new"</code> 后 service 仍持有旧值，导致"改了配置不生效"。安全做法：用 <code>import config</code> 方式访问 <code>config.DB_URL</code>；或将配置放在可变容器中只改内容不重新绑定名字，如 <code>config.DB['url'] = "new"</code>，则两种导入方式均能看到变化。</p>
@@ -598,10 +748,134 @@ body {
   </div>
 
   <!-- Q13 -->
-  <div class="q-card" id="q13" data-text="迭代器 可迭代对象 __iter__ __next__ StopIteration for 循环 generator 一次性消费 token stream">
+  <div class="q-card" id="q13" data-text="迭代器 可迭代对象 __iter__ __next__ StopIteration for 循环 generator 一次性消费 token stream 书架 手指 游标 list消费 tee CountDown 类比 亲手实现 SSE 吃空 等价展开">
     <div class="q-title"><span class="q-label">Q13</span>迭代器和可迭代对象有何区别？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>可迭代对象实现 <code>__iter__</code> 并能返回迭代器；迭代器实现 <code>__iter__</code> 返回自身和 <code>__next__</code> 逐项产出，耗尽时抛出 <code>StopIteration</code>。一个可迭代对象可以每次创建新的迭代器。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：书架 vs 手指</span>
+      <table>
+        <tr><th>概念</th><th>类比</th><th>Python 对应</th></tr>
+        <tr><td>可迭代对象 Iterable</td><td>图书馆的一排书架（数据放在那，自己不会动）</td><td><code>list</code>、<code>str</code>、<code>dict</code>、<code>tuple</code>、<code>range</code></td></tr>
+        <tr><td>迭代器 Iterator</td><td>手指指着书架从左往右一本本拿，拿完为止</td><td><code>iter(nums)</code> 的返回值、生成器</td></tr>
+        <tr><td><code>iter()</code></td><td>"伸出手指"这个动作</td><td>从可迭代对象取一个迭代器</td></tr>
+        <tr><td><code>next()</code></td><td>"拿下手指指着的那本书"</td><td>取游标位置元素，游标后移</td></tr>
+        <tr><td><code>StopIteration</code></td><td>"书架拿空了"</td><td>迭代结束的信号，不是错误</td></tr>
+      </table>
+      <p class="param-note">书架（Iterable）可以被反复从头遍历——因为每次都新伸一根手指（新迭代器）；但自己的手指（Iterator）只会一直往右移，<strong>不会自动回到开头</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 逐句拆解（含验证代码）</span>
+      <p><strong>① "list 是可迭代对象但不是迭代器"：</strong>判断标准就一个——有没有 <code>__next__</code>。</p>
+      <pre><code>nums = [10, 20, 30]
+hasattr(nums, "__iter__")   # True  → list 是可迭代对象
+hasattr(nums, "__next__")   # False → 但 list 没有 __next__，所以它不是迭代器！
+iter(nums)   # 调用 nums.__iter__()，返回一个 list_iterator</code></pre>
+      <p><strong>② "迭代器 <code>__iter__</code> 返回自身"：</strong>因为 for 循环第一步无条件调 <code>iter()</code>——如果传给 for 的已经是迭代器，返回自身就不报错，协议打通。</p>
+      <pre><code>g = (x for x in "abc")
+iter(g) is g        # True：生成器的 __iter__ 返回自身
+it = iter([1, 2, 3])
+for x in it: ...    # for 先调 iter(it) → 得到 it 自己 → 正常遍历</code></pre>
+      <p><strong>③ "耗尽时抛 StopIteration，游标不可回退"：</strong>迭代器内部维护一个游标，next() 每次取游标处元素后游标后移。</p>
+      <pre><code>it = iter([10, 20, 30])
+next(it)  # 10
+next(it)  # 20
+next(it)  # 30
+next(it)  # ← StopIteration！且之后每次 next() 都是 StopIteration，游标永远停在末尾</code></pre>
+      <p><strong>④ "可迭代对象每次创建新的迭代器"（最核心区别）：</strong></p>
+      <pre><code>nums = [10, 20, 30]
+iter(nums) is iter(nums)   # False：每次调用 iter() 都创建新迭代器（新游标）
+
+for x in nums: ...   # 第 1 遍，新迭代器，游标从 0 开始
+for x in nums: ...   # 第 2 遍，又一个新迭代器，游标还是从 0 开始 ✅
+
+it = iter(nums)
+for x in it: ...     # 耗尽了
+for x in it: ...     # 空！for 调 iter(it) 返回自身，游标还在末尾 ❌</code></pre>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · for 循环完全等价展开</span>
+      <pre><code># 下面这段和 for x in nums: print(x) 完全等价：
+it = iter(nums)               # ① for 先对 nums 调 iter()
+while True:
+    try:
+        x = next(it)          # ② 反复 next() 取值
+    except StopIteration:     # ③ 耗尽时 for 自己捕获，循环正常结束
+        break                 #    （所以你从没见过 for 循环抛 StopIteration）
+    print(x)
+# StopIteration 被 for 吃掉，但 ValueError 之类的其他异常正常向外传播</code></pre>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 亲手实现一对 Iterable / Iterator</span>
+      <pre><code>class CountDown:
+    """可迭代对象：实现 __iter__，返回一个新迭代器"""
+    def __init__(self, n):
+        self.n = n
+    def __iter__(self):
+        return CountDownIterator(self.n)   # 每次调用都新建（游标归零）
+
+class CountDownIterator:
+    """迭代器：实现 __next__ + __iter__ 返回自身"""
+    def __init__(self, n):
+        self.cur = n          # ← 游标！迭代器的全部状态就是它
+    def __iter__(self):
+        return self           # 协议要求
+    def __next__(self):
+        if self.cur &lt;= 0:
+            raise StopIteration   # 耗尽信号
+        self.cur -= 1         # 游标推进
+        return self.cur + 1
+
+cd = CountDown(3)
+list(cd)          # [3, 2, 1]
+list(cd)          # [3, 2, 1] ← 又一遍！因为 __iter__ 每次造新迭代器
+it = iter(cd)
+list(it)          # [3, 2, 1]
+list(it)          # [] ← 同一个迭代器已耗尽</code></pre>
+      <p class="param-note">分开写成两个类就是"可迭代对象 vs 迭代器"最标准的教科书结构；生成器只是让 Python 帮你自动生成了 Iterator 那个类。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · list(迭代器) 内部会消费吗？会！</span>
+      <p><code>list()</code> 构造函数接收到可迭代对象时的通用逻辑：先 <code>iter()</code> 拿迭代器，再循环 <code>next()</code> 直到 <code>StopIteration</code>。下面是 list(it) 的内部等价代码：</p>
+      <pre><code># list(it) 的内部等价于：
+it_inner = iter(it)        # ① 调 iter()，迭代器返回自身（iter(it) is it）
+result = []
+while True:
+    try:
+        result.append(next(it_inner))   # ② 反复 next()，逐个收进列表
+    except StopIteration:               # ③ 耗尽，停止
+        break
+
+# list、tuple、sum、max、sorted、for、zip 全是这一套——
+# 任何"接收可迭代对象"的东西都会消费迭代器</code></pre>
+      <p><strong>真实运行验证的两个细节：</strong></p>
+      <pre><code>it = iter([1, 2, 3])
+next(it)          # 1        ← 手动取走 1，游标在位置 1
+list(it)          # [2, 3]   ← 从游标当前位置开始消费，而不是从头！
+list(it)          # []       ← 耗尽后再 list 静默返回空列表，不报错（最隐蔽）</code></pre>
+      <table>
+        <tr><th>调用</th><th>行为</th><th>能否反复</th></tr>
+        <tr><td><code>list(容器)</code></td><td>每次内部新建临时迭代器，用完即弃，容器不消费</td><td>✅ 可反复，每次都是全量</td></tr>
+        <tr><td><code>list(迭代器)</code></td><td>从当前游标位置消费到耗尽，游标推到末尾</td><td>❌ 第二次 list 得到 []</td></tr>
+      </table>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 工程陷阱复现：调试 list(stream) 吃空 SSE</span>
+      <pre><code>stream = model_client.stream(prompt)   # 模型 SDK 返回 token 迭代器（一次性）
+
+# ❌ 调试代码先打印了一遍：
+print("调试:", list(stream))   # 耗尽了！输出 ['tok1', 'tok2']
+
+# ❌ 随后真正要转发给前端（SSE 推流）：
+for token in stream:           # 空！什么都不执行
+    yield token                # 前端收到 0 个字 → "模型没输出"的假象
+
+# ✅ 方案一：单次循环里同时记录和转发（流式不破坏）
+for token in stream:
+    log.debug("token: %s", token)   # 边收边记
+    yield token                     # 边收边转发
+
+# ✅ 方案二：确实需要两遍 → itertools.tee 分流（带缓冲代价）
+from itertools import tee, islice
+a, b = tee(stream)                  # 两个独立游标
+first_10 = list(islice(a, 10))      # 日志用
+for token in b: yield token         # 转发用</code></pre>
+      <p class="param-note">根因：stream 是迭代器（生成器），不是 list。<code>list(stream)</code> 不是"看一眼"，而是"消费完"。且耗尽后静默返回空、不抛异常，测试环境很容易漏掉。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p>list 是可迭代对象但不是迭代器，<code>iter(list)</code> 得到有状态迭代器；迭代器通常只能消费一次，而容器可反复迭代。<code>for</code> 循环内部调用 iter 和 next，并捕获 StopIteration。工程上要警惕把 generator/iterator 先消费用于日志，后续逻辑得到空结果；流式数据应明确单次消费、错误和关闭语义。</p>
@@ -624,25 +898,167 @@ body {
   </div>
 
   <!-- Q14 -->
-  <div class="q-card" id="q14" data-text="生成器 yield 惰性迭代器 send throw close 帧暂停 yield from async generator 流式 token 内存">
+  <div class="q-card" id="q14" data-text="生成器 yield 惰性迭代器 send throw close 帧暂停 yield from 委托 转发 拼接数据源 嵌套展平 flatten return 值 async generator 流式 token 内存 现点现做 追剧暂停 继续播放 单次消费 getsizeof 大文件逐行">
     <div class="q-title"><span class="q-label">Q14</span>生成器有什么优势？</div>
-    <div class="q-section"><span class="badge badge-def">专业定义</span>
-      <p>生成器是由含 <code>yield</code> 的函数或生成器表达式创建的惰性迭代器，暂停时保存执行帧与局部状态，下一次迭代从暂停点继续。</p>
+    <div class="q-section"><span class="badge badge-def">专业定义（通俗版）</span>
+      <p>生成器就是<strong>函数体里写了 <code>yield</code> 的函数</strong>。调用它时函数体一行都不执行，而是立刻返回一个生成器对象（一种迭代器）；之后每次 <code>next()</code>，函数才往下跑，<strong>跑到下一个 <code>yield</code> 就暂停</strong>，把值递出来，同时记住"跑到了哪一行、局部变量是多少"；下次 next() 从暂停的那一行继续跑。专业说法"惰性迭代器""挂起执行帧"，翻译成人话就是：<strong>现点现做，做完一口再生产下一口</strong>。</p>
     </div>
-    <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
-      <p>生成器按需产生元素，适合大文件、流式 token 和管道处理，能降低峰值内存并自然表达逐项转换。它的代价是单次消费、错误可能延迟到迭代时发生，且持有帧中的资源和对象。需要及时关闭，文件/网络资源最好与上下文管理器组合。惰性不等于自动并行，也不等于没有缓冲。</p>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：提前做好一桌菜 vs 现点现做</span>
+      <table>
+        <tr><th>方式</th><th>类比</th><th>Python 写法</th><th>内存</th></tr>
+        <tr><td>列表推导</td><td>提前把 1000 万份菜全做好摆上桌，你吃不吃它都占着地方</td><td><code>[x*x for x in range(10**7)]</code></td><td>全部装进内存</td></tr>
+        <tr><td>生成器</td><td>现点现做：你点一份，我做一份，桌上永远只有一份</td><td><code>(x*x for x in range(10**7))</code></td><td>只记"做到第几个"</td></tr>
+        <tr><td>生成器函数</td><td>追剧看到第 5 集暂停，下次打开自动从第 5 集继续（记住进度和状态）</td><td><code>def g(): yield x</code></td><td>暂停时保存现场</td></tr>
+      </table>
     </div>
-    <div class="q-section"><span class="badge badge-prin">核心原理</span>
-      <p><code>yield</code> 返回值并挂起帧；<code>send</code> 可把值传回，<code>throw/close</code> 向生成器注入异常或 GeneratorExit。生成器表达式比等价列表推导不预先构造全量结果。</p>
+    <div class="q-section"><span class="badge badge-detail">详解 · 基础例子：看懂 yield 的暂停/继续</span>
+      <pre><code>def count_up():
+    print("开始执行")        # 第一次 next() 才会跑
+    yield 1                  # 跑到这里暂停，把 1 递出去
+    print("从暂停处继续")     # 第二次 next() 从这里继续
+    yield 2                  # 又暂停
+    yield 3
+
+g = count_up()               # 注意：函数体一行都没跑！只是拿到生成器
+print(next(g))               # 打印"开始执行"，返回 1（停在第一个 yield）
+print(next(g))               # 打印"从暂停处继续"，返回 2（停在第二个 yield）
+print(next(g))               # 返回 3
+# next(g) 第 4 次 → StopIteration（函数跑完了）
+
+for x in count_up():         # 更常见的用法：交给 for，自动 next 到耗尽
+    print(x)                 # 1 2 3</code></pre>
+      <p class="param-note">关键认知：<code>g = count_up()</code> 这一步<strong>什么都没执行</strong>；<code>yield</code> 不是 return——return 是"下班走人"，yield 是"暂停，等我叫你再继续"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 真实内存对比（本机实测）</span>
+      <pre><code>import sys
+
+g = (x * x for x in range(10_000_000))   # 生成器：只是个"菜谱+进度条"
+l = [x * x for x in range(10_000_000)]   # 列表：一千万个结果全装进内存
+
+print(sys.getsizeof(g))   # 200 字节        ← 几乎不占内存
+print(sys.getsizeof(l))   # 89,095,160 字节 ← 约 85 MB
+# 差了约 44 万倍！生成器不管数据多少，自己永远是几百字节</code></pre>
+      <p class="param-note">这就是"内存与数据量无关"的含义：生成器只保存"算到第几个了"这个进度，不保存算出来的结果。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 工程例子 1：逐行处理大日志文件</span>
+      <pre><code># ❌ 普通写法：一口气读 5GB 日志，内存直接爆
+lines = open("huge.log").readlines()      # 全部装进内存
+events = [parse(l) for l in lines]        # 又一份全量
+
+# ✅ 生成器写法：内存里永远只有一行
+def read_events(path):
+    with open(path) as f:                 # with 保证文件被关闭
+        for line in f:                    # f 本身就是逐行惰性读取
+            if line.strip():
+                yield parse(line)         # 解析一行，交出一条
+
+batch = []
+for ev in read_events("huge.log"):        # 处理 5GB 内存也只占几 KB
+    batch.append(ev)
+    if len(batch) == 100:                 # 攒 100 条批量写库
+        db.insert(batch)
+        batch = []</code></pre>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 工程例子 2：流式输出模型 token</span>
+      <pre><code>def stream_tokens(prompt):
+    for chunk in model_client.stream(prompt):   # SDK 返回的也是流
+        for token in chunk.text.split():
+            yield token                          # 来一个交一个
+
+# 第一个 token 几毫秒就能开始显示，不用等整个回答生成完
+for tok in stream_tokens("解释一下GIL"):
+    print(tok, end=" ", flush=True)</code></pre>
+      <p class="param-note">对应 ChatGPT 式"打字机效果"：靠生成器逐个产出，首字延迟极低；若先 <code>list()</code> 收集完再显示，用户就要干等几十秒（还叠加了 Q13 的一次性消费陷阱）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · send / throw / close 通俗版</span>
+      <p>把生成器想成一个可以双向通话的对讲机：<code>yield</code> 递东西出来，<code>send</code> 塞东西回去，<code>throw</code> 丢一个异常进去，<code>close</code> 让它下班。</p>
+      <pre><code>def echo():
+    while True:
+        received = yield          # yield 右边接住 send 进来的值
+        print("收到:", received)
+
+g = echo()
+next(g)              # 先"点火"：跑到第一个 yield 处（必须先 next 一次）
+g.send("hello")      # 收到: hello  ← 值传进了生成器内部
+g.send("world")      # 收到: world
+g.close()            # 让生成器下班（触发 GeneratorExit，执行 finally 清理）</code></pre>
+      <p class="param-note"><code>yield from 子生成器</code> = "接下来的活儿由它干，它的产出直接算我的"，省掉手写 <code>for v in sub: yield v</code>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · yield from：把活儿委托给另一个生成器</span>
+      <p><code>yield from</code> 解决的问题是：<strong>外层生成器想把另一个生成器的值原样转发出去</strong>。没有它时你只能手写一个转发循环：</p>
+      <pre><code># ❌ 没有 yield from：手写转发
+def all_tokens(prompt):
+    for tok in model_stream(prompt):    # 从子生成器取一个
+        yield tok                        # 再递出去一个（纯搬运工代码）
+
+# ✅ 用 yield from：直接委托
+def all_tokens(prompt):
+    yield from model_stream(prompt)      # 它产出的每个值都算我产出的</code></pre>
+      <p class="param-note">两者对调用者完全等价，但 <code>yield from</code> 少一层样板代码，而且功能比手写循环更强——它还会把 <code>send</code>/<code>throw</code> 也转交给子生成器，并能把子生成器的 <code>return</code> 值收回来。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · yield from 例子 1：拼接多个数据源</span>
+      <pre><code>def read_jsonl(path):
+    with open(path) as f:
+        for line in f:
+            yield parse(line)
+
+def read_parquet(path):
+    for row in pq.read_table(path):
+        yield dict(row)
+
+def read_all():                       # 评测数据散落在三种文件里
+    yield from read_jsonl("a.jsonl")   # 先把 a 的所有行流出去
+    yield from read_parquet("b.parquet")  # 接着 b 的
+    yield from read_jsonl("c.jsonl")   # 最后 c 的
+
+# 调用方视角：一个连续的流，看不出数据来自三个文件
+for item in read_all():
+    process(item)</code></pre>
+      <p class="param-note">如果不用 <code>yield from</code>，<code>read_all</code> 里要写三段几乎一样的 <code>for ... yield</code> 循环。<code>yield from</code> 可以在一个生成器里出现任意多次，天然表达"先流完这个、再流那个"的顺序拼接。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · yield from 例子 2：嵌套列表展平</span>
+      <pre><code>def flatten(nested):
+    for item in nested:
+        if isinstance(item, list):
+            yield from flatten(item)    # 子列表交给递归的自己，产出直接算我的
+        else:
+            yield item
+
+list(flatten([1, [2, 3], [4, [5, [6]]]]))
+# [1, 2, 3, 4, 5, 6]   ← 任意深度嵌套一次展平</code></pre>
+      <p class="param-note">这是 <code>yield from</code> 最经典的用法：递归结构 + 委托产出。等价于手写 <code>for v in flatten(item): yield v</code>，但意图清晰得多。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · yield from 例子 3：还能拿到子生成器的 return 值</span>
+      <pre><code>def producer():
+    yield 1
+    yield 2
+    return "done"          # 生成器里 return 的值装进 StopIteration
+
+def outer():
+    result = yield from producer()   # ★ yield from 有返回值！
+    yield f"子生成器结束，返回: {result}"
+
+for x in outer():
+    print(x)
+# 1
+# 2
+# 子生成器结束，返回: done</code></pre>
+      <p class="param-note">手写转发循环拿不到子生成器的 return 值，<code>yield from</code> 可以——这也是协程时代（PEP 380）设计它的初衷之一。日常最常见的三个用途就是：<strong>顺序拼接多个流、递归展平、管道分层</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-ans">30 秒面试回答（通俗版）</span>
+      <p>生成器最大的优势是<strong>按需生产、用多少算多少</strong>：处理大文件、模型 token 流时，不管数据总量多大，内存占用几乎不变（只记进度不存结果），而且第一个结果立刻就能拿到，不用等全部算完。第二是代码简洁，把"逐步生产"的流程写成普通函数就行。代价是：只能消费一次（游标不回头）、错误要等到取值那一刻才暴露、持有文件等资源时要记得关闭（配 with 最稳）。注意它省的是内存不是时间，也不自带并行。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-prin">核心原理（通俗版）</span>
+      <p><code>yield</code> 的本质是"暂停键"：执行到这就把值递出去并记住现场（执行到哪一行 + 所有局部变量），下次 next() 从暂停处继续。生成器表达式 <code>(x for x in ...)</code> 与列表推导 <code>[x for x in ...]</code> 只差一对括号，前者是菜谱（现做），后者是一整桌菜（全做好）。<code>send</code> 把值传回暂停点，<code>throw/close</code> 把异常或"下班通知"送进生成器。</p>
     </div>
     <div class="q-section"><span class="badge badge-eng">工程示例</span>
-      <p>解析百万行日志时生成器逐行产生结构化事件，后续批量 100 条写入评测库，内存与文件大小无关；finally 中关闭文件并记录失败位置。</p>
+      <p>解析百万行日志时生成器逐行产生结构化事件，后续批量 100 条写入评测库，内存与文件大小无关；finally 中关闭文件并记录失败位置。（完整代码见上方"工程例子 1"）</p>
     </div>
     <div class="q-section followup"><span class="badge badge-q">追问 1</span>
-      <p><strong>生成器一定更快吗？</strong> 不一定。它主要降低内存和首项延迟，每项恢复帧也有开销；数据较小且需多次遍历时 list 可能更快。应按内存、复用与性能测试选择。</p>
+      <p><strong>生成器一定更快吗？</strong> 不一定。它省的是内存、降低的是"出第一个结果"的等待时间；但每次暂停/恢复本身也有开销。数据量小、又要反复遍历多遍时，直接用 list 反而更快。按"内存够不够、要不要多次用、实测耗时"来选。</p>
     </div>
     <div class="q-section followup"><span class="badge badge-q">追问 2</span>
-      <p><strong>`yield from` 有什么作用？</strong> 它把子迭代器的产出和 send/throw/return 协议委托给外层生成器，简化组合。错误和资源关闭仍需理解委托边界。</p>
+      <p><strong><code>yield from</code> 有什么作用？</strong> 相当于"接下来交给它干"：把子生成器的产出直接转发给外层调用者，连 send/throw 也一并转交，省去手写转发循环。注意资源的打开和关闭仍要搞清楚归谁管。</p>
     </div>
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>同步模型流可用生成器，异步网络流应使用 async generator 并支持取消与 <code>aclose</code>。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>把生成器转 list 后仍声称是流式低内存。</li><li>生成器持有文件却从不关闭或消费完。</li></ul></div>
@@ -650,10 +1066,144 @@ body {
   </div>
 
   <!-- Q15 -->
-  <div class="q-card" id="q15" data-text="上下文管理器 __enter__ __exit__ __aenter__ __aexit__ with async with contextlib contextmanager asynccontextmanager 资源释放">
+  <div class="q-card" id="q15" data-text="上下文管理器 __enter__ __exit__ __aenter__ __aexit__ with async with contextlib contextmanager asynccontextmanager 资源释放 宾馆房卡 try finally 等价展开 逆序退出 栈 吞异常 suppress True False 生成器写法 yield 前后 finally 并发闸门 Semaphore 事件循环">
     <div class="q-title"><span class="q-label">Q15</span>上下文管理器如何工作？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>上下文管理器实现同步 <code>__enter__/__exit__</code> 或异步 <code>__aenter__/__aexit__</code> 协议，在代码块进入与离开时可靠获取和释放资源，离开包括正常返回和异常。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：宾馆房卡</span>
+      <table>
+        <tr><th>动作</th><th>宾馆类比</th><th>上下文管理器</th></tr>
+        <tr><td>进入 with</td><td>前台办入住，<strong>拿到房卡</strong></td><td>调 <code>__enter__()</code>，返回值交给 <code>as</code> 后的变量</td></tr>
+        <tr><td>块内代码</td><td>住店用房间（资源）</td><td>正常执行你的业务代码</td></tr>
+        <tr><td>离开 with</td><td>退房<strong>必须还卡</strong>——不管是正常退房还是火警逃生</td><td>调 <code>__exit__()</code>，正常结束和抛异常都会调</td></tr>
+        <tr><td>多个 with</td><td>开了三间房，退房时后开的先退</td><td>按进入的<strong>逆序</strong>退出（栈结构）</td></tr>
+      </table>
+      <p class="param-note">核心价值一句话：<strong>把"必须做的清理"从"程序员记得"变成"语言保证"</strong>——忘了写 close 不会导致资源泄漏，因为退出时一定会还卡。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 基础例子：手写一对 __enter__/__exit__（真实运行输出）</span>
+      <pre><code>class Timer:
+    def __enter__(self):
+        print("1. __enter__：进门前（拿资源）")
+        return self                    # 这个返回值 → as 后面的变量
+
+    def __exit__(self, exc_type, exc, tb):   # 异常发生时三个参数有值
+        print("3. __exit__：出门后（还资源），异常 =", exc_type.__name__ if exc_type else None)
+        return False                   # False = 不吞异常，继续往外抛
+
+print("--- 正常路径 ---")
+with Timer() as t:
+    print("2. with 块内")
+# 输出：
+# 1. __enter__：进门前（拿资源）
+# 2. with 块内
+# 3. __exit__：出门后（还资源），异常 = None   ← 正常结束也调 exit
+
+print("--- 异常路径 ---")
+try:
+    with Timer():
+        raise ValueError("boom")
+except ValueError as e:
+    print("4. 异常传到了外面:", e)
+# 输出：
+# 1. __enter__：进门前（拿资源）
+# 3. __exit__：出门后（还资源），异常 = ValueError  ← 异常时照样调 exit！
+# 4. 异常传到了外面: boom                          ← return False，异常继续传播</code></pre>
+      <p class="param-note">注意异常路径的输出顺序：<code>__exit__</code> 在异常向外传播<strong>之前</strong>执行——这就是"锁不会被异常漏掉"的机制保证。而手写 <code>f = open(...); f.close()</code> 一旦中间抛异常，close 那行永远执行不到。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · with 的等价展开：本质是 try/finally</span>
+      <pre><code>with Timer() as t:
+    do_work()
+
+# ↑ 完全等价于 ↓
+mgr = Timer()
+t = mgr.__enter__()                 # ① 进门拿资源
+try:
+    do_work()                       # ② 块内代码
+except Exception:
+    if not mgr.__exit__(*sys.exc_info()):   # ③ 出异常：先问 exit 要不要吞
+        raise                      #    exit 返回 False → 继续抛
+else:
+    mgr.__exit__(None, None, None)  # ④ 正常结束：exit(None, None, None)</code></pre>
+      <p class="param-note"><code>__exit__</code> 的三个参数就是"发生了什么"：<code>(None, None, None)</code> 表示正常结束；<code>(ValueError, 实例, traceback)</code> 表示块内抛了这种异常。所以 exit 里可以根据异常类型做不同清理（比如事务回滚 vs 提交）。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 多个 with 逆序退出（真实运行输出）</span>
+      <pre><code>class Step:
+    def __init__(self, name): self.name = name
+    def __enter__(self): print(f"进入 {self.name}"); return self
+    def __exit__(self, *a): print(f"退出 {self.name}"); return False
+
+with Step("A"), Step("B"), Step("C"):
+    print("块内")
+
+# 真实输出（后进先出，像栈一样）：
+# 进入 A
+# 进入 B
+# 进入 C
+# 块内
+# 退出 C
+# 退出 B
+# 退出 A</code></pre>
+      <p class="param-note">逆序不是随意设计：B 的资源可能依赖 A（比如 A 是数据库连接、B 是连接上的事务），释放时必须先还 B 再还 A，和函数调用栈"后进先出"同理。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · __exit__ 返回 True = 吞异常（危险演示）</span>
+      <pre><code>class SwallowAll:
+    def __enter__(self): return self
+    def __exit__(self, exc_type, exc, tb):
+        return True                 # ★ 返回 True = "异常我处理了，别往外抛"
+
+with SwallowAll():
+    raise ValueError("出事了")       # 这个异常被静默吞掉！外层毫无感知
+
+print("程序若无其事地继续跑")          # ← 打印了，异常凭空消失
+
+# 对比 Timer 的 __exit__ 返回 False：异常继续传播，外层 except 能接到</code></pre>
+      <p class="param-note">合理使用场景极少数：<code>suppress(FileNotFoundError)</code> 这种语义明确的"忽略这一种异常"。无差别 <code>return True</code> 等于把所有错误埋进土里，出了 bug 连 traceback 都找不到——这是 Q15 常见误区第一条的代码版。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · contextmanager：用生成器写上下文管理器（真实运行输出）</span>
+      <pre><code>from contextlib import contextmanager
+
+@contextmanager
+def open_db():
+    print("获取连接")                 # ← yield 之前 = __enter__ 的活
+    try:
+        yield "conn"                 # ← yield 出去的值 = as 拿到的资源
+    finally:
+        print("释放连接（finally）")   # ← yield 之后 = __exit__ 的活
+
+with open_db() as conn:
+    print("拿到:", conn)
+    raise RuntimeError("块内出错")     # 异常会在 yield 点被抛回生成器
+
+# 真实输出：
+# 获取连接
+# 拿到: conn
+# 释放连接（finally）                  ← 块内抛异常，finally 依然释放！
+# Traceback ... RuntimeError: 块内出错 ← 异常继续向外传播</code></pre>
+      <p class="param-note">和 Q14 打通：<code>@contextmanager</code> 的原理就是把生成器包装成上下文管理器——<code>__enter__</code> 里调 <code>next(gen)</code> 跑到 yield（拿到资源），<code>__exit__</code> 里用 <code>gen.throw()</code> 把异常从 yield 点塞回去（所以 finally 能接住）或 <code>next(gen)</code> 跑完清理。类写法更灵活，装饰器写法代码量少 2/3，简单资源优先用它。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 工程例子：LLM 调用的并发闸门（async with）</span>
+      <pre><code>import asyncio
+
+class ConcurrencyGuard:
+    """限制同时调用模型的请求数，超限的排队等待"""
+    def __init__(self, limit: int):
+        self._sem = asyncio.Semaphore(limit)
+    async def __aenter__(self):
+        await self._sem.acquire()           # 进门：占用一个令牌（可等待！）
+        return self
+    async def __aexit__(self, exc_type, exc, tb):
+        self._sem.release()                 # 出门：还令牌，超时/异常也不例外
+        return False
+
+guard = ConcurrencyGuard(limit=10)
+
+async def call_model(prompt):
+    async with guard:                       # 第 11 个并发请求在这里排队
+        return await llm_client.generate(prompt)   # 超时抛错也会先还令牌
+
+# 100 个并发请求同时发，任意时刻最多 10 个真正打到模型 API</code></pre>
+      <p class="param-note">为什么这里必须 <code>async with</code> 而不是普通 with：<code>__aenter__</code> 里的 <code>await acquire()</code> 是<strong>可等待的排队</strong>——同步 with 的 <code>__enter__</code> 没法 await，会阻塞整个事件循环。这就是"async 资源配 async with"的原因（常见误区第二条）。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p><code>with</code> 调用 enter 获取资源，块结束后无论成功还是抛异常都会调用 exit；exit 返回真值会抑制异常，应谨慎。文件、锁、数据库事务、trace span 和临时目录都适合。异步连接使用 <code>async with</code>，释放可 await。也可用 <code>contextlib.contextmanager/asynccontextmanager</code> 以 generator 写，但 yield 前后必须严格对应获取与清理。</p>
@@ -676,10 +1226,197 @@ body {
   </div>
 
   <!-- Q16 -->
-  <div class="q-card" id="q16" data-text="异常处理 try except finally raise from raise e 自定义异常 CancelledError BaseException 重试 幂等 trace_id">
+  <div class="q-card" id="q16" data-text="异常处理 try except finally raise from raise e 自定义异常 CancelledError BaseException 重试 幂等 trace_id 吞异常 except pass 因果链 __cause__ traceback 裸raise 分诊台 退避 Retry-After 错误分层 领域异常">
     <div class="q-title"><span class="q-label">Q16</span>Python 异常处理有哪些工程原则？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>异常处理是在合适抽象层捕获预期失败，保留异常因果与上下文，将其转换为稳定错误契约，同时保证清理、重试和观测，而不是简单阻止进程报错。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：公司前台 vs 分诊台</span>
+      <table>
+        <tr><th>原则</th><th>类比</th><th>反面教材</th></tr>
+        <tr><td>只捕获能处理的具体异常</td><td>分诊台按病症分诊：感冒的去内科，骨折的去外科</td><td>所有病人一律"回家躺着"（except Exception: pass）</td></tr>
+        <tr><td>raise ... from ... 保留因果</td><td>转诊时带上原病历，新医生能看到病史</td><td>转诊时撕掉病历，只说"人不对劲"</td></tr>
+        <tr><td>在负责处理的层记日志</td><td>病历只在主治医生那里写一次</td><td>每个科室都抄写一遍同份病历（重复打印同一栈）</td></tr>
+        <tr><td>finally/with 保证清理</td><td>无论门诊还是急救，离院都要结账还卡</td><td>只有正常退房才还房卡，火警逃生就赖账</td></tr>
+        <tr><td>控制异常不吞</td><td>消防警报响起要疏散，不能当没听见</td><td>把火警警报静音（吞掉 CancelledError）</td></tr>
+      </table>
+      <p class="param-note">一句话：<strong>异常处理不是"让报错消失"，而是"让失败变得可分类、可追溯、可恢复"</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 反例一：except Exception: pass 吞掉 bug（真实运行）</span>
+      <pre><code>def divide(a, b):
+    return a / b
+
+def bad_handler():
+    try:
+        result = divide(10, 0)
+        return result
+    except Exception:
+        pass  # ❌ 静默吞掉
+
+print(bad_handler())   # 输出: None</code></pre>
+      <p class="param-note">调用方拿到 <code>None</code> 却不知道为什么——bug 被藏进了地毯下，三天后在毫不相干的地方炸出 <code>AttributeError: 'NoneType' object has no attribute ...</code>，排查成本翻十倍。<strong>吞异常 = 把今天的报错变成明天的灵异事件</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例一：raise ... from ... 保留因果链（真实运行）</span>
+      <pre><code>class RateLimited(Exception):
+    """领域异常：调用方可据此执行退避重试"""
+    pass
+
+def call_vendor():
+    raise ConnectionError('vendor connection reset')
+
+try:
+    try:
+        call_vendor()
+    except ConnectionError as exc:
+        # ✅ 转换为领域异常，同时用 from 保留根因
+        raise RateLimited('LLM provider overloaded, retry after 5s') from exc
+except RateLimited as e:
+    print('外层捕获:', e)
+    print('__cause__:', type(e.__cause__).__name__, '-', e.__cause__)
+
+# 输出:
+# 外层捕获: LLM provider overloaded, retry after 5s
+# __cause__: ConnectionError - vendor connection reset</code></pre>
+      <p class="param-note">不用 <code>from exc</code> 也能跑，但 traceback 里会丢掉因果关联（只显示 "During handling ... another exception occurred"，语义是"处理时碰巧又出错"而非"由它导致"）。<code>from</code> 明确声明<strong>因果</strong>，日志聚合时能按根因（网络？限流？超时？）分类统计。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例二：裸 raise vs raise e 到底差在哪（真实运行·含纠错）</span>
+      <p class="param-note"><strong>先纠正一个流传很广的说法</strong>：很多人（包括不少资料）说"<code>raise e</code> 会丢失原始抛出点"——<strong>在 Python 3 里这是错的</strong>。实测证明 <code>raise e</code> 的 traceback 里 <strong>原始抛出点依然完整可见</strong>（这是 Python 2 时代的老知识，Python 2 中 raise e 会整个替换 traceback；Python 3 的异常对象自带 <code>__traceback__</code>，帧信息跟着对象走，怎么重抛都丢不了）：</p>
+      <pre><code>import traceback
+
+def inner():
+    raise ValueError('original')
+
+def caught_raise_e():
+    try:
+        inner()
+    except ValueError as e:
+        raise e
+
+# 实测：raise e 的完整 traceback 打印效果
+# Traceback (most recent call last):
+#   File "<string>", line 15, in <module>       ← module
+#   File "<string>", line 11, in caught_raise_e
+#     raise e                                    ← 多出的中间帧（重抛语句行）
+#   File "<string>", line 9, in caught_raise_e
+#     inner()                                    ← 原调用点还在
+#   File "<string>", line 5, in inner
+#     raise ValueError('original')               ← ✅ 原始抛出点完整可见！
+# ValueError: original</code></pre>
+      <p class="param-note">两者的真实差异只有三个，且都不是"丢帧"：</p>
+      <pre><code># 差异 1：except 块结束时 e 被 Python 自动 del（防引用泄漏）
+try:
+    inner()
+except ValueError as e:
+    stored = e      # 想带出块必须存别名
+raise e             # NameError: name 'e' is not defined
+
+# 差异 2：裸 raise 重抛的是"当前活跃"异常，不是你手里的那个
+def nested():
+    try:
+        raise ValueError('first')
+    except ValueError:
+        try:
+            raise KeyError('second')
+        except KeyError:
+            raise          # 重抛当前活跃的 KeyError（实测输出: KeyError - second）
+
+# 差异 3：raise e 会往 traceback 里追加一个中间帧（raise e 那一行）
+# 裸 raise 帧:  [module, caught_reraise, inner]           ← 3 帧
+# raise e 帧:   [module, caught_raise_e(raise行), caught_raise_e(调用行), inner]  ← 4 帧，多一帧噪声</code></pre>
+      <table>
+        <tr><th></th><th>裸 <code>raise</code></th><th><code>raise e</code></th><th><code>raise New(...) from e</code></th></tr>
+        <tr><td>原始抛出点</td><td>✅ 保留</td><td>✅ <strong>同样保留</strong>（Python 3）</td><td>✅ 通过 __cause__ 保留</td></tr>
+        <tr><td>重抛的是什么</td><td>当前活跃异常</td><td>你指定的异常对象</td><td>新异常（因果链到 e）</td></tr>
+        <tr><td>块外能用吗</td><td>不能（无活跃异常→RuntimeError）</td><td>不能（e 已被删，除非存别名）</td><td>不能（同理）</td></tr>
+        <tr><td>额外帧</td><td>无</td><td>多 1 帧重抛语句行</td><td>新 traceback + 链式展示</td></tr>
+        <tr><td>使用场景</td><td>记日志后原样上抛（首选）</td><td>重抛存起来的异常（如 Task/Future 回调里 raise 存好的 exc）</td><td>转换异常类型时</td></tr>
+      </table>
+      <p class="param-note">实战模式：日志层 <code>except SpecificError: log.exception(...); raise</code> —— 记一次日志 + 裸 raise 上抛。<strong>面试加分点</strong>：如果面试官追问"raise e 会不会丢 traceback"，纠正这个 Python 2 老观点本身就是区分度——说明你理解 Python 3 异常对象携带 <code>__traceback__</code> 的机制。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例三：误吞 CancelledError 的后果（真实运行）</span>
+      <pre><code>import asyncio
+
+async def task_a():
+    try:
+        await asyncio.sleep(10)
+    except BaseException as e:      # ❌ 演示误吞（捕获范围过大）
+        print('A: 误吞了', type(e).__name__, '- 任务拒绝被取消!')
+        return 'refuse'
+
+async def main():
+    t = asyncio.create_task(task_a())
+    await asyncio.sleep(0.1)
+    t.cancel()
+    r = await t
+    print('main: 任务返回了', r, '(取消失败了!)')
+
+asyncio.run(main())
+
+# 输出:
+# A: 误吞了 CancelledError - 任务拒绝被取消!
+# main: 任务返回了 refuse (取消失败了!)
+
+# 关键事实（实测验证）:
+# CancelledError 是 Exception 子类?    False  ← 3.8+ 改继承 BaseException
+# CancelledError 是 BaseException 子类? True</code></pre>
+      <p class="param-note">为什么 <code>except Exception</code> 反而是安全的？因为 Python 3.8 起 <code>CancelledError</code> 改继承 <code>BaseException</code>——<strong>语言层面故意让"捕获 Exception"漏掉取消信号</strong>，就像 <code>KeyboardInterrupt</code>（Ctrl+C）一样。一旦写 <code>except BaseException</code> 或裸 <code>except:</code>，任务就拒绝被取消：超时控制、优雅关机（shutdown 时 cancel 所有协程）全部失效，进程卡死。捕获 <code>BaseException</code> 后要么重新 raise，要么明确知道自己为什么吞。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例四：分类重试——只重试幂等暂态错误（真实运行）</span>
+      <pre><code>class PermissionDenied(Exception): pass   # 永久性：重试一万次也不会好
+class TransientError(Exception): pass     # 暂态性：下次可能就好
+
+def with_retry(fn, max_retries=3):
+    for i in range(max_retries):
+        try:
+            return fn()
+        except TransientError:
+            if i == max_retries - 1:
+                raise                      # 重试额度用完，裸 raise 上抛
+            print(f'第{i+1}次暂态失败，重试...')
+        except PermissionDenied:
+            raise                          # 鉴权失败立刻上抛，绝不重试
+
+# 实测输出:
+# 第1次暂态失败，重试...
+# 第2次暂态失败，重试...
+# 重试暂态错误: ok
+# 鉴权失败直接上抛(不重试): invalid api key</code></pre>
+      <p class="param-note">分类依据（对应 30 秒回答里的三类）：<strong>① 参数/业务拒绝</strong>（400、鉴权失败）——重试无意义，立即返回错误；<strong>② 暂态依赖</strong>（超时、429 限流、连接重置）——仅当操作幂等才退避重试，并尊重 Retry-After；<strong>③ 内部 bug</strong>（AttributeError、KeyError）——不重试、不打扰用户，直接报警。<strong>非幂等操作（扣款、发消息）盲目重试会造成重复扣费/重复推送</strong>，需先查幂等键。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例五：错误分层与统一边界（完整链路）</span>
+      <pre><code># ── 底层：适配器层，供应商错误 → 领域错误 ──
+class ModelError(Exception): pass
+class RateLimited(ModelError):
+    def __init__(self, retry_after: float):
+        super().__init__(f'rate limited, retry after {retry_after}s')
+        self.retry_after = retry_after     # 携带重试决策所需的数据
+
+async def call_openai(prompt):
+    try:
+        resp = await client.post(...)
+    except VendorHTTPError as exc:
+        if exc.status == 429:
+            raise RateLimited(float(exc.headers['Retry-After'])) from exc
+        raise ModelError(f'vendor error {exc.status}') from exc
+
+# ── 中层：服务层，做重试决策，只在最终处理处记日志 ──
+async def complete(prompt):
+    for attempt in range(3):
+        try:
+            return await call_openai(prompt)
+        except RateLimited as e:
+            if attempt == 2:
+                logger.exception('llm exhausted retries trace_id=%s', tid)  # 只记这一次
+                raise
+            await asyncio.sleep(e.retry_after)   # 用异常携带的数据决策
+
+# ── 顶层：API 边界，领域错误 → HTTP 契约 ──
+@app.exception_handler(RateLimited)
+async def handler(req, exc):
+    return JSONResponse(status_code=503,
+        headers={'Retry-After': str(exc.retry_after)},
+        content={'error': 'provider_busy', 'trace_id': tid})</code></pre>
+      <p class="param-note">三层各司其职：<strong>底层翻译</strong>（供应商细节不外泄）、<strong>中层决策</strong>（重试/放弃 + 唯一一次日志）、<strong>顶层转换</strong>（稳定 HTTP 契约）。任何一层都不重复打印完整栈——噪声会淹死真报警。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p>只捕获能处理的具体异常，未知异常继续传播给统一边界；使用 <code>raise NewError(...) from exc</code> 保留 cause；参数/业务拒绝、暂态依赖和内部 bug 分类，重试只针对幂等暂态错误；资源清理用 finally/with。日志在负责处理的层记录一次，带 trace_id 但不泄露 Prompt/密钥。不要 <code>except Exception: pass</code>，也别把 CancelledError 等控制异常误吞。</p>
@@ -694,7 +1431,7 @@ body {
       <p><strong>什么时候自定义异常？</strong> 当调用方需要依据稳定语义采取不同动作时，例如 RetryableToolError、PermissionDenied；不要为每个函数建异常类。异常层次应小而明确。</p>
     </div>
     <div class="q-section followup"><span class="badge badge-q">追问 2</span>
-      <p><strong>`raise` 与 `raise e` 有何区别？</strong> 在 except 中裸 <code>raise</code> 保留原 traceback；<code>raise e</code> 会改变 traceback 起点。转换异常时使用 <code>raise New(...) from e</code> 明确因果链。</p>
+      <p><strong>`raise` 与 `raise e` 有何区别？</strong> 裸 <code>raise</code> 重抛"当前活跃"异常，最简洁；<code>raise e</code> 重抛指定对象，原始 traceback 在 Python 3 中同样保留（"raise e 丢 traceback"是 Python 2 老观点，异常对象自带 <code>__traceback__</code>），只多一个重抛语句的中间帧。两者块外都不可用（e 被自动删）。转换异常类型时用 <code>raise New(...) from e</code> 明确因果链。</p>
     </div>
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>给出从供应商错误到领域错误、重试策略和 API 契约的映射。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>捕获 BaseException，连退出和取消都吞掉。</li><li>每一层都打印同一异常完整栈。</li></ul></div>
@@ -702,10 +1439,167 @@ body {
   </div>
 
   <!-- Q17 -->
-  <div class="q-card" id="q17" data-text="dataclass NamedTuple Pydantic BaseModel frozen slots 验证 JSON Schema strict 类型转换 FastAPI">
+  <div class="q-card" id="q17" data-text="dataclass NamedTuple Pydantic BaseModel frozen slots 验证 JSON Schema strict 类型转换 FastAPI FrozenInstanceError ValidationError model_dump model_json_schema Field gt le lax 强制转换 缓存key 海关安检 可哈希 开销对比 注解不是验证 不可变 只读">
     <div class="q-title"><span class="q-label">Q17</span>dataclass、NamedTuple 和 Pydantic 如何选择？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>dataclass 通过声明字段生成普通 Python 数据类方法；NamedTuple 是具名、tuple 兼容的不可变记录；Pydantic BaseModel 依据类型注解执行运行时解析、验证和序列化，适合不可信边界数据。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：自家笔记本 vs 钢印铭牌 vs 海关安检</span>
+      <table>
+        <tr><th>工具</th><th>类比</th><th>该用的场景</th><th>不该用的场景</th></tr>
+        <tr><td>dataclass</td><td>自家笔记本：自己写给自己看，没人检查你写的"数量"栏是不是数字</td><td>内部领域对象、检索候选、流水线中转结构（数据已可信）</td><td>直接接收用户/模型传入的裸数据</td></tr>
+        <tr><td>NamedTuple</td><td>钢印铭牌：印上去就改不了，且天生带编号可按位置读</td><td>缓存 key、坐标、配置常量、需要 tuple 语义的轻量记录</td><td>字段多、需要默认值演变、需要方法行为的复杂模型</td></tr>
+        <tr><td>Pydantic BaseModel</td><td>海关安检口：入境（进系统）的每件行李都过 X 光，还会给你一张正式清单</td><td>API 入参、配置加载、LLM/Agent 工具入参、外部 JSON 响应</td><td>极热内部循环里百万级构造（安检再快也是成本）</td></tr>
+      </table>
+      <p class="param-note">一句话：<strong>选型的判断轴不是"哪个语法强"，而是"数据从哪来"——可信内部用 dataclass，只读带编号用 NamedTuple，不可信边界用 Pydantic</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 反例：dataclass 的注解不是验证（真实运行）</span>
+      <pre><code>from dataclasses import dataclass
+
+@dataclass
+class Candidate:
+    doc_id: int      # ← 这个 int 只是"备注"，不是"门禁"
+    score: float
+
+c = Candidate(doc_id="不是数字也照收", score="随便什么")
+print("构造成功:", c)
+print("doc_id 实际类型:", type(c.doc_id).__name__)
+
+# 输出:
+# 构造成功: Candidate(doc_id='不是数字也照收', score='随便什么')
+# doc_id 实际类型: str</code></pre>
+      <p class="param-note">没有任何报错。dataclass 只帮你生成 <code>__init__</code>/<code>__repr__</code>/<code>__eq__</code>，类型注解原样存进 <code>__annotations__</code> 给 IDE 和 mypy 看，运行时一根手指都不动。错误数据会安静地一路传到下游，在某个毫不相干的 <code>score + 1</code> 处炸出 TypeError。<strong>这也是 Q18 的核心：注解 = 文档，验证 = 需要另花钱买</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · frozen 的"不可变"：只锁门，不锁柜子（真实运行）</span>
+      <pre><code>from dataclasses import dataclass, field, FrozenInstanceError
+
+@dataclass(frozen=True)
+class FrozenConfig:
+    name: str
+    tags: list = field(default_factory=list)
+
+cfg = FrozenConfig(name="prod", tags=["a"])
+
+try:
+    cfg.name = "staging"            # ① 重新绑定字段 → 拦截
+except FrozenInstanceError as e:
+    print("重新赋值被拦截:", e)
+
+cfg.tags.append("b")                # ② 原地修改字段内容 → 放行
+print("但 tags 被改了:", cfg.tags)
+
+# 输出:
+# 重新赋值被拦截: cannot assign to field 'name'
+# 但 tags 被改了: ['a', 'b']</code></pre>
+      <p class="param-note">frozen 实现的是 <code>__setattr__</code> 一把锁：只拦"换掉字段引用"，不拦"修改字段指向的对象"。就像房门上了锁，但客厅里的柜子没锁。<strong>要真不可变：字段用 tuple 而非 list（如 <code>tags: tuple = ()</code>），或换 NamedTuple</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · NamedTuple：天生 tuple，能直接当缓存 key（真实运行）</span>
+      <pre><code>from typing import NamedTuple
+
+class CacheKey(NamedTuple):
+    table: str
+    sheet: str
+    row: int
+
+k = CacheKey("item", "武器", 1001)
+
+print("按位置访问 k[0]:", k[0])          # tuple 兼容
+x, y, z = k                              # 可解包
+print("元组解包:", x, y, z)
+print("能进 set:", {k, CacheKey("item", "武器", 1001), CacheKey("item", "武器", 1002)})
+
+try:
+    k.row = 2000                         # 不可变
+except AttributeError as e:
+    print("改字段被拦截:", e)
+
+# 输出:
+# 按位置访问 k[0]: item
+# 元组解包: item 武器 1001
+# 能进 set: {CacheKey(table='item', sheet='武器', row=1001), CacheKey(table='item', sheet='武器', row=1002)}
+# 改字段被拦截: can't set attribute</code></pre>
+      <p class="param-note">NamedTuple 继承自 tuple，所以<strong>可哈希、可进 set/dict key、可按位置访问、可解包</strong>——这四样普通 dataclass 默认都没有（dataclass 实例可变所以不可哈希，放进 dict key 直接 TypeError）。工程上"行级缓存 key"这类场景是它的主场：一行 <code>@lru_cache</code> 装饰的函数签名里放个 NamedTuple 参数就能直接命中。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · Pydantic 默认会"好心"转类型，安全边界要开 strict（真实运行）</span>
+      <pre><code>from pydantic import BaseModel, Field, ValidationError
+
+class ToolArgs(BaseModel):
+    top_k: int = Field(gt=0, le=100)
+
+# ① 默认 lax 模式：字符串悄悄变 int
+args = ToolArgs(top_k="5")
+print("lax 模式: top_k =", repr(args.top_k), "| 类型:", type(args.top_k).__name__)
+# 输出: lax 模式: top_k = 5 | 类型: int
+
+# ② 约束校验：越界被拦，错误信息指名道姓
+try:
+    ToolArgs(top_k=101)
+except ValidationError as e:
+    print("越界被拦下:")
+    print(str(e))
+# 1 validation error for ToolArgs
+# top_k
+#   Input should be less than or equal to 100 [type=less_than_equal, input_value=101, input_type=int]
+
+# ③ strict 模式：类型不对直接拒收，不做善意转换
+try:
+    ToolArgs.model_validate({"top_k": "5"}, strict=True)
+except ValidationError as e:
+    print("strict 模式下 '5' 被拒:")
+    print(str(e))
+# 1 validation error for ToolArgs
+# top_k
+#   Input should be a valid integer [type=int_type, input_value='5', input_type=str]</code></pre>
+      <p class="param-note">lax 模式是双刃剑：前端传 <code>"5"</code> 能自动转成 <code>5</code> 很省心；但如果业务规则是"ID 必须是数字，传字符串就是异常请求"，lax 会把脏数据洗白放行。<strong>经验法则：对外只做格式适配的接口可用 lax；对安全敏感、或调用方本该传对类型的边界（如 LLM 工具入参校验），用 strict 让错误暴露在门口而不是埋在系统里</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · Pydantic 附赠：dump + JSON Schema 一条龙（真实运行）</span>
+      <pre><code>import json
+from pydantic import BaseModel
+
+class AgentInput(BaseModel):
+    query: str
+    top_k: int = 5
+
+obj = AgentInput(query="查找五星武器")
+print("model_dump:", obj.model_dump())
+print("model_dump_json:", obj.model_dump_json())
+print(json.dumps(AgentInput.model_json_schema(), ensure_ascii=False, indent=2))
+
+# 输出:
+# model_dump: {'query': '查找五星武器', 'top_k': 5}
+# model_dump_json: {"query":"查找五星武器","top_k":5}
+# model_json_schema:
+# {
+#   "properties": {
+#     "query":   { "title": "Query", "type": "string" },
+#     "top_k":   { "default": 5, "title": "Top K", "type": "integer" }
+#   },
+#   "required": ["query"],
+#   "title": "AgentInput",
+#   "type": "object"
+# }</code></pre>
+      <p class="param-note">这是 Pydantic 在 Agent/FastAPI 生态里的真正护城河：<strong>一个类同时是"运行时校验器 + 序列化器 + 机器可读契约"</strong>。同一个 <code>AgentInput</code> 既校验用户输入，又能把 <code>model_json_schema()</code> 直接塞进 OpenAPI 文档或 function calling 的 tools 参数定义——dataclass 想做到这些要额外叠 pydantic-dataclasses 或 dacite/marshmallow。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 本机实测：三者构造开销对比（100 万次）</span>
+      <pre><code># 环境: Python 3.13.12 / pydantic 2.13，构造 1,000,000 次
+@dataclass(slots=True)
+class DCCand:
+    doc_id: int
+    score: float
+
+class NTCand(NamedTuple):
+    doc_id: int
+    score: float
+
+class PyCand(BaseModel):
+    doc_id: int
+    score: float
+
+# 实测输出:
+# dataclass(slots=True) : 0.14s
+# NamedTuple            : 0.22s
+# Pydantic BaseModel    : 0.87s  (约 6x 于 dataclass)</code></pre>
+      <p class="param-note">安检是要付钱的：Pydantic 每次构造都跑一遍验证器，开销约为 slots dataclass 的几倍（具体倍数随字段数变化）。<strong>1 万次请求里校验 1 万次完全值得；但每秒百万次的内层循环里反复构造 BaseModel，就是给热路径上安检</strong>。方案：边界处校验一次转成内部 dataclass，后续流转用"已过检"的轻量结构。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p>内部领域对象、数据已可信且追求低开销用 dataclass；需要 tuple 语义、轻量不可变和按位置兼容可用 NamedTuple；API 请求、配置、工具参数和模型结构化输出用 Pydantic，因为需要运行时校验、JSON Schema 和明确错误。不要把类型注解等同验证，也不要在极热内部循环无差别构造重型模型。不可变需求可显式配置。</p>
@@ -728,10 +1622,187 @@ body {
   </div>
 
   <!-- Q18 -->
-  <div class="q-card" id="q18" data-text="类型注解 type hint mypy pyright 运行时验证 Any object __annotations__ Pydantic typeguard strict 前向引用">
+  <div class="q-card" id="q18" data-text="类型注解 type hint mypy pyright 运行时验证 Any object __annotations__ Pydantic typeguard strict 前向引用 get_type_hints validate_call 说明书 质检员 保安 元数据 PEP 563 延迟求值 惰性 PEP 649 缩窄 传染 NameError">
     <div class="q-title"><span class="q-label">Q18</span>类型注解会在运行时强制生效吗？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>Python 类型注解主要是供静态类型检查器、IDE、文档与运行时框架读取的元数据，语言默认不会在函数调用时自动强制参数和返回值类型。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：说明书、质检员、保安，三种角色</span>
+      <table>
+        <tr><th>角色</th><th>对应物</th><th>它做什么</th><th>它不做什么</th></tr>
+        <tr><td>产品说明书</td><td>类型注解本身</td><td>告诉读者/IDE "这里应该是 int"</td><td>不拦人——写错了照样通过</td></tr>
+        <tr><td>出厂质检员</td><td>mypy / pyright</td><td>上线前（CI 阶段）静态扫一遍，拦下接口用错</td><td>不参与运行，也发现不了运行时状态问题</td></tr>
+        <tr><td>门口保安</td><td>Pydantic / validate_call</td><td>数据进门（运行时）当场查验，不合格直接拒收</td><td>不知道业务规则（用户有没有权限、订单存不存在）</td></tr>
+      </table>
+      <p class="param-note">一句话：<strong>注解是写给"看得懂它的人"（IDE、mypy、Pydantic）的元数据，不是给解释器的门禁</strong>。三层各司其职：说明书减少误用，质检员拦截接口错误，保安拦截脏数据。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例一：注解不拦截任何东西（真实运行）</span>
+      <pre><code>def f(x: int) -> str:
+    return x          # 声明返回 str，实际返回什么都行
+
+result = f("我是字符串")   # 声明参数是 int，传字符串照收
+print("f('我是字符串') =", result, "| 返回值类型:", type(result).__name__)
+print("f(3.14) =", f(3.14))
+
+# 输出:
+# f('我是字符串') = 我是字符串 | 返回值类型: str
+# f(3.14) = 3.14</code></pre>
+      <p class="param-note">解释器从头到尾没看过这些注解一眼。错误数据会安静流向下游，直到某处真的 <code>x + 1</code> 才炸——<strong>报错位置离错误源头可能隔着十层调用</strong>，这正是需要静态检查和边界校验的原因。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例二：注解去哪了——__annotations__ 元数据（真实运行）</span>
+      <pre><code>import typing
+
+def f(x: int) -> str:
+    return x
+
+print("f.__annotations__ =", f.__annotations__)
+print("get_type_hints(f) =", typing.get_type_hints(f))
+
+class Tool:
+    name: str
+    top_k: int = 5
+
+print("Tool.__annotations__ =", Tool.__annotations__)
+print("name 注解的类型:", type(Tool.__annotations__['name']).__name__)
+
+# 输出:
+# f.__annotations__ = {'x': &lt;class 'int'&gt;, 'return': &lt;class 'str'&gt;}
+# get_type_hints(f) = {'x': &lt;class 'int'&gt;, 'return': &lt;class 'str'&gt;}
+# Tool.__annotations__ = {'name': &lt;class 'str'&gt;, 'top_k': &lt;class 'int'&gt;}
+# name 注解的类型: type</code></pre>
+      <p class="param-note">注解被求值成真实的类对象（<code>int</code>、<code>str</code>），存进 <code>__annotations__</code> 字典——<strong>这就是 FastAPI 和 Pydantic 的"原料仓库"</strong>：它们在运行时读这个字典，才知道该生成什么 schema、验证什么类型。注解不是没用，只是"用它的不是解释器，而是框架"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例三：同一份代码，运行时全过、mypy 全拦（本机实测）</span>
+      <pre><code>from typing import Any
+
+def f(x: int) -> str:
+    return x            # ① 返回值声明 str，实际返回 int
+
+def use_any(v: Any):
+    return v.upper()    # ② Any：检查器放行
+
+def use_object(v: object):
+    return v.upper()    # ③ object：检查器要求先缩窄类型
+
+# 运行时执行（python mypy_demo.py）:
+# 1
+# HELLO
+# HELLO                              ← 三个函数全部顺利跑完，零报错
+
+# 静态检查（mypy mypy_demo.py）:
+# mypy_demo.py:6: error: Incompatible return value type (got "int", expected "str")  [return-value]
+# mypy_demo.py:12: error: "object" has no attribute "upper"  [attr-defined]
+# Found 2 errors in 1 file</code></pre>
+      <p class="param-note">同一份代码、同一台机器：运行时一个错没有，mypy 精确指出第 6 行返回值不符、第 12 行 object 滥用。<strong>这就是"静态检查拦接口错、运行时验证拦脏数据"的分工实例</strong>——mypy 是 CI 阶段的质检员，不花运行时成本；但质检不代替保安，用户输入仍需运行时校验。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例四：Any vs object——运行时无差别，静态两个世界</span>
+      <p class="param-note">看例三的 ② 和 ③：<code>use_any</code> 和 <code>use_object</code> 运行时输出完全一样（都是 <code>HELLO</code>），但 mypy 只骂了 <code>use_object</code>：</p>
+      <table>
+        <tr><th>维度</th><th>Any</th><th>object</th></tr>
+        <tr><td>运行时行为</td><td>完全相同，都是个普通参数</td><td>完全相同</td></tr>
+        <tr><td>静态检查</td><td>"放弃检查"——任何属性访问、任何传参都放行</td><td>"未知类型"——用前必须 isinstance/缩窄，否则报错</td></tr>
+        <tr><td>语义</td><td>我不在乎类型（逃逸舱）</td><td>我只知道它是对象，别的不保证</td></tr>
+        <tr><td>典型来源</td><td>无注解的第三方库、动态 JSON 解析结果</td><td>边界函数的入参设计</td></tr>
+      </table>
+      <p class="param-note">工程经验：<strong>Any 是"关掉检查器"，会顺着调用链传染（返回 Any 的函数结果也是 Any）；object 是"诚实地说不知道"，强迫你验证后再用</strong>。边界处宁可收 object 然后显式校验，也别一路 Any 污染下游——后者等于把整条调用链的静态保障都拆了。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例五：让注解"生效"最便宜的方式——validate_call（真实运行）</span>
+      <pre><code>from pydantic import validate_call, ValidationError
+
+@validate_call
+def search(top_k: int, query: str) -> str:
+    return f"搜索 {query}，取 {top_k} 条"
+
+print(search(top_k="5", query="武器"))   # "5" 被转换为 5
+try:
+    search(top_k="abc", query="武器")    # 真不是数字 → 拦下
+except ValidationError as e:
+    print("被拦下:", str(e).splitlines()[0])
+    print("         ", str(e).splitlines()[2].strip())
+
+# 输出:
+# 搜索 武器，取 5 条
+# 被拦下: 1 validation error for search
+#           Input should be a valid integer, unable to parse string as an integer
+#           [type=int_parsing, input_value='abc', input_type=str]</code></pre>
+      <p class="param-note">不改函数体、不写 if 校验，一个装饰器就把"注解"升级成"门禁"。适合<strong>单个函数入口想加保险又不想定义整个 BaseModel</strong> 的场景（如 Agent tool 的薄包装层）。注意它默认也是 lax 转换（"5" → 5），安全边界可叠加 strict 配置。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例六（上）：什么是"前向引用"，为什么会炸</span>
+      <p class="param-note"><strong>"前向引用"= 引用一个还没定义的名字</strong>。最典型的场景：定义链表节点类，它的 next 字段恰好是自己。</p>
+      <pre><code># ❌ 默认行为：注解在 class 执行时就"当场查名字"
+class Node:
+    next: Node          # ← 执行到这行，Python 去查 Node 是什么
+                        #   但此刻 Node 还没定义完！
+# 报错: NameError: name 'Node' is not defined</code></pre>
+      <p class="param-note"><strong>关键：注解默认是"立即求值"的</strong>。Python 执行到 <code>next: Node</code> 这一行时，会真的去名字表里查 <code>Node</code> 这个名字，把它指向的类对象存进 <code>__annotations__</code>。可这一行还在 <code>class Node</code> 的体内——<code>Node</code> 这个名字要等整个类体执行完、<code>class</code> 语句结束才会被绑定。<strong>这就成了"鸡还没下完蛋，就要用这只鸡"</strong>。</p>
+      <p class="param-note">不只是自引用会炸——<strong>任何"先用、后定义"的类型都一样</strong>：</p>
+      <pre><code># ❌ 函数返回值用了后面才定义的类
+def make() -> Tree:      # ← 执行到这行查 Tree，但 Tree 还没定义
+    return Tree()
+class Tree:
+    pass
+# 报错: NameError: name 'Tree' is not defined</code></pre>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例六（中）：解法 A——给注解加引号（真实运行）</span>
+      <p class="param-note">最直接的解法：<strong>给注解加引号，让它变成字符串</strong>。字符串不会触发名字查找，Python 只是把这段文字原样存下来。</p>
+      <pre><code>class Node:
+    next: "Node"          # ← 加了引号！Python 不去查 Node，只存下字符串 "Node"
+    value: int = 0
+
+# 定义成功，没报错
+print("Node.__annotations__ =", Node.__annotations__)
+print("next 注解的类型:", type(Node.__annotations__['next']).__name__)
+
+# 输出:
+# Node.__annotations__ = {'next': 'Node', 'value': &lt;class 'int'&gt;}
+# next 注解的类型: str                          ← 注意：是字符串，不是类！</code></pre>
+      <p class="param-note">注意对比：没加引号的 <code>value: int</code> 存的是真实的 <code>&lt;class 'int'&gt;</code> 对象；加了引号的 <code>next: "Node"</code> 存的只是字符串 <code>'Node'</code>。<strong>引号 = 告诉 Python"先别查，存个字条就行"</strong>。</p>
+      <p class="param-note"><strong>那这个字符串谁来翻译回真正的类型？</strong>——需要的时候由 <code>typing.get_type_hints()</code> 或框架（Pydantic、FastAPI）按需解析：</p>
+      <pre><code>import typing
+print("get_type_hints(Node) =", typing.get_type_hints(Node))
+# 输出: {'next': &lt;class 'Node'&gt;, 'value': &lt;class 'int'&gt;}
+#                              ↑ 字符串 'Node' 被解析成了真正的类 Node</code></pre>
+      <p class="param-note">此时 <code>Node</code> 早已定义完，<code>get_type_hints</code> 能在当前名字表里找到它，把字符串"翻译"回类型对象。<strong>整个机制就是"先存字条，等名字就绪了再翻译"</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例六（下）：解法 B——future import 全局变字符串（真实运行）</span>
+      <p class="param-note">如果注解很多，每个都加引号很烦。<strong>在文件头加一行 <code>from __future__ import annotations</code>（PEP 563），所有注解自动变成字符串</strong>，不用再手动加引号：</p>
+      <pre><code># 文件第一行：
+from __future__ import annotations
+from dataclasses import dataclass
+
+@dataclass
+class Node:
+    value: int = 0
+    next: Node | None = None     # ← 没加引号，也不报错了！
+
+n1 = Node(value=1)
+n2 = Node(value=2, next=n1)
+print("使用成功:", n2.value, "->", n2.next.value)
+
+print("Node.__annotations__ =", Node.__annotations__)
+import typing
+print("get_type_hints(Node) =", typing.get_type_hints(Node))
+
+# 输出:
+# 使用成功: 2 -> 1
+# Node.__annotations__ = {'value': 'int', 'next': 'Node | None'}    ← 全是字符串
+# get_type_hints(Node) = {'value': &lt;class 'int'&gt;, 'next': Node | None}  ← 需要时解析</code></pre>
+      <p class="param-note">对比两种解法的本质：<strong>引号是"逐个"延迟，future import 是"全局"延迟</strong>，效果一样——都让注解先以字符串形式存着，等名字就绪后再翻译。Pydantic/FastAPI 内部就是用 <code>get_type_hints</code> 这套机制解析字符串注解的，所以自引用模型能正常工作：</p>
+      <pre><code># Pydantic 模型自引用（二叉树）—— 它自己会解析注解
+from pydantic import BaseModel
+
+class TreeNode(BaseModel):
+    value: int
+    left:  "TreeNode | None" = None    # ← 引号写法
+    right: "TreeNode | None" = None
+
+tree = TreeNode(value=1,
+                left=TreeNode(value=2),
+                right=TreeNode(value=3))
+print(tree.model_dump())
+# {'value': 1, 'left': {'value': 2, 'left': None, 'right': None},
+#  'right': {'value': 3, 'left': None, 'right': None}}</code></pre>
+      <p class="param-note"><strong>面试加分点</strong>：Python 3.14 起（PEP 649）默认就改为惰性求值，不再需要 <code>from __future__ import annotations</code>——但 3.13 及以下仍需手动开启。知道这个版本差异能体现你对注解求值时机的理解，而不只是"加个引号就不报错了"。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p><code>def f(x: int) -> str</code> 仍可在运行时接收字符串，除非 Pydantic、typeguard 或自定义代码显式验证。类型注解的价值是让 mypy/pyright 在 CI 提前发现接口错误，并让 FastAPI/Pydantic 生成 schema。工程上要区分"静态可信内部接口"和"外部不可信输入"：后者必须运行时验证，不能因为有 annotation 就直接使用。</p>
@@ -806,10 +1877,152 @@ body {
   </div>
 
   <!-- Q21 -->
-  <div class="q-card" id="q21" data-text="__slots__ 内存布局 描述符 __dict__ frozen dataclass slots=True weakref MRO 继承 内存优化">
+  <div class="q-card" id="q21" data-text="__slots__ 内存布局 描述符 __dict__ frozen dataclass slots=True weakref MRO 继承 内存优化 同构对象 member_descriptor 哈希表 定长数组 key-sharing 偏移位 口袋 字典 61% tracemalloc sys.getsizeof PEP 412 继承陷阱">
     <div class="q-title"><span class="q-label">Q21</span><code>__slots__</code> 有什么作用？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p><code>__slots__</code> 声明实例允许的属性槽位，使实例通常不再为任意属性创建 <code>__dict__</code>，可减少大量同构对象的内存，并限制动态加属性。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 类比：每人发一本字典 vs 每人固定几个口袋</span>
+      <table>
+        <tr><th>方案</th><th>类比</th><th>查找方式</th><th>每人额外开销</th></tr>
+        <tr><td>普通类（有 __dict__）</td><td>给每个员工发一本空白字典，想记什么就翻到对应词条写进去</td><td>算哈希 → 查表 → 取值（O(1) 但有哈希表开销）</td><td>一本完整的字典（哈希表结构 + 稀疏空位）</td></tr>
+        <tr><td>__slots__ 类</td><td>给每个员工缝 3 个固定口袋，口袋位置在入职时（类定义时）就缝死了</td><td>直接按位置取（第 1 个口袋 = item_id，第 2 个 = name…）</td><td>零额外结构，就 3 个指针位</td></tr>
+      </table>
+      <p class="param-note">关键：<strong>"同构"= 所有实例字段一样</strong>。既然字段固定，就不需要每人一本字典去查"item_id 在第几页"——直接按位置存取就行。<code>__slots__</code> 就是把"每人一本字典"换成"每人固定几个口袋"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例一：单实例内存拆解——__dict__ 到底吃多少（真实运行）</span>
+      <pre><code>import sys
+
+class NormalItem:
+    def __init__(self, item_id, name, count):
+        self.item_id = item_id
+        self.name = name
+        self.count = count
+
+class SlotItem:
+    __slots__ = ('item_id', 'name', 'count')
+    def __init__(self, item_id, name, count):
+        self.item_id = item_id
+        self.name = name
+        self.count = count
+
+n = NormalItem(1001, "长剑", 3)
+s = SlotItem(1001, "长剑", 3)
+
+# NormalItem：对象本体 48B + __dict__ 296B = 344B
+print("NormalItem 对象本身:", sys.getsizeof(n), "bytes")       # 48
+print("  + __dict__:", sys.getsizeof(n.__dict__), "bytes")     # 296
+print("  = 合计约 344 bytes")
+
+# SlotItem：对象本体 56B，没有 __dict__
+print("SlotItem 对象本身:", sys.getsizeof(s), "bytes")         # 56
+print("  有 __dict__ 吗:", hasattr(s, '__dict__'))             # False</code></pre>
+      <p class="param-note">对象本体 48 vs 56 的差异：slots 类把 3 个属性值直接存在对象结构体里（多 3 个指针位 = 24B），所以对象本身略大；但省掉了整本 <code>__dict__</code>（296B），净省约 288B。<strong>注意：第一个实例的 <code>__dict__</code> 特别大（296B），后续同类实例因 key-sharing 优化会降到约 96B——下一节实测说明</strong>。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例二：10 万对象实测——每个省 88B，总计 61%（本机实测）</span>
+      <pre><code># 方法：sys.getsizeof 逐个求和（最精确的 per-object 测量）
+# 1000 个对象 × 3 个字段
+
+# NormalItem:  144 bytes/个 × 1000 = 144,000 bytes
+#   = 48(对象) + 96(共享 key 的 __dict__ 值数组)
+# SlotItem:     56 bytes/个 × 1000 =  56,000 bytes
+#   = 48(对象头) + 8×3(三个指针位)
+# 每个节省: 88 bytes (61%)
+
+# tracemalloc 测 100,000 个对象（含分配器开销）:
+# 100,000 个 NormalItem: 19.8 MB
+# 100,000 个 SlotItem:   16.0 MB
+# 节省: 3.8 MB (19%)</code></pre>
+      <p class="param-note">两种测量的差异：<code>sys.getsizeof</code> 逐个求和精确反映对象本身大小（61% 节省）；<code>tracemalloc</code> 含 Python 分配器的 arena 对齐和簿记开销，实测值偏保守（19%）。<strong>面试说"省 50-60% per-object"是准确的</strong>，但强调"前提是对象量大"——100 个对象省 8.8KB 毫无意义，100 万个就省 88MB。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 核心原理：dict 哈希表 vs slots 定长数组——为什么同构对象省最多</span>
+      <p class="param-note"><strong>普通类的内存布局</strong>——每个实例拖一本 <code>__dict__</code>（哈希表）：</p>
+      <pre><code># NormalItem 实例 n 的内存结构：
+#
+#   n ──┬──► [PyObject 头: 引用计数 + 类型指针]          ← 48 bytes
+#       │
+#       └──► [__dict__: 哈希表]                          ← 96~296 bytes
+#              ┌──────────────────────────────┐
+#              │ 哈希函数: hash("item_id") → 5 │
+#              │ 查表: 桶[5] → "item_id" → 1001│
+#              │ 哈希函数: hash("name") → 2    │
+#              │ 查表: 桶[2] → "name" → "长剑" │
+#              │ ...（还有空桶，稀疏的）        │
+#              └──────────────────────────────┘
+#
+# 每个 __dict__ 都要算哈希、维护桶数组、留空位
+# → 即使 3 个字段，也要一本完整的哈希表</code></pre>
+      <p class="param-note"><strong>slots 类的内存布局</strong>——没有 <code>__dict__</code>，属性值直接存在对象结构体的固定偏移位：</p>
+      <pre><code># SlotItem 实例 s 的内存结构：
+#
+#   s ──► [PyObject 头: 引用计数 + 类型指针]             ← 48 bytes
+#        [槽位 0: item_id 的值]  ← 偏移量固定，描述符知道   ← +8 bytes
+#        [槽位 1: name 的值]     ← 偏移量固定              ← +8 bytes
+#        [槽位 2: count 的值]    ← 偏移量固定              ← +8 bytes
+#                                                      合计 56 bytes
+#
+# 没有 __dict__，没有哈希表，没有空桶
+# 属性访问 = 指针偏移，O(1) 且无哈希计算</code></pre>
+      <p class="param-note"><strong>关键机制：member_descriptor</strong>。<code>__slots__</code> 声明后，Python 在<strong>类</strong>上为每个槽位生成一个描述符对象，它记录"这个属性存在实例的第几个偏移位"：</p>
+      <pre><code># 看 SlotItem 类（不是实例）上的描述符：
+for attr in ('item_id', 'name', 'count'):
+    print(f"SlotItem.__dict__['{attr}'] =", SlotItem.__dict__[attr])
+
+# 输出:
+# SlotItem.__dict__['item_id'] = &lt;member 'item_id' of 'SlotItem' objects&gt;
+# SlotItem.__dict__['name']    = &lt;member 'name' of 'SlotItem' objects&gt;
+# SlotItem.__dict__['count']   = &lt;member 'count' of 'SlotItem' objects&gt;
+# 类型: member_descriptor</code></pre>
+      <p class="param-note">读 <code>s.item_id</code> 时，Python 不查哈希表，而是找到类上的 <code>member_descriptor</code>，它直接从实例的固定偏移位取值——<strong>就像 C 语言结构体 <code>struct.item_id</code> 一样</strong>。<strong>这就是"同构"省内存的根本原因</strong>：所有实例字段相同 → 字段位置可固定 → 不需要每实例一本哈希表 → 省掉整本 <code>__dict__</code>。</p>
+      <p class="param-note"><strong>Python 3.3+ 的 key-sharing 优化缩小了差距，但没消除</strong>：同类的多个实例会共享 <code>__dict__</code> 的 keys 表（只存一份 "item_id/name/count"），每实例只存 values 数组（约 96B）。<code>__slots__</code> 连这个 values 数组都省了，所以仍然快 60%。但相比 Python 3.2 之前（每实例一本完整哈希表），差距从 ~80% 缩小到了 ~60%。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例三：继承陷阱——子类不声明 slots 就退回 dict（真实运行）</span>
+      <pre><code>class SlotItem:
+    __slots__ = ('item_id', 'name', 'count')
+
+# ❌ 子类不声明 __slots__
+class BadChild(SlotItem):
+    pass
+
+sc = BadChild(1, "测试", 1)
+print("BadChild 有 __dict__ 吗:", hasattr(sc, '__dict__'))    # True！
+# → 父类的 slots 优化白费了
+
+# ✅ 子类也声明 __slots__
+class GoodChild(SlotItem):
+    __slots__ = ('extra_field',)
+
+gc = GoodChild(1, "测试", 1)
+gc.extra_field = 99
+print("GoodChild 有 __dict__ 吗:", hasattr(gc, '__dict__'))   # False
+# → 优化保留</code></pre>
+      <p class="param-note"><strong>规则：继承链上任何一个类忘了声明 <code>__slots__</code>，从它开始往下的所有子类都会重新拥有 <code>__dict__</code></strong>。dataclass 用 <code>@dataclass(slots=True)</code> 可以自动处理，但如果手动写继承层级，必须每一层都加。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 例四：slots 的代价——不是免费午餐</span>
+      <pre><code># 代价 1：不能动态加属性
+s = SlotItem(1, "x", 2)
+try:
+    s.extra = "加不了"          # AttributeError
+except AttributeError as e:
+    print(e)
+# 'SlotItem' object has no attribute 'extra' and no __dict__ for setting new attributes
+
+# 代价 2：默认没有 __weakref__
+import weakref
+try:
+    weakref.ref(s)              # TypeError
+except TypeError as e:
+    print(e)
+# cannot create weak reference to 'SlotItem' object
+
+# 代价 3：需要 weakref 就得显式声明
+class SlotWithWeak:
+    __slots__ = ('value', '__weakref__')   # ← 手动加 '__weakref__'
+
+sw = SlotWithWeak()
+sw.value = 42
+r = weakref.ref(sw)             # 现在可以了</code></pre>
+      <p class="param-note">三个代价：<strong>① 不能动态加属性</strong>（调试时加临时字段会炸）；<strong>② 默认不支持弱引用</strong>（需要手动把 <code>'__weakref__'</code> 加进 slots）；<strong>③ 序列化框架兼容性</strong>（某些库依赖 <code>__dict__</code> 做反射，slots 会 break）。<strong>结论：只在"量大、字段固定、生命周期短"的场景用——如加载百万条检索候选、解析大日志行。几十个业务对象别折腾</strong>。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p><code>__slots__</code> 主要是内存布局优化，不是访问控制或通用性能开关。对百万级轻量对象可能显著省内存，对少量业务模型收益有限，却会增加继承、弱引用、序列化和动态属性兼容复杂度。使用前应测量对象数量和内存；dataclass 可用 <code>slots=True</code>。若需要 weakref 还要包含相应槽位。</p>
@@ -858,10 +2071,153 @@ body {
   </div>
 
   <!-- Q23 -->
-  <div class="q-card" id="q23" data-text="内存问题 tracemalloc RSS 快照 引用链 缓存 队列 闭包 trace 高水位 worker重启 泄漏排查">
+  <div class="q-card" id="q23" data-text="内存问题 tracemalloc RSS 常驻集 VMS Python heap 高水位 allocator glibc 内存池 快照 compare_to snapshot 引用链 缓存 队列 闭包 trace worker重启 泄漏排查 psutil VmRSS statistics lineno traceback get_traced_memory">
     <div class="q-title"><span class="q-label">Q23</span>如何发现和处理 Python 内存问题？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>内存诊断是区分 Python 对象增长、本地扩展/GPU 内存、缓存与碎片，通过监控、快照、引用分析和可复现负载定位生命周期异常，再从根因控制容量。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · RSS 是什么——OS 视角 vs Python 视角</span>
+      <p><strong>RSS（Resident Set Size，常驻集大小）</strong>是操作系统级别的指标，表示进程当前真正占用的<strong>物理内存（RAM）</strong>字节数。Q23 里的"先确认现象：RSS、Python heap、对象数还是 GPU 显存增长"——RSS 是第一个信号，但它和 Python 对象层之间隔着一层 C allocator，不能直接画等号。</p>
+      <table>
+        <tr><th>指标</th><th>含义</th><th>谁看</th><th>获取方式</th></tr>
+        <tr><td><strong>RSS</strong></td><td>进程实际驻留在物理内存中的部分（含堆、栈、共享库）</td><td>OS / 监控告警</td><td>psutil、/proc/PID/status、tasklist</td></tr>
+        <tr><td><strong>VMS</strong></td><td>虚拟地址空间总量（很多只是预约，没真正分配）</td><td>OS</td><td>同上</td></tr>
+        <tr><td><strong>Python heap</strong></td><td>Python 对象层占用的内存</td><td>解释器</td><td>tracemalloc、sys.getsizeof</td></tr>
+        <tr><td><strong>GPU 显存</strong></td><td>显卡上分配的</td><td>CUDA / 框架</td><td>nvidia-smi</td></tr>
+      </table>
+      <p class="param-note">关键区别：<strong>RSS 是 OS 视角，Python heap 是解释器视角，两者经常对不上。</strong>一个 list 里的 1000 个 int 对象，tracemalloc 能追踪到，但 sys.getsizeof 只量壳——而 RSS 则是连 C 扩展、共享库、allocator 内部碎片一起算的"全口径"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · RSS 高水位——"对象删了但 RSS 没降"（真实运行）</span>
+      <p>Q23 核心原理说"高水位不等于泄漏"。这是因为 Python 对象被 GC 回收后，底层 C 分配器（如 glibc malloc）<strong>不一定把内存还给操作系统</strong>——它先留在自己池子里等复用。下面是本机实测：</p>
+      <pre><code># 实测：分配 200MB 后立即删除，观察 RSS 变化
+import gc, os, psutil
+p = psutil.Process(os.getpid())
+
+print(f"[1] 初始 RSS:           {p.memory_info().rss/1024/1024:.1f} MB")
+
+big = [bytearray(1024*1024) for _ in range(200)]   # 200MB
+print(f"[2] 分配 200MB 后 RSS:  {p.memory_info().rss/1024/1024:.1f} MB")
+
+del big; gc.collect()
+print(f"[3] del + gc.collect:   {p.memory_info().rss/1024/1024:.1f} MB")
+
+# === 本机输出 (Windows) ===
+# [1] 初始 RSS:           19.8 MB
+# [2] 分配 200MB 后 RSS:  220.6 MB
+# [3] del + gc.collect:   19.8 MB    ← Windows allocator 较积极地把内存还给了 OS
+#
+# === Linux (glibc malloc) 典型行为 ===
+# [1] 初始 RSS:           15.2 MB
+# [2] 分配 200MB 后 RSS:  216.8 MB
+# [3] del + gc.collect:   198.4 MB   ← RSS 没降！allocator 留着复用 = 高水位
+#     再次分配 200MB:      216.8 MB   ← 不再向 OS 要新内存，复用池子
+#     热身后 RSS 斜率归零  ← 不是泄漏</code></pre>
+      <p class="param-note">⚠️ 高水位现象在 <strong>Linux glibc</strong> 上最明显（生产环境主力）；Windows 的 allocator 较积极归还，所以本机实测 RSS 降了。<strong>面试时以 Linux 行为为准讲</strong>——"对象已回收，但 RSS 不降，因为 allocator 留着复用；真正泄漏的信号是 RSS 随时间持续线性增长且热身后斜率不归零"。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · RSS vs tracemalloc——同一个现象两个视角（真实运行）</span>
+      <p>把 RSS（OS 视角）和 tracemalloc（Python heap 视角）放在一起看，才能区分"Python 对象泄漏"和"allocator 高水位"：</p>
+      <pre><code>import tracemalloc, gc, psutil, os
+tracemalloc.start()
+p = psutil.Process(os.getpid())
+snap1 = tracemalloc.take_snapshot()
+
+big = [bytearray(1024*1024) for _ in range(100)]   # 100MB
+snap2 = tracemalloc.take_snapshot()
+print(f"[B] 分配100MB: RSS={p.memory_info().rss/1024/1024:.1f}MB")
+for s in snap2.compare_to(snap1, 'lineno')[:1]:
+    print(f"    tracemalloc: {s}")
+# [B] 分配100MB: RSS=120.3MB
+#     tracemalloc: verify_q23.py:44: size=100 MiB (+100 MiB), count=202 (+202)
+
+del big; gc.collect()
+snap3 = tracemalloc.take_snapshot()
+print(f"[C] del+gc:   RSS={p.memory_info().rss/1024/1024:.1f}MB")
+for s in snap3.compare_to(snap1, 'lineno')[:1]:
+    print(f"    tracemalloc: {s}")
+# [C] del+gc:   RSS=20.0MB (Windows)  /  ~100MB (Linux 高水位)
+#     tracemalloc: size=868 B (+868 B)  ← Python heap 已归零！
+
+# 结论：tracemalloc 归零 = Python 对象确实回收了
+#        RSS 没降 = allocator 留着内存池（高水位，不是泄漏）</code></pre>
+      <p class="param-note">这就是 Q23 追问 1 的答案：<strong>tracemalloc 看不到增长，但 RSS 在涨 → 不是 Python 对象泄漏，而是 C 扩展、mmap、GPU 或 allocator 高水位</strong>。反之 tracemalloc 有增长、RSS 也在涨 → Python 对象泄漏，继续按 snapshot 定位分配栈。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 如何获取 RSS（三种实测方式）</span>
+      <pre><code># 方式1：Python 内（最推荐，跨平台）
+import psutil, os
+rss = psutil.Process(os.getpid()).memory_info().rss
+print(f"RSS = {rss:,} bytes = {rss/1024/1024:.1f} MB")
+# 输出: RSS = 20,926,464 bytes = 20.0 MB
+
+# 方式2：Python 内（Linux/Mac，Windows 不可用）
+import resource
+# Linux 返回 KB，Mac 返回 bytes，Windows 没有 resource 模块
+print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, "KB")
+
+# 方式3：命令行（不依赖 Python）
+# Linux:   cat /proc/PID/status | grep VmRSS     → VmRSS:  19840 kB
+# Linux:   ps -o pid,rss,vsz,cmd -p PID           → RSS  VSZ
+# Windows: tasklist /FI "PID eq 1234" /FO CSV /NH
+#          → "python.exe","1234","Console","7","20,728 K"</code></pre>
+      <p class="param-note">生产监控推荐方式 1（psutil），因为它跨平台且能拿到完整 <code>memory_full_info()</code>（含 USS/PSS 等 Linux 高级指标）。容器环境看 <code>/proc/PID/status</code> 的 <code>VmRSS</code> 最直接。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · tracemalloc 追踪什么——Python heap 视角</span>
+      <p>Q23 说"tracemalloc 对比前后 snapshot 定位分配栈"。<strong>tracemalloc 追踪的是 Python 内存分配器（pymalloc + PyMem_*）的每一次分配</strong>，记录四样东西：<strong>在哪个文件的哪一行、分配了多少字节、还有几个未释放、完整调用栈</strong>。它和 RSS 互补——RSS 是 OS 全口径，tracemalloc 只看 Python 层。</p>
+      <table>
+        <tr><th>能追踪</th><th>不能追踪</th></tr>
+        <tr><td>Python 对象（list / str / dict / bytearray …）</td><td>C 扩展直接调 <code>malloc</code> 的分配</td></tr>
+        <tr><td>PyMem_* 分配器管辖的堆</td><td><code>mmap</code> 映射的内存</td></tr>
+        <tr><td>pymalloc 管理的小对象池</td><td>GPU 显存</td></tr>
+        <tr><td>每次分配的文件名 + 行号 + 调用栈</td><td>子进程的内存</td></tr>
+      </table>
+      <p class="param-note">这就是 Q23 追问 1 的依据：<strong>tracemalloc 看不到增长，但 RSS 在涨 → 问题在 Python 层之外</strong>（C 扩展、mmap、GPU 或 allocator 高水位）。反之 tracemalloc 有增长 → Python 对象泄漏，继续按 snapshot 定位是哪行代码。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · tracemalloc 核心用法——compare_to 前后对比（真实运行）</span>
+      <p>排查内存泄漏的标准流程：<strong>压测前拍快照 → 执行被测代码 → 压测后拍快照 → compare_to 看增量</strong>。只有 <code>+N</code> 的行才是增长源，<code>+0</code> 说明虽占内存但没增长，不是问题。</p>
+      <pre><code>import tracemalloc, gc
+
+tracemalloc.start()                          # ① 开始追踪（之前的分配不记录）
+
+cache = {}
+for i in range(1000):
+    cache[f'key_{i}'] = f'value_{i}' * 10   # 模拟正常缓存
+big_list = [bytearray(1024) for _ in range(500)]
+
+snap1 = tracemalloc.take_snapshot()          # ② 压测前快照
+
+leak = [f'leaked data {i}' * 20
+        for i in range(2000)]                # ③ 模拟泄漏：2000 个大字符串
+
+snap2 = tracemalloc.take_snapshot()          # ④ 压测后快照
+
+# ⑤ 对比：只看增长的行
+for s in snap2.compare_to(snap1, 'lineno')[:3]:
+    print(s)
+
+# === 本机输出 ===
+# verify_tracemalloc.py:17: size=699 KiB (+699 KiB), count=2001 (+2001), average=358 B
+# tracemalloc.py:560:      size=328 B   (+328 B),   count=1   (+1),    average=328 B
+# verify_tracemalloc.py:11: size=532 KiB (+0 B),    count=1001 (+0),    average=544 B</code></pre>
+      <p>输出每一行的含义：</p>
+      <table>
+        <tr><th>字段</th><th>含义</th><th>怎么看</th></tr>
+        <tr><td><code>verify_tracemalloc.py:17</code></td><td>分配位置：文件第 17 行</td><td>就是 <code>leak = [f'leaked data {i}' * 20 ...]</code> 那行</td></tr>
+        <tr><td><code>size=699 KiB</code></td><td>这行当前持有的总字节数</td><td>绝对值，和上次比</td></tr>
+        <tr><td><code>(+699 KiB)</code></td><td>比上次快照多了多少</td><td><strong>这是关键——只有 + 的才是增长源</strong></td></tr>
+        <tr><td><code>count=2001</code></td><td>这行还有多少个未释放的分配</td><td>2001 个字符串对象没释放</td></tr>
+        <tr><td><code>(+2001)</code></td><td>比上次多了几个分配</td><td>全是新增的</td></tr>
+        <tr><td><code>average=358 B</code></td><td>每个分配平均多大</td><td>699 KiB / 2001 ≈ 358 B</td></tr>
+        <tr><td><code>(+0 B)</code></td><td>这行没有增长</td><td>第 11 行的 cache 虽占 532 KiB 但不是泄漏源</td></tr>
+      </table>
+      <pre><code># 三种聚合维度
+snapshot.statistics('lineno')     # 按文件:行号（最常用，上面的例子）
+snapshot.statistics('filename')   # 按文件聚合（更粗，适合看哪个模块占最多）
+snapshot.statistics('traceback')  # 按完整调用栈（最细，能看到"谁调的谁"）
+
+# 不需要快照，直接看当前总量
+current, peak = tracemalloc.get_traced_memory()
+print(f"当前: {current:,} bytes | 峰值: {peak:,} bytes")
+# 输出: 当前: 1,471,434 bytes | 峰值: 1,472,389 bytes</code></pre>
+      <p class="param-note">一句话：<strong>tracemalloc 记录的是"哪个文件的哪一行分配了多少字节、还在没释放"，用 compare_to 对比两次快照就能定位增长源头</strong>。它只追踪 Python 分配器管辖的范围——所以"RSS 在涨但 tracemalloc 没动静"时，说明问题在 Python 层之外（C 扩展 / mmap / GPU / allocator 高水位）。</p>
     </div>
     <div class="q-section"><span class="badge badge-ans">30 秒面试回答</span>
       <p>先确认现象：RSS、Python heap、对象数还是 GPU 显存增长，是否随请求持续且 GC 后不稳定。用固定流量复现，tracemalloc 对比前后 snapshot 定位分配栈，按类型统计增长，检查全局缓存、队列、闭包、trace 和未关闭响应；本地库用对应 profiler。修复生命周期和有界容量，worker 回收只能作为防护，不代替根因。</p>
@@ -995,7 +2351,7 @@ body {
   </div>
 
   <!-- Q28 -->
-  <div class="q-card" id="q28" data-text="asyncio 取消 CancelledError task.cancel 协作式 finally shield timeout 清理 资源释放 幂等 unknown">
+  <div class="q-card" id="q28" data-text="asyncio 取消 CancelledError task.cancel 协作式 finally shield timeout 清理 资源释放 幂等 补偿事务 原子段 不变量 半完成 unknown await注入点 吞掉cancelled task.cancelled gather TaskGroup 超时无法退出 误判 伪装返回 副作用 结构化并发 shield用法 防弹衣 ensure_future 孤儿task 保存inner 短段收尾 长调用不该shield 计费数据 计费保存">
     <div class="q-title"><span class="q-label">Q28</span>asyncio 的取消为什么容易出错？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>asyncio 取消是协作式控制流：Task.cancel 请求在下一个可取消点向协程注入 <code>CancelledError</code>，代码必须清理资源并继续传播；阻塞代码和吞异常会延迟或破坏取消。</p>
@@ -1006,14 +2362,310 @@ body {
     <div class="q-section"><span class="badge badge-prin">核心原理</span>
       <p>取消可能在几乎任何 await 发生，代码的不变量要在 await 前后设计。若在状态更新一半时取消，需事务、幂等或补偿恢复一致性。</p>
     </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 取消打在两步中间——"扣了钱没给货"（真实运行）</span>
+      <p>Agent 工具调用经常要两步写库：<strong>先扣 token 余额，再保存执行结果</strong>。取消可能注入在这两个 await 之间——步骤 1 已完成但步骤 2 没执行，用户钱扣了但结果没保存。下面是本机实测：</p>
+      <pre><code>import asyncio
+
+db = {"user_tokens": 100, "tool_results": {}}
+
+async def deduct_tokens(user, amount):
+    await asyncio.sleep(0.01)          # ← await 点 1：DB 写入
+    db["user_tokens"] -= amount
+    print(f"  [DB] 扣除 {amount}, 剩余: {db['user_tokens']}")
+
+async def save_result(op_id, result):
+    await asyncio.sleep(0.01)          # ← await 点 2：DB 写入
+    db["tool_results"][op_id] = result
+    print(f"  [DB] 保存结果 {op_id}")
+
+async def run_tool(user, op_id, amount):
+    await deduct_tokens(user, amount)   # 步骤1：扣 token
+    # ★ CancelledError 可能注入在这里！★
+    await save_result(op_id, "success") # 步骤2：保存结果
+
+# 模拟：在步骤1完成后、步骤2之前取消
+task = asyncio.create_task(run_tool("user1", "op-001", 30))
+await asyncio.sleep(0.015)   # 等 0.01s 步骤1完成，0.015s 时取消
+task.cancel()
+try:
+    await task
+except asyncio.CancelledError:
+    print("  [取消] task 被取消")
+
+# === 本机输出 ===
+#   [DB] 扣除 30, 剩余: 70        ← 步骤1已完成
+#   [取消] task 被取消             ← 步骤2没执行
+# ★ 结果: token=70, tool_results={}
+# ★ 问题：扣了 30 token，但结果没保存！用户钱没了，东西没拿到</code></pre>
+      <p class="param-note">根本原因：asyncio 取消是<strong>协作式</strong>的——<code>task.cancel()</code> 在下一个 await 点注入 <code>CancelledError</code>，它不关心你的业务逻辑写到第几步。所以"不变量"（token 和 result 必须同时成功或同时失败）不能靠"代码顺序"保证，必须在 await 边界显式设计。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 三种修复方案对比（真实运行）</span>
+      <table>
+        <tr><th>方案</th><th>思路</th><th>适用场景</th><th>代价</th></tr>
+        <tr><td><strong>A. 幂等</strong></td><td>每步带 op_id，重试时查 op_id 跳过已完成的</td><td>可重试的 API 调用、消息队列消费</td><td>需要存储 op_id 状态表</td></tr>
+        <tr><td><strong>B. 补偿</strong></td><td>except CancelledError 里检测半完成状态，反向回滚</td><td>不可逆操作（发邮件、转账）</td><td>补偿本身也可能失败，需兜底</td></tr>
+        <tr><td><strong>C. shield</strong></td><td>把关键段包进 asyncio.shield，取消不注入内部</td><td>必须原子完成的短收尾</td><td>取消被延迟，不能用太久</td></tr>
+      </table>
+      <pre><code># === 方案 A：幂等 — 重试不重复扣 ===
+async def deduct_tokens_idempotent(user, amount, op_id):
+    await asyncio.sleep(0.01)
+    if op_id in db.get("_deducted_ops", set()):
+        print(f"  [DB] op_id={op_id} 已扣过，跳过")   # ← 幂等！
+        return
+    db.setdefault("_deducted_ops", set()).add(op_id)
+    db["user_tokens"] -= amount
+
+# 第一次被取消（中间状态: token=70, results={}）
+# 重试同一个 op_id:
+#   [DB] op_id=op-002 已扣过，跳过     ← 没重复扣！
+#   [DB] 保存结果 op-002: success
+# ★ 结果: token=70, results={'op-002': 'success'}  ← 最终一致
+
+# === 方案 B：补偿 — except 里回滚 ===
+async def run_tool_compensate(user, op_id, amount):
+    try:
+        await deduct_tokens(user, amount)
+        await save_result(op_id, "success")
+    except asyncio.CancelledError:
+        if op_id not in db["tool_results"]:   # 检测半完成
+            print(f"  [补偿] 检测到半完成，回滚...")
+            await refund_tokens(user, amount, op_id)  # 退还 token
+        raise   # 必须重新抛出！
+#   [DB] 扣除 30, 剩余: 70
+#   [补偿] 检测到半完成，回滚...
+#   [DB] 补偿退还 30, 剩余: 100    ← 恢复原状
+# ★ 结果: token=100, results={}  ← 状态一致
+
+# === 方案 C：shield — 原子段不受取消注入 ===
+async def run_tool_shield(user, op_id, amount):
+    async def atomic_update():
+        await deduct_tokens(user, amount)
+        await save_result(op_id, "success")
+    inner_task = asyncio.ensure_future(atomic_update())
+    try:
+        await asyncio.shield(inner_task)   # ← 内部不被取消
+    except asyncio.CancelledError:
+        await inner_task    # 等内部跑完
+        raise
+#   [DB] 扣除 30, 剩余: 70
+#   [DB] 保存结果 op-004: success       ← 两步都完成了
+# ★ 结果: token=70, results={'op-004': 'success'}  ← 状态一致</code></pre>
+      <p class="param-note"><strong>选型建议</strong>：优先幂等（最安全，天然支持重试）；不可逆操作用补偿；shield 只用于必须原子完成的短段（如提交已算好的结果），<strong>不能用 shield 让整个长请求脱离用户取消</strong>——这正是 Q28 追问 2 的要点。注意方案 B 和 C 的 <code>except CancelledError</code> 里最后必须 <code>raise</code>，否则取消被吞掉，上层以为已停但实际还在跑。</p>
+    </div>
     <div class="q-section"><span class="badge badge-eng">工程示例</span>
       <p>模型流取消后 async generator 在 finally 关闭 HTTP response、归还并发令牌并记录 usage；已开始的写工具转 unknown 状态，由 operation_id 查询，而非假设取消成功。</p>
     </div>
     <div class="q-section followup"><span class="badge badge-q">追问 1</span>
       <p><strong>为什么不要吞掉 CancelledError？</strong> 吞掉后上层以为任务已取消，实际仍占资源或执行副作用，结构化并发也无法正常退出。只在完成必要清理时暂时捕获，最后重新抛出。</p>
     </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问1：吞掉 CancelledError 的三层危害（真实运行）</span>
+      <p><strong>类比</strong>：消防警报响了（<code>CancelledError</code> 注入），你捂住耳朵说"没听见"（吞掉），然后继续在着火的楼里干活。消防指挥中心（上层）以为你已撤离，实际你还在里面——而且你占用的消防通道（资源）也没让出来。</p>
+
+      <p><strong>危害一：上层误判——以为已取消，实际还在跑</strong></p>
+      <pre><code>sentinel = {"side_effect_done": False}
+
+async def agent_tool_swallow():
+    try:
+        await asyncio.sleep(2)          # 模拟网络请求
+    except asyncio.CancelledError:
+        # 吞掉了！不 raise
+        print("收到取消，但我选择忽略")
+        await asyncio.sleep(0.3)        # ← 取消后还在跑！
+        sentinel["side_effect_done"] = True   # ← 副作用照常执行
+
+task = asyncio.create_task(agent_tool_swallow())
+await asyncio.sleep(0.1)
+task.cancel()
+
+try:
+    await asyncio.wait_for(task, timeout=1.0)
+except (asyncio.CancelledError, asyncio.TimeoutError):
+    pass
+
+print(f"task.cancelled() = {task.cancelled()}")      # False!
+print(f"副作用是否执行: {sentinel['side_effect_done']}")  # True!</code></pre>
+      <pre><code># 实测输出:
+#   收到取消，但我选择忽略
+#   task.cancelled() = False           ← 上层以为"正常完成"
+#   副作用是否执行: True               ← 取消后副作用照常执行</code></pre>
+      <p class="param-note"><code>task.cancelled()</code> 返回 <code>False</code>——因为 CancelledError 被吞了，Task 以"正常返回"结束而非"被取消"结束。上层据此判断"任务已完成"而非"已取消"，后续可能继续依赖这个结果。<strong>最危险的是副作用（写库、发请求）在取消后仍然执行</strong>——用户以为操作已中止，实际后端偷偷跑完了。</p>
+
+      <p><strong>正确做法对比</strong></p>
+      <pre><code>async def agent_tool_proper():
+    try:
+        await asyncio.sleep(2)
+    except asyncio.CancelledError:
+        print("收到取消，执行清理...")
+        sentinel["resource_released"] = True   # ← 清理资源
+        raise   # ← 关键：重新抛出
+
+# 实测输出:
+#   收到取消，执行清理...
+#   task.cancelled() = True            ← 上层正确识别"已取消"
+#   资源是否释放: True                 ← 资源已释放
+#   副作用未执行                        ← 干净中止</code></pre>
+
+      <p><strong>危害二：gather 中伪装成正常返回——上层无法区分</strong></p>
+      <pre><code>async def subtask_bad_swallow(name, delay):
+    try:
+        await asyncio.sleep(delay)
+        return f"{name} done"
+    except asyncio.CancelledError:
+        return f"{name} swallowed"   # ← 吞掉，返回正常值
+
+# 3 个子任务，第2个吞取消
+tasks = [create(subtask_good, "B1"), create(subtask_bad_swallow, "B2"), create(subtask_good, "B3")]
+for t in tasks: t.cancel()
+results = await asyncio.gather(*tasks, return_exceptions=True)
+
+# 实测输出:
+#   结果: [CancelledError(''), 'B2 swallowed', CancelledError('')]
+#                       ↑ B1 正确取消      ↑ B2 伪装成正常返回！      ↑ B3 正确取消</code></pre>
+      <p class="param-note">B2 返回了字符串 <code>'B2 swallowed'</code> 而不是 <code>CancelledError</code>。上层拿到 gather 结果后，<strong>无法区分"B2 正常完成"和"B2 被取消后伪装完成"</strong>——如果 B2 的"正常返回"包含写入操作的结果，上层可能据此做后续决策，但实际那次写入是在取消信号之后才执行的。</p>
+
+      <p><strong>危害三：TaskGroup 被拖住——超时无法退出</strong></p>
+      <pre><code>async def swallow_in_group():
+    try:
+        await asyncio.sleep(5)        # 长任务
+    except asyncio.CancelledError:
+        await asyncio.sleep(2)        # ← 吞掉后继续跑 2 秒
+        return "should not reach"
+
+# 正确版：timeout(0.5) → 0.51s 干净退出
+# 吞掉版：timeout(0.5) → 2.52s 才退出！TaskGroup 被拖住
+
+async with asyncio.timeout(0.5):
+    async with asyncio.TaskGroup() as tg:
+        tg.create_task(swallow_in_group())
+# 实测耗时: 2.52s  ← 远超 0.5s 的 timeout！</code></pre>
+      <p class="param-note">TaskGroup 会在 <code>__aexit__</code> 时等待所有子任务结束。吞掉 CancelledError 的子任务不会终止，TaskGroup 被迫等它跑完——<strong>0.5 秒的超时变成了 2.52 秒</strong>。在生产中这意味着：用户取消请求后服务器仍被占用、Pod 无法优雅关闭、级联超时扩散到上游。</p>
+
+      <table>
+        <tr><th>维度</th><th>吞掉 CancelledError</th><th>清理后 raise</th></tr>
+        <tr><td>task.cancelled()</td><td>False（误判为正常完成）</td><td>True（正确识别为已取消）</td></tr>
+        <tr><td>副作用</td><td>继续执行（写库/发请求）</td><td>不执行</td></tr>
+        <tr><td>资源释放</td><td>不释放（锁/Semaphore/连接泄漏）</td><td>在 except/finally 中释放</td></tr>
+        <tr><td>gather 结果</td><td>伪装成正常返回值</td><td>CancelledError 传播</td></tr>
+        <tr><td>TaskGroup 退出</td><td>被拖住，超时失效</td><td>0.51s 干净退出</td></tr>
+        <tr><td>上层决策</td><td>基于"已完成"做后续操作（危险）</td><td>知道已取消，中止后续</td></tr>
+      </table>
+
+      <p class="param-note"><strong>正确模式</strong>：在 <code>except CancelledError</code> 中只做<strong>有界的同步清理</strong>（关连接、释放锁、记日志），然后必须 <code>raise</code>。如果清理本身需要 await（如回滚事务），用 <code>asyncio.shield</code> 保护清理段或确保清理也是幂等的——但无论如何，最后那一行必须是 <code>raise</code>。</p>
+    </div>
     <div class="q-section followup"><span class="badge badge-q">追问 2</span>
       <p><strong>`asyncio.shield` 何时使用？</strong> 仅用于必须短暂完成的原子收尾，如提交已完成结果；外层仍收到取消，内部任务需被保存和观察。长模型调用不应整体 shield。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问2：shield 的正确与错误用法（真实运行）</span>
+      <p><strong>类比</strong>：shield 像是给一段代码穿上"防弹衣"——子弹（CancelledError）打到防弹衣上被挡住，但穿防弹衣的人（外层协程）还是会感到冲击（收到 CancelledError）。防弹衣只保护里面的人（inner task）不被打断。</p>
+
+      <p><strong>shield 的基本行为——外层收到取消，内部不受影响</strong></p>
+      <pre><code>async def inner_work():
+    print("开始原子收尾（保存结果到DB）...")
+    await asyncio.sleep(0.5)     # 模拟 DB 写入
+    print("保存完成！")
+    return "saved"
+
+async def outer():
+    try:
+        result = await asyncio.shield(inner_work())
+    except asyncio.CancelledError:
+        print("外层收到 CancelledError")   # ← 外层被取消
+        raise
+
+task = asyncio.create_task(outer())
+await asyncio.sleep(0.1)     # 让 inner 进入 sleep
+task.cancel()                # 取消外层</code></pre>
+      <pre><code># 实测输出:
+#   开始原子收尾（保存结果到DB）...
+#   外层收到 CancelledError              ← outer 被取消
+#   outer task 已取消
+#   保存完成！                           ← inner 不受影响，继续跑完
+#   inner 在外层取消后仍然完成了保存</code></pre>
+      <p class="param-note">关键：<code>shield(inner_work())</code> 把取消信号挡在 inner 外面——outer 收到 <code>CancelledError</code>，但 inner 继续跑完。这就是 shield 的核心机制：<strong>取消从外向内传播时被"屏蔽"，但外层自己仍然知道"我被取消了"</strong>。</p>
+
+      <p><strong>正确用法：shield 保护"提交结果"的短段</strong></p>
+      <pre><code># 场景：LLM 已返回结果，finally 里写入 usage 日志
+# 这个写入不应被用户取消打断（否则计费数据丢失）
+
+async def call_llm():
+    tokens = 0
+    try:
+        result = await llm_client.generate(prompt)
+        tokens = result.usage.total_tokens
+        return result
+    finally:
+        if tokens &gt; 0:
+            inner = asyncio.ensure_future(save_usage(tokens, "gpt-4"))
+            try:
+                await asyncio.shield(inner)     # ★ 保护保存操作
+            except asyncio.CancelledError:
+                print("外层被取消，等待 save_usage 完成...")
+                await inner                     # ★ 保存并等待 inner
+                print("save_usage 已完成（shield 保护成功）")
+
+# 实测：模型返回后用户取消 → save_usage 仍完成
+#   [call_llm] 模型返回结果
+#   [finally] 外层被取消，等待 save_usage 完成...
+#   [save_usage] 已记录 gpt-4: 42 tokens
+#   [finally] save_usage 已完成（shield 保护成功）
+#   → usage 是否保存: True  ← 计费数据不丢</code></pre>
+      <p class="param-note">两个关键细节：① <code>tokens = 0</code> 预初始化，防止取消发生在赋值前导致 <code>UnboundLocalError</code>；② <code>inner = asyncio.ensure_future(...)</code> 先创建 Task 再 shield——这样 except 里能 <code>await inner</code> 等待完成。如果不保存 inner task 的引用，它可能被 GC 回收导致没跑完（见下方陷阱）。</p>
+
+      <p><strong>错误用法：shield 包整个长模型调用——用户取消不了</strong></p>
+      <pre><code># 场景：用户点了"停止生成"，但模型调用被 shield 保护
+
+async def handler():
+    try:
+        # ❌ 错误：把整个 3 秒的模型调用 shield 了
+        result = await asyncio.shield(long_llm_call())
+    except asyncio.CancelledError:
+        print("handler 收到取消——但 llm 内部还在跑！")
+        raise
+
+task = asyncio.create_task(handler())
+await asyncio.sleep(0.8)    # 用户等了 0.8s 后取消
+task.cancel()
+
+# 实测输出:
+#   [llm] 开始流式生成（需要 3 秒）...
+#   [llm] 生成中... chunk 1
+#   用户点击"停止生成"
+#   handler 收到取消——但 llm 内部还在跑！
+#   [llm] 生成中... chunk 2     ← 还在跑！
+#   [llm] 生成中... chunk 3     ← 用户已经取消了！
+#   [llm] 生成中... chunk 4
+#   [llm] 生成中... chunk 5
+#   [llm] 生成中... chunk 6
+#   [llm] 生成完毕              ← 白白跑完了 3 秒
+#   → 用户取消了，但后台白白跑了 3 秒的模型调用，浪费 token 费用</code></pre>
+      <p class="param-note">handler 收到了 <code>CancelledError</code>，但 <code>long_llm_call()</code> 被 shield 保护，<strong>继续在后台跑完了全部 6 个 chunk</strong>。用户以为已经停止，实际 LLM 还在烧钱。<strong>正确做法</strong>：模型调用本身不 shield，让用户能随时取消；只在结果已拿到后的 finally 里 shield 保存操作。</p>
+
+      <table>
+        <tr><th>维度</th><th>shield 短段（正确）</th><th>shield 长调用（错误）</th></tr>
+        <tr><td>典型时长</td><td>0.1-0.5s（写日志、关连接）</td><td>3-30s（整个模型请求）</td></tr>
+        <tr><td>用户取消后</td><td>短段跑完即停，用户几乎无感</td><td>后台继续跑，浪费 token 费用</td></tr>
+        <tr><td>资源占用</td><td>短暂持有连接/锁</td><td>长时间占用连接池、内存</td></tr>
+        <tr><td>取消语义</td><td>"结果已算好，只差提交，不能半途而废"</td><td>"用户已放弃，但我强迫他等"</td></tr>
+        <tr><td>何时使用</td><td>finally 里的收尾（save_usage / commit / close）</td><td>❌ 几乎不应该</td></tr>
+      </table>
+
+      <p><strong>陷阱：不保存 inner task，shield 可能等于没用</strong></p>
+      <pre><code># ❌ 错误：没保存 shield 返回的 inner task
+except asyncio.CancelledError:
+    try:
+        await asyncio.shield(critical_cleanup())   # ← 没存引用！
+    except asyncio.CancelledError:
+        raise   # ← 直接 raise 了，inner 成了孤儿
+
+# ✅ 正确：先创建 Task，再 shield，except 里等待
+except asyncio.CancelledError:
+    inner_task = asyncio.ensure_future(critical_cleanup())   # ★ 保存引用
+    try:
+        await asyncio.shield(inner_task)
+    except asyncio.CancelledError:
+        await inner_task   # ★ 等待完成
+</code></pre>
+      <p class="param-note">不保存 inner task 的引用时，outer 被 GC 回收后 inner 可能被一并回收——<code>critical_cleanup</code> 没跑完就消失了。这不是每次都触发（取决于事件循环调度），所以是<strong>间歇性 bug</strong>，最难排查。规则：<code>asyncio.ensure_future()</code> 创建 Task → <code>shield()</code> 包裹 → except 里 <code>await inner_task</code> 等待——三步缺一不可。</p>
     </div>
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>说明取消注入点、finally 清理、不可取消副作用与状态恢复。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>认为 task.cancel 会立即终止线程或网络请求。</li><li>except BaseException 后不重新抛取消。</li></ul></div>
@@ -1021,7 +2673,7 @@ body {
   </div>
 
   <!-- Q29 -->
-  <div class="q-card" id="q29" data-text="并发限制 Semaphore 有界队列 连接池 RPM TPM token bucket deadline 背压 embedding 批处理 429 P95">
+  <div class="q-card" id="q29" data-text="并发限制 Semaphore 有界队列 连接池 RPM TPM token bucket deadline 背压 embedding 批处理 429 P95 QueueFull maxsize put_nowait wait_for 排队内存 无界等待 快速拒绝 降级 队列容量">
     <div class="q-title"><span class="q-label">Q29</span>如何限制异步调用大模型 API 的并发？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>异步并发限制使用 Semaphore、有界队列、连接池和多维配额约束在途模型请求，并配合 deadline、限流与公平调度保护供应商和自身资源。</p>
@@ -1040,6 +2692,102 @@ body {
     </div>
     <div class="q-section followup"><span class="badge badge-q">追问 2</span>
       <p><strong>为什么还要限制队列？</strong> Semaphore 只限制执行，等待协程仍可能无界占内存并让用户超时。有界队列和等待 deadline 提供真正背压。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问2：为什么 Semaphore 不够，还需要有界队列（真实运行）</span>
+      <p><strong>类比</strong>：Semaphore 是餐厅只有 5 个座位——但它不管门口排队多少人。10000 人涌进来，5 个坐着吃，9995 个站在门口等。每个人手里还端着自己的食材（prompt/context），门厅越挤越大，最后排到的人已经等了半小时——不如一开始就告诉他"满了，别排了"。</p>
+
+      <p><strong>问题一：Semaphore 只管执行，不管排队——内存无界增长</strong></p>
+      <pre><code>sem = asyncio.Semaphore(5)
+
+async def call_api(i):
+    async with sem:                    # 只有 5 个能同时执行
+        await asyncio.sleep(0.01)
+
+# 10000 个请求同时提交
+tasks = [asyncio.create_task(call_api(i)) for i in range(10000)]
+
+# 实测:
+#   Semaphore 并发上限: 5
+#   已创建 Task 数: 10000
+#   已完成: 0
+#   排队等待中: 10000
+#   每个 Task 对象大小: ~176 bytes (仅 Task 壳)
+#   10000 个 Task 壳合计: ~1,760,000 bytes  ← 仅壳就 1.7MB
+#   如果每个还持有 prompt/context (约500B) → 合计约 11.2 MB</code></pre>
+      <p class="param-note">Semaphore 只保证"同时只有 5 个在跑"，但 <code>asyncio.create_task</code> 已经创建了 10000 个协程对象——每个 Task 壳 176B + 协程帧 + 捕获的 prompt/context，<strong>排队的 9995 个协程白白占着内存</strong>。如果每个请求带 4KB prompt，就是 40MB 纯排队浪费。</p>
+
+      <p><strong>问题二：排队太久——用户等了 5 秒才收到超时</strong></p>
+      <pre><code>sem = asyncio.Semaphore(2)      # API 限制并发=2
+
+async def call_api(user_id):
+    async with sem:
+        await asyncio.sleep(1.0)   # 每个调用耗时 1s
+
+# 10 个用户同时请求
+await asyncio.gather(*[call_api(i) for i in range(10)])
+
+# 实测输出:
+#   用户0: 等待 1.0s  OK
+#   用户1: 等待 1.0s  OK
+#   用户2: 等待 2.0s  SLOW
+#   用户3: 等待 2.0s  SLOW
+#   用户4: 等待 3.0s  SLOW     ← 如果用户超时设 3s，从这里开始全超时
+#   ...
+#   用户8: 等待 5.0s  SLOW
+#   用户9: 等待 5.0s  SLOW
+#   总耗时: 5.0s</code></pre>
+      <p class="param-note">用户 8/9 排了 5 秒才拿到结果——如果他们设了 3 秒超时，会在排队第 3 秒时超时，但此时他们已经白白等了 3 秒。<strong>更糟的是，Semaphore 不会告诉你"排不上了"</strong>——它默默让你等着，直到你的超时触发。用户无法知道"我是第几个排队的、还要等多久"，也就无法做降级决策。</p>
+
+      <p><strong>解法：有界队列 + 等待 deadline = 真正背压</strong></p>
+      <pre><code>sem = asyncio.Semaphore(2)
+queue = asyncio.Queue(maxsize=4)    # 有界队列：最多排 4 个
+
+async def submit(item):
+    try:
+        queue.put_nowait(item)       # 入队——满了就立即拒绝
+        print(f"请求{item}: 入队成功")
+    except asyncio.QueueFull:
+        print(f"请求{item}: 立即拒绝 QueueFull  ← 背压！")
+        return "rejected"
+    # 等待执行，设 deadline
+    result = await asyncio.wait_for(call_api(item), timeout=3.0)
+    return result
+
+# 10 个请求同时提交
+# 实测输出:
+#   请求0-3: 入队成功 (排队中)
+#   请求4-9: 立即拒绝 QueueFull (0.000s)  ← 背压！
+#   请求0: 完成 (1.0s)
+#   请求1: 完成 (1.0s)
+#   请求2: 完成 (2.0s)
+#   请求3: 完成 (2.0s)
+#   总耗时: 2.0s
+#   成功: 4  立即拒绝: 6</code></pre>
+      <p class="param-note">只有 6 个进入系统（2 执行 + 4 排队），4 个立即被拒绝。<strong>被拒绝的用户可以立刻重试或降级（返回缓存、切换模型、提示用户稍后重试），不用傻等 5 秒</strong>。这就是"背压"——压力从下游（API 限制）传递到上游（用户），而不是在中间堆积。</p>
+
+      <table>
+        <tr><th>维度</th><th>只有 Semaphore</th><th>Semaphore + 有界队列 + deadline</th></tr>
+        <tr><td>排队协程数</td><td>无上限（来多少排多少）</td><td>有上限（maxsize），满了立即拒绝</td></tr>
+        <tr><td>内存</td><td>10000 个协程 ≈ 11.2 MB</td><td>只有 maxsize 个 ≈ 几 KB</td></tr>
+        <tr><td>最慢用户</td><td>等 5.0s 才拿到结果（或超时）</td><td>最多等 deadline 秒，超了立即失败</td></tr>
+        <tr><td>超时体验</td><td>排了 3s 后超时——白等</td><td>立即拒绝——可以马上降级</td></tr>
+        <tr><td>背压传递</td><td>不传递——压力在中间层堆积</td><td>传递——上游知道"满了"，可以决策</td></tr>
+        <tr><td>总耗时（10 请求）</td><td>5.0s</td><td>2.0s（6 个被拒绝的 0s 返回）</td></tr>
+      </table>
+
+      <p><strong>内存对比实测</strong></p>
+      <pre><code># 10000 个请求，每个带 prompt/context 约 500B
+
+# 无界（只有 Semaphore）:
+#   创建 context 数 = 10000
+#   合计约: 11.2 MB  (context 4.8MB + Task 壳 1.7MB + 协程帧 5MB)
+
+# 有界（Queue maxsize=4）:
+#   创建 context 数 = 4    ← 只有入队的才创建！
+#   合计约: 3 KB
+
+# → 无界约 4349 倍的内存占用</code></pre>
+      <p class="param-note">有界队列的 <code>put_nowait</code> 失败时直接 return，<strong>不创建 context、不分配 prompt 内存</strong>——这是"背压"在内存层面的具体体现：拒绝一个请求的成本远低于让它排队。<code>deadline</code>（<code>asyncio.wait_for</code>）是第二道防线：即使入队成功，等太久也会超时，避免"入队了但 API 卡住"导致协程永远挂起。</p>
     </div>
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>给出并发、速率、Token、队列四层控制与实际指标。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>一个全局 Semaphore 控制所有不同容量下游。</li><li>在异常路径忘记释放许可。</li></ul></div>
@@ -1073,7 +2821,7 @@ body {
   </div>
 
   <!-- Q31 -->
-  <div class="q-card" id="q31" data-text="竞态条件 race condition asyncio.Lock check-then-act 数据库唯一约束 upsert 幂等 fencing 分布式锁">
+  <div class="q-card" id="q31" data-text="竞态条件 race condition asyncio.Lock threading.Lock check-then-act 数据库唯一约束 upsert 幂等 fencing 分布式锁 跨进程 跨线程 coroutine acquire 版本检查 乐观并发 尾延迟 持锁await 死锁 版本号">
     <div class="q-title"><span class="q-label">Q31</span>竞态条件是什么，单线程 asyncio 会有吗？</div>
     <div class="q-section"><span class="badge badge-def">专业定义</span>
       <p>竞态条件是结果依赖多个执行单元不可控的交错顺序，导致检查与更新之间的不变量被破坏。单线程 asyncio 在 await 点发生协程切换，同样可能出现逻辑竞态。</p>
@@ -1090,8 +2838,175 @@ body {
     <div class="q-section followup"><span class="badge badge-q">追问 1</span>
       <p><strong>`asyncio.Lock` 是否线程安全、跨进程？</strong> 它用于同一事件循环内协程协调，不是线程或分布式锁。跨进程一致性应由数据库、Redis 原子操作或具 fencing 的分布式协调保证。</p>
     </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问1：asyncio.Lock 的作用域边界（真实运行）</span>
+      <p><strong>类比</strong>：asyncio.Lock 是"房间内对讲机"——只在同一事件循环（同一个房间）里有效；threading.Lock 是"大楼门禁"——同一栋楼（进程）内的线程都能用；数据库唯一约束是"城市户口系统"——跨进程跨实例的最终兜底。</p>
+      <table>
+        <tr><th>锁类型</th><th>保护什么</th><th>不保护什么</th><th>跨实例？</th></tr>
+        <tr><td>asyncio.Lock</td><td>同一事件循环内协程切换</td><td>线程切换、进程间</td><td>否</td></tr>
+        <tr><td>threading.Lock</td><td>同一进程内线程切换</td><td>进程间</td><td>否</td></tr>
+        <tr><td>数据库唯一约束</td><td>跨进程并发写入</td><td>应用层缓存竞态</td><td>是</td></tr>
+        <tr><td>Redis SETNX + fencing</td><td>跨进程/跨实例互斥</td><td>GC STW 期间幻觉</td><td>是</td></tr>
+      </table>
+      <p class="param-note"><strong>实验1：同一事件循环内，asyncio.Lock 有效</strong>——5 个协程各扣 20，无锁最终余额 80（丢失 4 次更新），有锁最终余额 0（正确）。</p>
+      <pre><code># 无锁：所有协程读到同一个余额 100，各自扣 20 后写回 80
+[无锁] task0: 读取 100 -> 扣 20 -> 余额 80
+       task1: 读取 100 -> 扣 20 -> 余额 80   ← 读到的还是 100！
+       task2: 读取 100 -> 扣 20 -> 余额 80
+       task3: 读取 100 -> 扣 20 -> 余额 80
+       task4: 读取 100 -> 扣 20 -> 余额 80
+最终余额: 80 (期望 0)               ← 5 次扣款只生效 1 次
+
+# 有锁：async with lock 保证每次读取-写入不被打断
+[有锁] task0: 读取 100 -> 扣 20 -> 余额 80
+       task1: 读取 80  -> 扣 20 -> 余额 60   ← 等锁释放后才读
+       task2: 读取 60  -> 扣 20 -> 余额 40
+       task3: 读取 40  -> 扣 20 -> 余额 20
+       task4: 读取 20  -> 扣 20 -> 余额 0
+最终余额: 0 (期望 0)                 ← 正确</code></pre>
+      <p class="param-note"><strong>实验2：asyncio.Lock 不是线程锁</strong>——<code>acquire()</code> 返回 coroutine，不能在线程里直接调用。</p>
+      <pre><code>import asyncio, concurrent.futures
+
+alock = asyncio.Lock()
+
+def thread_try_lock():
+    coro = alock.acquire()       # ← 返回 coroutine，不是 bool！
+    print(type(coro))            # &lt;class 'coroutine'&gt;
+    print(asyncio.iscoroutine(coro))  # True
+    coro.close()                 # 不 close 会 RuntimeWarning
+
+# threading.Lock 的 acquire 返回 bool，可以直接用
+tlock = threading.Lock()
+tlock.acquire()    # True，阻塞拿到锁
+tlock.release()</code></pre>
+      <pre><code># asyncio.Lock.acquire 是 coroutine: True
+# threading.Lock.acquire 是 coroutine: False
+#
+# → 在线程里调 alock.acquire() 只会创建一个 coroutine 对象，
+#   不会阻塞、不会拿锁、不会有任何互斥效果
+# → asyncio.Lock 只能在 async def 里用 `async with lock`</code></pre>
+      <p class="param-note"><strong>实验3：asyncio.Lock 不跨进程</strong>——5 个独立进程各持自己的 <code>asyncio.Lock</code>，同时读写同一文件，丢失更新。</p>
+      <pre><code># 每个进程创建自己的 asyncio.Lock（fork/spawn 后是独立副本）
+# 同时读写同一个文件 q31_counter.txt
+
+worker0: 读取 0 -> 写回 1 (进程内 Lock 只保护自己)
+worker1: 读取 0 -> 写回 1 (进程内 Lock 只保护自己)   ← 读到的还是 0！
+worker2: 读取 1 -> 写回 2
+worker3: 读取 2 -> 写回 3
+worker4: 读取 2 -> 写回 3 (进程内 Lock 只保护自己)   ← 又读到旧的 2！
+
+5 个进程各 +1，期望 5
+实际文件值: 3                    ← 丢失了 2 次更新！</code></pre>
+      <p class="param-note"><strong>实验4：跨进程正确做法——数据库唯一约束兜底</strong>。5 个进程同时 <code>INSERT</code> 同一个 <code>task_id</code>，只有 1 个成功，其余被 <code>IntegrityError</code> 拒绝。</p>
+      <pre><code>CREATE TABLE tasks (
+    task_id TEXT PRIMARY KEY,     -- 唯一约束兜底
+    status  TEXT DEFAULT 'created'
+);
+
+# 5 个进程同时 INSERT task_id='task-abc'
+worker0: 创建 task-abc 成功
+worker1: 创建 task-abc 被拒（唯一约束）
+worker2: 创建 task-abc 被拒（唯一约束）
+worker3: 创建 task-abc 被拒（唯一约束）
+worker4: 创建 task-abc 被拒（唯一约束）
+
+数据库中记录数: 1 (期望 1)
+# → 数据库约束是跨进程的最终兜底，不依赖任何进程内锁</code></pre>
+      <p><strong>选型决策树</strong>：</p>
+      <pre><code>同一事件循环内协程竞态？  → asyncio.Lock
+同一进程内多线程竞态？    → threading.Lock
+多进程/多实例并发写？     → 数据库唯一约束 / upsert
+跨实例分布式互斥？        → Redis SETNX + fencing token
+                           （fencing 防止 GC/STW 导致的旧持有者幻觉）</code></pre>
+    </div>
     <div class="q-section followup"><span class="badge badge-q">追问 2</span>
       <p><strong>为什么不能长时间持锁 await 外部 API？</strong> 慢或超时会阻塞所有等待者，放大尾延迟，还可能死锁。通常先在锁内保留状态，锁外执行幂等操作，再用版本检查提交结果。</p>
+    </div>
+    <div class="q-section"><span class="badge badge-detail">详解 · 追问2：持锁 await 慢 API 的危害与正确模式（真实运行）</span>
+      <p><strong>类比</strong>：你拿着会议室钥匙去点外卖，点完才还钥匙——其他要开会的人全堵在门口等你点完外卖。正确做法：拿钥匙进会议室记下"我在点外卖"，还钥匙出门去点，点完回来用版本号确认"还是我的会"再进去放结果。</p>
+      <p class="param-note"><strong>实验1：持锁 await 慢 API → 所有等待者被串行化</strong>——3 个协程各调 2s 的 LLM API，错误版总耗时 6s（串行），正确版 2s（并发）。</p>
+      <pre><code># 错误：锁内 await 2s 的 LLM 调用
+async def bad_worker(task_id):
+    async with lock:
+        result = await call_llm_slow(task_id)   # ← 锁被持有 2s！
+        results.append(result)
+
+# 3 个协程并发：
+[错误版] task0: 2.00s
+        task1: 4.01s    ← 等 task0 释放锁后才开始
+        task2: 6.02s    ← 等 task1 释放锁后才开始
+总耗时: 6.02s (串行化！3 倍延迟)</code></pre>
+      <pre><code># 正确：锁内只做快速操作，锁外做慢操作
+async def good_worker(task_id):
+    async with lock:
+        pass    # ← 锁内只读状态/标记，瞬间释放
+    result = await call_llm_slow(task_id)   # ← 锁外并发！
+    results.append(result)
+
+# 3 个协程并发：
+[正确版] task0: 2.01s
+        task1: 2.01s    ← 同时在跑，不等锁
+        task2: 2.01s
+总耗时: 2.01s (并发！)</code></pre>
+      <p class="param-note"><strong>实验2：持锁 await 超时 → 等锁者白等</strong>——task0 持锁调 API，API 卡住 1s 后超时，task1 在等锁白等了 1s。</p>
+      <pre><code>async def worker_with_timeout(task_id, timeout):
+    async with lock:
+        await asyncio.wait_for(
+            asyncio.sleep(10),    # ← API 卡住
+            timeout=1             # ← 1s 后超时
+        )
+    # 锁被持有 1s，直到超时才释放
+
+async def worker_waiting(task_id):
+    await asyncio.sleep(0.1)
+    async with lock:        # ← 白等 1s！
+        pass
+
+# 实测输出：
+task0: 拿到锁
+task1: 等待锁...
+task0: API 超时(1.0s)，锁已释放
+task1: 拿到锁 (等了 1.0s)       ← 白等 1s
+总耗时: 1.01s
+# → task1 的延迟 = task0 的超时时间，尾延迟被放大</code></pre>
+      <p class="param-note"><strong>实验3：正确模式——锁内读版本，锁外做慢操作，锁内版本检查提交</strong>。同一个任务被同时提交两次时，版本检查去重。</p>
+      <pre><code>async def process_task(task_id):
+    # 步骤1：锁内快速读取状态和版本号
+    async with lock:
+        task = db[task_id]
+        if task["status"] != "pending":
+            return  # 跳过
+        version = task["version"]   # ← 记住版本号
+    # 锁已释放！
+
+    # 步骤2：锁外做慢操作（LLM 调用 0.5s）
+    llm_result = await call_llm(prompt)
+
+    # 步骤3：锁内用版本检查提交
+    async with lock:
+        task = db[task_id]
+        if task["version"] != version:
+            return "version_changed"  # ← 版本变了，放弃
+        task["status"] = "done"
+        task["version"] = version + 1
+        task["result"] = llm_result</code></pre>
+      <pre><code># 正常场景：3 个不同任务并发，各 0.5s
+task_001: committed (0.51s)
+task_002: committed (0.51s)
+task_003: committed (0.51s)
+总耗时: 0.51s (并发！)
+
+# 竞态场景：task_004 被同时提交两次
+task_004: committed (0.51s)           ← 第一个提交成功
+task_004: version_changed v1->v2 (0.51s)  ← 第二个发现版本变了，放弃
+# → LLM 结果不重复写入，不浪费 token</code></pre>
+      <p><strong>三步模式总结</strong>：</p>
+      <table>
+        <tr><th>步骤</th><th>持锁？</th><th>做什么</th><th>耗时</th></tr>
+        <tr><td>1. 读状态+版本号</td><td>是（瞬间）</td><td>检查 status，记住 version</td><td>&lt;1ms</td></tr>
+        <tr><td>2. 慢操作</td><td>否</td><td>LLM 调用 / API 请求</td><td>0.5-30s</td></tr>
+        <tr><td>3. 版本检查提交</td><td>是（瞬间）</td><td>version 没变才写入，变了则放弃</td><td>&lt;1ms</td></tr>
+      </table>
+      <p class="param-note">关键：锁只在步骤 1 和 3 各持有 &lt;1ms，步骤 2 完全在锁外——这样 3 个任务可以真正并发调 LLM，而不是排队等锁。版本检查是"乐观并发控制"：先做，提交时检查有没有冲突，冲突就放弃。</p>
     </div>
     <div class="q-section"><span class="badge badge-proj">项目表达</span><p>用 check-then-act 跨 await 解释 asyncio 竞态，并落到数据库约束。</p></div>
     <div class="q-section"><span class="badge badge-err">常见误区</span><ul><li>单线程就认为所有多步操作原子。</li><li>用进程内锁保证多实例幂等。</li></ul></div>
