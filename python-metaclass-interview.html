@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python 元类面试速答 — 有深度 · 能背 · 能追问</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --accent: #00b894;
+    --accent-bg: #e8fdf5;
+    --code-bg: #f6f8fa;
+    --code-text: #24292e;
+    --border: #e0e0e0;
+    --red: #e74c3c;
+    --orange: #f39c12;
+    --blue: #3498db;
+    --comment: #6a737d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+  }
+  .header {
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 60%, #55efc4 100%);
+    color: #fff;
+    padding: 52px 40px 44px;
+    text-align: center;
+  }
+  .header h1 { font-size: 2.1em; font-weight: 800; margin-bottom: 10px; letter-spacing: 1px; }
+  .header .subtitle { font-size: 1.05em; opacity: .92; margin-bottom: 18px; }
+  .header .tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .header .tag { background: rgba(255,255,255,.2); padding: 4px 14px; border-radius: 20px; font-size: .84em; }
+  .container { max-width: 880px; margin: 0 auto; padding: 32px 20px 70px; }
+
+  .section {
+    background: var(--card-bg); border-radius: 12px; padding: 30px 34px;
+    margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .section > h2 {
+    font-size: 1.32em; color: var(--accent); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section > h2 .num {
+    background: var(--accent); color: #fff; width: 30px; height: 30px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .62em; font-weight: 700; flex-shrink: 0;
+  }
+  .section p { margin: 8px 0; color: var(--text-secondary); }
+  .section ul { padding-left: 20px; margin: 8px 0; color: var(--text-secondary); }
+  .section li { margin: 5px 0; }
+  .section strong { color: var(--text); }
+  .section h3 {
+    font-size: 1.05em; color: var(--text); margin: 18px 0 6px;
+    padding-left: 10px; border-left: 4px solid var(--accent);
+  }
+  .section code, .one-line code, .follow code, .deep code {
+    background: #f0f0f0; padding: 1px 6px; border-radius: 3px;
+    font-size: .87em; color: var(--red); font-family: 'JetBrains Mono', 'Consolas', monospace;
+  }
+
+  .one-line {
+    background: var(--accent-bg);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-weight: 600;
+  }
+  .deep {
+    background: #fff8ee; border-left: 4px solid var(--orange);
+    border-radius: 8px; padding: 10px 16px; margin: 12px 0;
+    font-size: .92em; color: var(--text-secondary);
+  }
+  .deep strong { color: var(--text); }
+  .follow {
+    background: #f7f8fa; border-radius: 8px; padding: 10px 16px;
+    margin: 12px 0; font-size: .9em; color: var(--text-secondary);
+  }
+  .follow strong { color: var(--accent); }
+  .follow + .follow { margin-top: -6px; }
+
+  .code-block {
+    background: var(--code-bg); border-radius: 8px; padding: 14px 18px; margin: 12px 0;
+    overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: .85em; line-height: 1.6; white-space: pre-wrap; word-break: break-word; tab-size: 4;
+  }
+  .k { color: #d73a49; }
+  .s { color: #032f62; }
+  .f { color: #6f42c1; }
+  .c { color: var(--comment); font-style: italic; }
+  .n { color: #005cc5; }
+  .cn { color: #22863a; }
+  .o { color: var(--code-text); }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .88em; }
+  th { background: var(--accent-bg); color: var(--accent); padding: 9px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--accent); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+  tr:hover td { background: #f0fdf9; }
+  td code { background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: .88em; color: var(--red); }
+
+  .footer { text-align: center; padding: 36px 20px; color: var(--comment); font-size: .85em; }
+  .footer a { color: var(--accent); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  @media (max-width: 600px) {
+    .header { padding: 36px 18px; }
+    .header h1 { font-size: 1.5em; }
+    .section { padding: 22px 18px; }
+    .container { padding: 18px 12px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Python 元类 · 面试速答</h1>
+  <p class="subtitle">13 道高频题：一句话能答，展开有深度，还能接住追问</p>
+  <div class="tags">
+    <span class="tag">60 秒总述</span>
+    <span class="tag">真实库点名</span>
+    <span class="tag">追问预判</span>
+    <span class="tag">减分点清单</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ============ 60 秒总述 ============ -->
+<div class="section" id="overview">
+  <h2><span class="num">0</span>60 秒总述（先背这一段）</h2>
+
+  <p>被问到"讲讲元类"时，不要直接开始讲 `type vs object`，先给出这段结构完整的总述，再按面试官兴趣展开：</p>
+
+  <div class="one-line" style="font-weight: 500;">
+    "元类就是<strong>创建类的类</strong>。Python 里类也是对象，默认由 <code>type</code> 创建，<code>class</code> 语句本质是 <code>type(name, bases, namespace)</code> 的语法糖。自定义元类继承 <code>type</code>，重写 <code>__prepare__ / __new__ / __init__</code> 就能在<strong>类创建过程中</strong>改写它的命名空间；重写 <code>__call__</code> 还能拦截<strong>实例化</strong>。它存在的价值是让机制在类定义那一刻自动生效——注册、字段收集、契约校验，使用者只写声明、漏不掉。代价是复杂度和元类冲突，所以能不用就不用，PEP 487 的 <code>__init_subclass__</code> 覆盖了大多数需求；但需要'创建期改写类'或'控制类对象协议'的地方，元类至今不可替代，比如 Django 的 <code>ModelBase</code>、Pydantic 的 <code>ModelMetaclass</code>、<code>abc.ABCMeta</code>。"
+  </div>
+
+  <div class="deep">
+    <strong>这段为什么有深度：</strong>一段话覆盖了「是什么 → 怎么实现 → 为什么需要 → 什么时候别用 → 谁在用」，而且主动说出替代方案和真实库——面试官立刻知道你不是背教程的。
+  </div>
+</div>
+
+<!-- ============ Q1 ============ -->
+<div class="section">
+  <h2><span class="num">1</span>什么是元类？</h2>
+  <div class="one-line">普通类创建实例，元类创建类。默认元类是 <code>type</code>。</div>
+  <p>推理三步：一切皆对象 → 类也是对象 → 类由"某个类"创建，那个类就叫元类。</p>
+  <div class="code-block"><span class="k">class</span> <span class="cn">Dog</span>: ...
+<span class="f">print</span>(<span class="f">type</span>(<span class="cn">Dog</span>))          <span class="c"># &lt;class 'type'&gt;  → type 创建了 Dog</span>
+<span class="c"># 等价写法（class 就是它的语法糖）：</span>
+<span class="cn">Dog</span> = <span class="f">type</span>(<span class="s">'Dog'</span>, (<span class="f">object</span>,), {<span class="s">'bark'</span>: ...})</div>
+  <div class="deep">
+    <strong>深度点：</strong>与其背"元类能做什么"，不如记住<strong>它接管的是类的创建协议</strong>——<code>type(name, bases, namespace)</code> 这三个参数就是元类 <code>__new__</code> 的前三个参数。
+  </div>
+  <div class="follow"><strong>追问：</strong>type 的三个参数是什么？→ 类名（str）、父类元组（tuple）、类体命名空间（dict）。</div>
+</div>
+
+<!-- ============ Q2 ============ -->
+<div class="section">
+  <h2><span class="num">2</span>type 和 object 什么关系？<span style="font-size:.7em;color:var(--orange)">高频</span></h2>
+  <div class="one-line">两个维度：<code>type</code> 回答"谁创建我"，<code>object</code> 回答"我继承谁"，互不干扰。</div>
+  <ul>
+    <li>创建维度：<code>type(Dog) is type</code>，连 <code>type(object) is type</code>、<code>type(type) is type</code>；</li>
+    <li>继承维度：<code>Dog.__bases__ == (object,)</code>，<code>type.__bases__ == (object,)</code>，<code>object.__bases__ == ()</code>。</li>
+  </ul>
+  <div class="deep">
+    <strong>深度点：</strong>"type 创建 object、type 又继承 object、type 还创建自己"看似循环，实际是创建链与继承链的交叉。答"创建看 <code>type()</code>、继承看 <code>__bases__</code>"就破题了。
+  </div>
+  <div class="follow"><strong>追问：</strong>元类自己是谁创建的？→ 也是 <code>type</code>；自定义元类 <code>class Meta(type)</code> 的元类仍然是 <code>type</code>。</div>
+</div>
+
+<!-- ============ Q3 ============ -->
+<div class="section">
+  <h2><span class="num">3</span>类的创建流程？<code>__new__</code> 的四个参数？<span style="font-size:.7em;color:var(--orange)">高频</span></h2>
+  <div class="one-line"><code>__prepare__</code> → 执行类体 → <code>__new__</code> → <code>__init__</code>；参数是 <code>mcs, name, bases, namespace</code>。</div>
+  <div class="code-block"><span class="k">class</span> <span class="cn">Meta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, namespace, **kw</span>):
+        <span class="c">#          ↑元类自己 ↑类名  ↑父类元组 ↑类体字典（此时类还不存在）</span>
+        namespace[<span class="s">'_x'</span>] = <span class="n">1</span>                 <span class="c"># 创建前：唯一能改 namespace 的地方</span>
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, namespace</span>)</div>
+  <ul>
+    <li><code>__prepare__</code>：类体执行<strong>前</strong>，决定类体往哪个命名空间写（enum 用它边定义边查重）；</li>
+    <li><code>__new__</code>：创建<strong>过程中</strong>，能增删改 namespace——元类威力最大的位置；</li>
+    <li><code>__init__</code>：类对象已存在，只能读、<code>setattr</code> 和做副作用（注册、校验）；</li>
+    <li>实例化是另一条链：元类 <code>__call__</code> → 类的 <code>__new__</code> → 类的 <code>__init__</code>。</li>
+  </ul>
+
+  <h3>顺带说清：namespace（命名空间）是什么、存了什么？</h3>
+  <ul>
+    <li><strong>它就是一个字典</strong>：类体里每写一个名字（<code>x = 1</code>、<code>def run</code>、文档字符串），都是往这个 dict 里写一条 <code>key → value</code>；类体执行<strong>前</strong>由 <code>__prepare__</code> 提供容器（默认空 dict），执行完整个字典交给 <code>__new__</code>。</li>
+    <li><strong>里面存两类东西</strong>：① 你声明的属性、方法、注解（<code>__annotations__</code>）；② 解释器自动加的元数据——<code>__module__</code>（定义在哪个模块）、<code>__qualname__</code>（限定名）、有文档字符串时的 <code>__doc__</code>。</li>
+    <li><strong>创建完成后去哪了</strong>：被固化进类的 <code>__dict__</code>（只读 mappingproxy），此后属性查找都在它里面进行——所以想改成员，只能在 <code>__new__</code> 里改"可变的那份"。</li>
+    <li><strong>不是元类专属概念</strong>：模块有模块命名空间（模块的 <code>__dict__</code>）、实例有实例命名空间（实例的 <code>__dict__</code>）、函数调用有局部命名空间——本质都是"名字 → 值"的 dict，Python 的 LEGB 变量查找就是按这些 dict 依次找。</li>
+  </ul>
+
+  <div class="code-block"><span class="k">class</span> <span class="cn">Meta</span>(<span class="f">type</span>):
+    <span class="k">def</span> <span class="f">__new__</span>(<span class="o">mcs, name, bases, ns, **kw</span>):
+        <span class="f">print</span>(<span class="f">dict</span>(<span class="o">ns</span>))          <span class="c"># 看内容：类体里写的一切 + 自动元数据</span>
+        ns[<span class="s">'_extra'</span>] = <span class="n">1</span>         <span class="c"># 此刻它还是普通可变 dict，随便改</span>
+        <span class="k">return</span> <span class="f">super</span>().__new__(<span class="o">mcs, name, bases, ns</span>)
+
+<span class="k">class</span> <span class="cn">User</span>(<span class="o">metaclass=Meta</span>):
+    name = <span class="s">'x'</span>
+
+<span class="c"># 近似输出（3.13 起还会多出 __firstlineno__、__static_attributes__）：</span>
+<span class="c"># {'__module__': '__main__', '__qualname__': 'User', 'name': 'x'}</span></div>
+
+  <div class="deep">
+    <strong>记忆点：</strong>元类 <code>__new__</code> 手里是<strong>可变的 dict</strong>，<code>__init_subclass__</code> 手里是<strong>只读的 <code>cls.__dict__</code></strong>——这一"可变 / 只读"之差，就是两者能力差的根源。
+  </div>
+
+  <div class="deep">
+    <strong>深度点：</strong><code>super().__new__</code>（即 <code>type.__new__</code>）内部会顺带触发属性的 <code>__set_name__</code> 和父类的 <code>__init_subclass__</code>——所以 <code>super().__new__</code> 的前 / 后，就是"类未创建 / 已创建"的分界线。
+  </div>
+</div>
+
+<!-- ============ Q4 ============ -->
+<div class="section">
+  <h2><span class="num">4</span>元类里 <code>__new__</code> 和 <code>__init__</code> 怎么分工？</h2>
+  <div class="one-line"><code>__new__</code> 管"造"，能改 namespace；<code>__init__</code> 管"善后"，只能读和 <code>setattr</code>。</div>
+  <p>要注入、替换、删除类成员 → 必须放 <code>__new__</code> 且写在 <code>super().__new__</code> 之前；注册、校验、加缓存 → 放 <code>__init__</code>，别忘了调用 <code>super().__init__</code>。</p>
+  <div class="deep">
+    <strong>深度点：</strong>类创建完成后 <code>cls.__dict__</code> 是只读的 mappingproxy，<strong>没法像 dict 一样改</strong>——这就是"改方法必须趁 <code>__new__</code>"的硬原因，也是元类与 <code>__init_subclass__</code> 的分水岭。
+  </div>
+  <div class="follow"><strong>追问：</strong>为什么很多教程只在 <code>__new__</code> 里写逻辑？→ 重活集中在能改 namespace 的阶段，<code>__init__</code> 只做与类创建无关的收尾，职责更清晰。</div>
+</div>
+
+<!-- ============ Q5 ============ -->
+<div class="section">
+  <h2><span class="num">5</span>元类能拦截"实例创建"吗？</h2>
+  <div class="one-line">能。类本身是元类的实例，<code>Demo()</code> 先经过 <code>type(Demo).__call__</code>，也就是元类的 <code>__call__</code>。</div>
+  <div class="code-block"><span class="k">class</span> <span class="cn">SingletonMeta</span>(<span class="f">type</span>):
+    _instances = {}
+    <span class="k">def</span> <span class="f">__call__</span>(<span class="o">cls, *a, **kw</span>):
+        <span class="k">if</span> cls <span class="k">not in</span> cls._instances:
+            cls._instances[cls] = <span class="f">super</span>().__call__(<span class="o">*a, **kw</span>)
+        <span class="k">return</span> cls._instances[cls]</div>
+  <div class="deep">
+    <strong>深度点：</strong>① 它作用于该类<strong>及其子类的每次</strong>实例化，属于热路径，有 Python 层开销；② 多线程下有竞态，要加锁；③ <code>__init__</code> 只在第一次执行，后续调用被静默忽略；④ <strong>Python 里模块级对象天然是单例</strong>，实际项目通常不必用元类做单例——主动说出这点是加分项。
+  </div>
+  <div class="follow"><strong>追问：</strong>除了单例还能干嘛？→ 实例缓存 / 对象池、创建审计、限制直接实例化（只允许工厂方法）。</div>
+</div>
+
+<!-- ============ Q6 ============ -->
+<div class="section">
+  <h2><span class="num">6</span>元类、<code>__init_subclass__</code>、装饰器怎么选？<span style="font-size:.7em;color:var(--orange)">高深度题</span></h2>
+  <div class="one-line">分水岭：要不要<strong>介入创建过程 / 控制类对象本身</strong>；不要的话，一律优先轻方案。</div>
+  <table>
+    <tr><th>手段</th><th>生效时机</th><th>能做什么 / 不能做什么</th></tr>
+    <tr><td>类装饰器</td><td>类创建后</td><td>改造类；需逐个书写，可能漏</td></tr>
+    <tr><td><code>__init_subclass__</code></td><td>子类创建后（父类被通知）</td><td>注册、校验、统一设置属性；改不了 namespace</td></tr>
+    <tr><td>描述符 <code>__set_name__</code></td><td>类创建时（属性归属确定）</td><td>属性级：注入字段名；管不了整类</td></tr>
+    <tr><td><strong>元类</strong></td><td>创建<strong>过程中</strong> + 类对象层</td><td><code>__prepare__</code>、改 namespace、<code>__call__</code>、<code>__instancecheck__</code>——只有它能做</td></tr>
+  </table>
+  <div class="deep">
+    <strong>深度点：</strong>面试里大量"元类做自动注册"的答案其实用 <code>__init_subclass__</code> 就够了，"给字段注入名字"用描述符 <code>__set_name__</code> 才是官方设计（下一题给出完整写法）。<strong>能说出这两句，直接区别于"只会背元类"的候选人。</strong>
+  </div>
+</div>
+
+<!-- ============ Q7 ============ -->
+<div class="section">
+  <h2><span class="num">7</span><code>__init_subclass__</code> 怎么用？<span style="font-size:.7em;color:var(--blue)">必会</span></h2>
+  <div class="one-line">在父类里定义 <code>__init_subclass__(cls, **kwargs)</code>，任何子类被创建后都会自动调用——<strong>定义在父类，触发在子类</strong>。</div>
+  <div class="code-block"><span class="o">REGISTRY</span> = {}
+
+<span class="k">class</span> <span class="cn">BaseTool</span>:
+    <span class="k">def</span> <span class="f">__init_subclass__</span>(<span class="o">cls, tool_name=None, **kwargs</span>):
+        <span class="f">super</span>().__init_subclass__(<span class="o">**kwargs</span>)      <span class="c"># ① 自己不消费的 kwargs 继续传递</span>
+        key = tool_name <span class="k">or</span> cls.__name__.lower()
+        cls.tool_name = key                      <span class="c"># ② 类已建好，直接 setattr</span>
+        <span class="o">REGISTRY</span>[key] = cls                      <span class="c"># ③ 注册：子类定义即生效，漏不掉</span>
+
+<span class="k">class</span> <span class="cn">Search</span>(<span class="o">BaseTool, tool_name='search'</span>):      <span class="c"># 类关键字参数直达钩子</span>
+    <span class="k">pass</span>
+
+<span class="f">print</span>(<span class="o">REGISTRY</span>)        <span class="c"># {'search': &lt;class 'Search'&gt;}</span></div>
+  <ul>
+    <li><strong>它是隐式类方法</strong>：不用写 <code>@classmethod</code>，第一个参数固定是<strong>新建的子类</strong>（不是定义它的父类），可以正常 <code>cls.xxx</code>、<code>setattr</code>；</li>
+    <li><strong>必须调 super()</strong>：<code>super().__init_subclass__(**kwargs)</code> 是协作式多继承的规矩，不调的话兄弟基类的钩子不会执行；</li>
+    <li><strong>类关键字参数从这里进</strong>：<code>class Search(BaseTool, tool_name='search')</code>，自己消费一部分，剩下的原样传给 super；</li>
+    <li><strong>能力边界</strong>：拿到的是"已创建"的类——注册、校验、<code>setattr</code>、包装方法都行；但<strong>改不了 namespace、也拦不住实例化</strong>，这两件事才是元类的地盘。</li>
+  </ul>
+  <div class="deep">
+    <strong>深度点：</strong>① 只对<strong>子类</strong>触发，定义它的那个类自己不会触发；② 时机上 <code>type.__new__</code> 先给各属性调 <code>__set_name__</code>、再调父类的 <code>__init_subclass__</code>——所以在钩子里拿到的描述符已经带好了字段名；③ 在钩子里 <code>raise TypeError</code>，可以直接禁止别人继承这个类。
+  </div>
+  <div class="follow"><strong>追问：</strong>它和元类的 <code>__init__</code> 有什么区别？→ 时机几乎相同（都是"类已建好、只能 setattr"），但元类钩子属于元类（一个类只能有一个元类、且沿继承链传染），<code>__init_subclass__</code> 属于父类——不引入元类冲突，多个父类还能叠加执行。</div>
+
+  <h3>追问延伸：改 namespace 和 setattr 到底差在哪？</h3>
+  <div class="one-line">对<strong>普通属性</strong>两者完全等价（最终就是同一个类）；差别只在"创建过程中会被读一次 / 触发一次"的东西上。</div>
+  <ul>
+    <li><code>__slots__</code>：定实例的内存布局——只有改 namespace 有效，类建好后再 setattr 不生效；</li>
+    <li><code>__set_name__</code>：只对"创建时就存在的属性"回调一次——事后 setattr 塞进去的描述符永远拿不到名字；</li>
+    <li>创建期快照：如 <code>abc</code> 的 <code>__abstractmethods__</code> 在创建时算好，事后补抽象方法不会重算、拦不住实例化；</li>
+    <li>创建期钩子：父类 <code>__init_subclass__</code> 看得到 namespace 的改动，看不到创建完成后的 setattr；</li>
+    <li>覆盖顺序：namespace 是最早的一版，之后任何 <code>setattr</code> 都能覆盖它，反过来不行。</li>
+  </ul>
+  <div class="deep"><strong>一句话判断：</strong>要影响"创建过程本身"（内存布局、回调触发、创建期机制看到的内容）→ 必须用元类改 namespace；只是普通属性 / 方法 → <code>__init_subclass__</code> 里 setattr 或类装饰器就够了。</div>
+</div>
+
+<!-- ============ Q7 ============ -->
+<div class="section">
+  <h2><span class="num">8</span>什么时候"必须"用元类？</h2>
+  <div class="one-line">只有两类：① 创建期改写类（<code>__prepare__</code> / 改 namespace）；② 控制类对象协议（<code>__call__</code>、<code>__getattr__</code>、<code>__instancecheck__</code> / <code>__subclasscheck__</code>）。</div>
+  <ul>
+    <li><strong>改 isinstance 语义</strong>：<code>abc.ABCMeta</code> 的虚拟子类（<code>register()</code> 后 <code>isinstance</code> 为真）只能靠元类的 <code>__instancecheck__ / __subclasscheck__</code>；</li>
+    <li><strong>类体执行期介入</strong>：<code>enum</code> 用 <code>__prepare__</code> 返回自定义命名空间，在成员定义写入的瞬间检测重名；</li>
+    <li><strong>类级属性兜底</strong>：元类的 <code>__getattr__</code> 只拦"类对象上找不到的属性"，实例属性查找不经过它（这个边界很容易答错）。</li>
+  </ul>
+</div>
+
+<!-- ============ Q8 ============ -->
+<div class="section">
+  <h2><span class="num">9</span>metaclass conflict 是什么？怎么解决？</h2>
+  <div class="one-line">子类的元类必须是所有父类元类的（非严格）子类；两个不相关的元类混用 → <code>TypeError: metaclass conflict</code>。</div>
+  <p>解法是<strong>组合元类</strong>：</p>
+  <div class="code-block"><span class="k">class</span> <span class="cn">CombinedMeta</span>(<span class="cn">MetaA</span>, <span class="cn">MetaB</span>):   <span class="c"># 同时继承双方</span>
+    <span class="k">pass</span>
+
+<span class="k">class</span> <span class="cn">C</span>(<span class="cn">A</span>, <span class="cn">B</span>, <span class="o">metaclass=CombinedMeta</span>):   <span class="c"># ✅</span>
+    <span class="k">pass</span></div>
+  <div class="deep">
+    <strong>深度点：</strong>这就是元类"传染性"的代价——一个基类上了元类，整条继承链都被绑定。<strong>自己写元类永远用 <code>super().__new__</code>，不要硬编码 <code>type.__new__</code></strong>，否则组合元类的协作链会断。
+  </div>
+  <div class="follow"><strong>追问：</strong>元类会继承吗？→ 会，父类指定了元类，子类不写 <code>metaclass=</code> 也自动沿用。</div>
+</div>
+
+<!-- ============ Q9 ============ -->
+<div class="section">
+  <h2><span class="num">10</span>生产中的实际用途？点出真实库<span style="font-size:.7em;color:var(--blue)">加分项</span></h2>
+  <div class="one-line">凡是"类定义即生效"的框架机制都是元类：声明式 DSL + 不可绕过的不变量 + import 期 fail-fast。</div>
+  <table>
+    <tr><th>库 / 模块</th><th>元类干了什么</th></tr>
+    <tr><td>Django <code>ModelBase</code></td><td>收集字段、处理 <code>class Meta</code> 选项、生成 <code>_meta</code>、注册到 app registry</td></tr>
+    <tr><td>Pydantic <code>ModelMetaclass</code></td><td>把注解收集成校验器（<strong>V1 / V2 都在用</strong>，V2 只是校验核心下沉到 Rust）</td></tr>
+    <tr><td>DRF <code>SerializerMetaclass</code> / Django forms</td><td>把声明字段汇总成 <code>_declared_fields</code> / 表单字段表</td></tr>
+    <tr><td><code>abc.ABCMeta</code></td><td>抽象方法强制 + 虚拟子类与 <code>isinstance</code> 语义</td></tr>
+    <tr><td><code>enum.EnumType</code></td><td><code>__prepare__</code> 在类体执行期拦截成员定义、查重名</td></tr>
+  </table>
+  <div class="deep">
+    <strong>六大模式一句话版：</strong>自动注册、ORM 字段收集、接口契约（定义期 fail-fast）、AOP 织入、声明式路由 / 文档收集、配置校验——回答时点到真实库名，可信度立刻不同。
+  </div>
+</div>
+
+<!-- ============ Q10 ============ -->
+<div class="section">
+  <h2><span class="num">11</span>为什么现代 Python 建议"少用"？</h2>
+  <div class="one-line">深度控制换来的是可读性、互操作和冲突成本，而 PEP 487 给了更轻的替代。</div>
+  <ul>
+    <li><strong>成本</strong>：控制流藏在元类里、"魔法属性"难追溯；元类传染性 + conflict 风险；IDE / 类型检查器识别差；类对象层钩子在热路径；</li>
+    <li><strong>替代</strong>：PEP 487 新增 <code>__init_subclass__</code> 和 <code>__set_name__</code>，官方动机就是让多数"元类诉求"有轻方案；</li>
+    <li><strong>证据</strong>：SQLAlchemy 2.0 的 <code>DeclarativeBase</code> 采用"元类 + <code>__init_subclass__</code>"混合——属性拦截留元类，模型构建流程下移。</li>
+  </ul>
+  <div class="deep">
+    <strong>深度点：</strong>"少用"≠"没用"。Django / Pydantic 至今保留元类，因为"创建期改写类"无可替代；<strong>结论句：能不用就不用，需要时它是唯一解</strong>。（可以引用 Tim Peters：不确定是否需要元类的人，就是不需要。）
+  </div>
+</div>
+
+<!-- ============ Q11 ============ -->
+<div class="section">
+  <h2><span class="num">12</span>现场设计题：实现一个带校验的 ORM / 插件注册，你怎么做？</h2>
+  <div class="one-line">先给轻方案，再说明"什么条件下升级到元类"——这个顺序本身就是加分项。</div>
+  <ul>
+    <li><strong>注册</strong> → 父类 <code>__init_subclass__</code> 里写 registry，子类定义即注册；</li>
+    <li><strong>字段名注入</strong> → 描述符实现 <code>__set_name__</code>；</li>
+    <li><strong>汇总 / 表名推导 / 校验</strong> → 先用 <code>__init_subclass__</code> + <code>setattr</code>；</li>
+    <li><strong>升级为元类的条件</strong> → 需要在创建前改写 namespace、或同时处理类级选项（Django 要处理 <code>class Meta</code> 选项 + 注册 + <code>_meta</code>，所以才用 <code>ModelBase</code>）。</li>
+  </ul>
+  <div class="deep">
+    <strong>深度点：</strong>面试官想听的不是"我会写元类"，而是<strong>"我知道何时不该用"</strong>。给出"轻方案 → 升级条件"的决策路径，比直接甩元类代码高级得多。
+  </div>
+</div>
+
+<!-- ============ 减分点 ============ -->
+<div class="section">
+  <h2><span class="num">!</span>减分点清单（别踩）</h2>
+  <ul>
+    <li>说"元类继承自 object"——元类继承 <code>type</code>，是 <code>type</code> 继承 <code>object</code>；</li>
+    <li>混淆两条链：类创建走 <code>__new__ / __init__</code>，实例创建走元类 <code>__call__</code>；</li>
+    <li>说 <code>__init__</code> 里能改 namespace——类已固化，只能 <code>setattr</code>；</li>
+    <li>只会背"ORM / 单例"，说不出 <code>__init_subclass__</code>、<code>__set_name__</code> 这些替代方案；</li>
+    <li>说"Pydantic V2 已经不用元类了"——事实错误，V2 仍是 <code>ModelMetaclass</code>；</li>
+    <li>把元类单例当成最佳实践——模块级实例更简单，说得出这点反而加分。</li>
+  </ul>
+</div>
+
+<!-- ============ 速查表 ============ -->
+<div class="section">
+  <h2><span class="num">✓</span>一页速查表</h2>
+  <table>
+    <tr><th>问题</th><th>一句话答案</th></tr>
+    <tr><td>元类是什么？</td><td>创建类的类，默认 <code>type</code>；<code>class</code> = <code>type(name, bases, ns)</code> 的语法糖</td></tr>
+    <tr><td>type vs object？</td><td>创建维度 vs 继承维度：<code>type(Dog)</code> vs <code>Dog.__bases__</code></td></tr>
+    <tr><td>创建流程？</td><td><code>__prepare__</code> → 类体 → <code>__new__</code> → <code>__init__</code></td></tr>
+    <tr><td>实例化链路？</td><td>元类 <code>__call__</code> → 类 <code>__new__</code> → 类 <code>__init__</code></td></tr>
+    <tr><td>四参数？</td><td><code>mcs</code>（元类自己）、<code>name</code>、<code>bases</code>、<code>namespace</code></td></tr>
+    <tr><td>改 namespace 在哪做？</td><td>只有元类 <code>__new__</code>，且在 <code>super().__new__</code> 之前</td></tr>
+    <tr><td>何时必须元类？</td><td>创建期改写类（<code>__prepare__</code>）、类对象协议（<code>__call__</code> / <code>__instancecheck__</code>）</td></tr>
+    <tr><td>更轻的替代？</td><td>装饰器 → <code>__init_subclass__</code> → 描述符 <code>__set_name__</code></td></tr>
+    <tr><td>子类创建后要注册 / 校验？</td><td>父类 <code>__init_subclass__</code>：隐式类方法、类关键字参数直达、别忘了 <code>super()</code>（写法见第 7 题）</td></tr>
+    <tr><td>元类冲突怎么办？</td><td>组合元类 <code>class Combined(MetaA, MetaB)</code> 并显式指定</td></tr>
+    <tr><td>谁在用？</td><td>Django <code>ModelBase</code>、Pydantic <code>ModelMetaclass</code>、<code>abc.ABCMeta</code>、<code>enum.EnumType</code></td></tr>
+  </table>
+</div>
+
+<div class="footer">
+  <p>Python 元类面试速答 | 13 题 · 一句话 + 深度点 + 追问预判</p>
+  <p>相关：<a href="python-mro-interview.html">Python MRO 面试速答</a></p>
+</div>
+
+</div>
+</body>
+</html>
