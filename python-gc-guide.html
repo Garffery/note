@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Python 垃圾回收（GC）知识总结：引用计数、循环垃圾回收、分代机制、gc API、弱引用、内存泄漏排查与性能调优。">
+  <title>Python GC 垃圾回收完全指南</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --surface: rgba(255, 255, 255, .92);
+      --surface-solid: #fff;
+      --text: #172033;
+      --muted: #5f6b7d;
+      --line: #dfe5ee;
+      --primary: #3776ab;
+      --primary-2: #25557c;
+      --python-yellow: #ffd343;
+      --green: #15803d;
+      --orange: #c2410c;
+      --red: #be123c;
+      --purple: #7c3aed;
+      --code-bg: #111827;
+      --code-text: #e5e7eb;
+      --shadow: 0 12px 34px rgba(31, 50, 81, .09);
+      --radius: 18px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0b1220;
+      --surface: rgba(17, 24, 39, .94);
+      --surface-solid: #111827;
+      --text: #edf2f7;
+      --muted: #a7b2c3;
+      --line: #2b374a;
+      --primary: #66a9df;
+      --primary-2: #90c6ed;
+      --code-bg: #050914;
+      --shadow: 0 14px 38px rgba(0, 0, 0, .25);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 3%, rgba(55, 118, 171, .13), transparent 28rem),
+        radial-gradient(circle at 92% 13%, rgba(255, 211, 67, .16), transparent 24rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.75;
+    }
+
+    a { color: var(--primary); }
+    code, pre { font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace; }
+    code:not(pre code) {
+      padding: .14em .42em;
+      color: var(--red);
+      background: color-mix(in srgb, var(--red) 8%, var(--surface-solid));
+      border-radius: 6px;
+      font-size: .9em;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      padding: 0 max(20px, calc((100vw - 1180px) / 2));
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(16px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .brand-mark {
+      display: grid; place-items: center;
+      width: 34px; height: 34px;
+      color: #fff; background: var(--primary);
+      border-radius: 10px;
+      box-shadow: inset -7px -7px 0 rgba(0, 0, 0, .08);
+    }
+    .toolbar { display: flex; gap: 8px; }
+    .icon-btn {
+      min-width: 38px; height: 38px; padding: 0 12px;
+      color: var(--text); background: var(--surface);
+      border: 1px solid var(--line); border-radius: 10px;
+      cursor: pointer; font: inherit;
+    }
+    .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .hero {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 72px 24px 46px;
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 34px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px;
+      color: var(--primary-2);
+      background: color-mix(in srgb, var(--primary) 10%, var(--surface-solid));
+      border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--line));
+      border-radius: 999px; font-size: .85rem; font-weight: 750;
+    }
+    h1 { margin: 18px 0 14px; font-size: clamp(2.25rem, 5vw, 4.25rem); line-height: 1.08; letter-spacing: -.04em; }
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(105deg, var(--primary), var(--purple));
+      background-clip: text; -webkit-background-clip: text;
+    }
+    .hero p { max-width: 720px; margin: 0; color: var(--muted); font-size: 1.08rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 24px; }
+    .chip { padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: .84rem; }
+
+    .hero-card {
+      position: relative; overflow: hidden;
+      padding: 26px;
+      color: #f8fafc;
+      background: linear-gradient(145deg, #172033, #244665);
+      border-radius: 26px;
+      box-shadow: 0 24px 60px rgba(20, 58, 91, .22);
+    }
+    .hero-card::after {
+      content: ""; position: absolute; width: 180px; height: 180px;
+      right: -58px; top: -60px; border-radius: 50%; background: rgba(255, 211, 67, .2);
+    }
+    .memory-flow { position: relative; z-index: 1; display: grid; gap: 13px; }
+    .flow-item { display: flex; align-items: center; gap: 12px; }
+    .flow-num { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #ffd343; color: #172033; font-weight: 900; }
+    .flow-arrow { margin-left: 16px; height: 18px; border-left: 2px dashed rgba(255, 255, 255, .35); }
+    .hero-card small { color: #cbd5e1; }
+
+    .layout { max-width: 1180px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; }
+    .toc { position: sticky; top: 88px; align-self: start; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .toc strong { display: block; margin-bottom: 11px; }
+    .toc a { display: block; padding: 7px 10px; color: var(--muted); text-decoration: none; border-radius: 8px; font-size: .9rem; }
+    .toc a:hover, .toc a.active { color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, transparent); }
+    .toc a.sub { padding-left: 26px; font-size: .84rem; }
+    .toc a.sub::before { content: "└ "; color: var(--line); }
+
+    main { min-width: 0; }
+    section { margin-bottom: 24px; padding: 32px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    section h2 { margin: 0 0 18px; font-size: 1.55rem; line-height: 1.3; }
+    section h3 { margin: 28px 0 10px; font-size: 1.08rem; }
+    section h3::before { content: ""; display: inline-block; width: 4px; height: 1.05em; margin-right: 9px; vertical-align: -.13em; background: var(--primary); border-radius: 3px; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 1.4rem; }
+    li + li { margin-top: 7px; }
+    .muted { color: var(--muted); }
+
+    .summary-grid, .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .mini-card { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface-solid) 84%, var(--bg)); }
+    .mini-card b { display: block; margin-bottom: 6px; color: var(--primary); }
+    .mini-card p { margin: 0; color: var(--muted); font-size: .92rem; }
+
+    .callout { margin: 18px 0; padding: 15px 18px; border-left: 4px solid var(--primary); border-radius: 0 12px 12px 0; background: color-mix(in srgb, var(--primary) 8%, var(--surface-solid)); }
+    .callout.warning { border-color: var(--orange); background: color-mix(in srgb, var(--orange) 8%, var(--surface-solid)); }
+    .callout.success { border-color: var(--green); background: color-mix(in srgb, var(--green) 8%, var(--surface-solid)); }
+    .callout strong { display: block; margin-bottom: 3px; }
+
+    .diagram { margin: 18px 0; padding: 21px; overflow-x: auto; color: var(--code-text); background: #111827; border-radius: 14px; font: .9rem/1.65 "Cascadia Code", Consolas, monospace; white-space: pre; }
+    .diagram .yellow { color: #fcd34d; }
+    .diagram .blue { color: #7dd3fc; }
+    .diagram .green { color: #86efac; }
+
+    .code-wrap { position: relative; margin: 16px 0; }
+    pre { margin: 0; padding: 22px; overflow-x: auto; color: var(--code-text); background: var(--code-bg); border-radius: 14px; line-height: 1.65; font-size: .88rem; }
+    .copy-btn { position: absolute; top: 10px; right: 10px; padding: 5px 10px; color: #d1d5db; background: #253047; border: 1px solid #3b4962; border-radius: 7px; cursor: pointer; }
+    .copy-btn:hover { color: #fff; }
+    .kw { color: #c084fc; } .fn { color: #7dd3fc; } .str { color: #86efac; } .cm { color: #94a3b8; } .num { color: #fcd34d; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { width: 100%; min-width: 650px; border-collapse: collapse; font-size: .92rem; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--primary-2); background: color-mix(in srgb, var(--primary) 7%, var(--surface-solid)); }
+    tbody tr:hover { background: color-mix(in srgb, var(--primary) 4%, transparent); }
+
+    .steps { counter-reset: step; padding: 0; list-style: none; }
+    .steps li { position: relative; padding: 0 0 20px 48px; }
+    .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 30px; height: 30px; color: white; background: var(--primary); border-radius: 50%; font-weight: 800; }
+    .steps li:not(:last-child)::after { content: ""; position: absolute; left: 14px; top: 34px; bottom: 4px; border-left: 2px dashed var(--line); }
+
+    details { margin: 10px 0; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface-solid) 90%, var(--bg)); }
+    summary { padding: 14px 17px; cursor: pointer; font-weight: 700; }
+    details > div { padding: 0 17px 15px; color: var(--muted); }
+
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding-left: 28px; }
+    .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 900; }
+
+    footer { padding: 28px 24px 50px; text-align: center; color: var(--muted); font-size: .9rem; }
+    .back-top { position: fixed; right: 22px; bottom: 22px; display: none; width: 42px; height: 42px; border: 0; color: white; background: var(--primary); border-radius: 50%; cursor: pointer; box-shadow: var(--shadow); }
+    .back-top.show { display: block; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding-top: 48px; }
+      .layout { grid-template-columns: 1fr; }
+      .toc { position: static; }
+      .summary-grid, .cards { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .topbar { padding: 0 14px; }
+      .hero, .layout { padding-left: 14px; padding-right: 14px; }
+      section { padding: 23px 18px; }
+      h1 { font-size: 2.3rem; }
+      .hero-card { padding: 21px; }
+    }
+    @media print {
+      .topbar, .toc, .copy-btn, .back-top { display: none !important; }
+      body { background: white; }
+      .hero { padding-top: 30px; }
+      .layout { display: block; }
+      section { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">Py</span><span>Python GC 指南</span></div>
+    <div class="toolbar">
+      <button class="icon-btn" id="printBtn" title="打印或导出 PDF">打印</button>
+      <button class="icon-btn" id="themeBtn" title="切换明暗主题" aria-label="切换主题">◐</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <span class="eyebrow">内存管理 · 原理 · API · 调优 · 排障</span>
+      <h1>Python <span class="gradient-text">垃圾回收</span><br>完全指南</h1>
+      <p>以 CPython 为主线，讲清引用计数、循环引用检测、分代回收、与根集合算法的对比、弱引用、对象终结、常用 <code>gc</code> API，以及内存泄漏的系统化排查方法。</p>
+      <div class="chips">
+        <span class="chip">引用计数</span><span class="chip">循环 GC</span><span class="chip">分代回收</span>
+        <span class="chip">算法对比</span><span class="chip">weakref</span><span class="chip">tracemalloc</span><span class="chip">性能调优</span>
+      </div>
+    </div>
+    <aside class="hero-card" aria-label="Python 对象回收流程">
+      <div class="memory-flow">
+        <div class="flow-item"><span class="flow-num">1</span><div><b>引用计数归零</b><br><small>多数对象立即释放</small></div></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-item"><span class="flow-num">2</span><div><b>发现容器对象</b><br><small>由循环 GC 跟踪</small></div></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-item"><span class="flow-num">3</span><div><b>检测不可达环</b><br><small>分代扫描并回收</small></div></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="layout">
+    <nav class="toc" aria-label="页面目录">
+      <strong>目录</strong>
+      <a href="#overview">1. 核心结论</a>
+      <a href="#refcount">2. 引用计数</a>
+      <a href="#cycle">3. 循环垃圾回收</a>
+      <a href="#generation">4. 分代机制</a>
+      <a href="#gen-flow" class="sub">4.3 回收流程详解</a>
+      <a href="#reachability">5. 可达性分析对比</a>
+      <a href="#compare-table" class="sub">5.3 逐项对比表</a>
+      <a href="#api">6. gc 模块 API</a>
+      <a href="#finalization">7. 析构与弱引用</a>
+      <a href="#leak">8. 内存泄漏排查</a>
+      <a href="#tuning">9. 性能调优</a>
+      <a href="#practice">10. 最佳实践</a>
+      <a href="#interview">11. 高频问答</a>
+      <a href="#version">12. 版本与实现差异</a>
+    </nav>
+
+    <main>
+      <section id="overview">
+        <h2>1. 先记住这几个核心结论</h2>
+        <div class="summary-grid">
+          <div class="mini-card"><b>主机制</b><p>CPython 主要依靠引用计数管理对象生命周期。</p></div>
+          <div class="mini-card"><b>补充机制</b><p>循环垃圾回收器专门处理容器对象形成的引用环。</p></div>
+          <div class="mini-card"><b>内存不一定下降</b><p>对象释放后，内存可能留在 Python 分配器或进程堆中复用。</p></div>
+        </div>
+        <div class="callout success">
+          <strong>一句话模型</strong>
+          CPython 的垃圾回收可以理解为“引用计数负责日常回收，循环 GC 负责清理引用计数无法处理的环”。
+        </div>
+        <p>“Python 的 GC”容易被误解为一个统一机制。实际上要分三层理解：</p>
+        <ol>
+          <li><strong>语言层：</strong>Python 规范描述对象何时变得不可达，但通常不保证资源会在哪个精确时刻释放。</li>
+          <li><strong>实现层：</strong>CPython、PyPy 等实现采用不同的内存管理策略；本文主要讨论 CPython。</li>
+          <li><strong>操作系统层：</strong>Python 对象被销毁，不等于对应的进程内存会立刻归还操作系统。</li>
+        </ol>
+      </section>
+
+      <section id="refcount">
+        <h2>2. 引用计数：CPython 的第一道回收机制</h2>
+        <p>在 CPython 中，每个对象都维护引用计数。新增一个强引用时计数增加，引用消失时计数减少；计数变为 0 后，对象通常立即进入销毁流程。</p>
+        <div class="diagram"><span class="blue">变量 a</span> ─┐
+         ├──▶ <span class="yellow">对象 [1, 2, 3]</span>  引用计数 = 2
+<span class="blue">变量 b</span> ─┘
+
+<span class="green">del a</span>  → 引用计数 = 1
+<span class="green">del b</span>  → 引用计数 = 0 → 对象可被释放</div>
+
+        <h3>哪些操作会影响引用计数？</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>操作</th><th>典型影响</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td>创建或赋值引用</td><td>增加</td><td><code>b = a</code></td></tr>
+              <tr><td>放入容器</td><td>增加</td><td><code>items.append(a)</code></td></tr>
+              <tr><td>函数传参</td><td>调用期间通常增加</td><td><code>func(a)</code></td></tr>
+              <tr><td>删除变量或覆盖变量</td><td>减少</td><td><code>del a</code>、<code>a = None</code></td></tr>
+              <tr><td>从容器移除</td><td>减少</td><td><code>items.pop()</code></td></tr>
+              <tr><td>离开作用域</td><td>局部引用减少</td><td>函数返回</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> sys
+
+obj = []
+<span class="fn">print</span>(sys.getrefcount(obj))
+<span class="cm"># getrefcount(obj) 调用本身会临时增加一次引用，结果通常比直觉多 1</span></code></pre></div>
+
+        <h3>优势与局限</h3>
+        <ul>
+          <li><strong>优势：</strong>对象往往能及时销毁，生命周期较直观，回收工作被分散到程序运行过程中。</li>
+          <li><strong>局限：</strong>维护计数有成本；多线程环境需要保证计数更新安全；最关键的是无法单独处理循环引用。</li>
+        </ul>
+        <div class="callout warning"><strong>不要依赖“立即销毁”编写跨实现代码</strong>CPython 经常能在引用计数归零时立即终结对象，但其他 Python 实现可能延迟回收。文件、锁、数据库连接等资源应使用 <code>with</code> 或显式关闭。</div>
+      </section>
+
+      <section id="cycle">
+        <h2>3. 循环垃圾回收：引用环如何被发现</h2>
+        <p>两个或多个对象相互引用时，即使程序已经无法访问它们，各自的引用计数仍可能大于 0。循环 GC 会跟踪可能参与引用环的<strong>容器对象</strong>，并周期性寻找不可达环。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name):
+        self.name = name
+        self.peer = <span class="kw">None</span>
+
+left = Node(<span class="str">"left"</span>)
+right = Node(<span class="str">"right"</span>)
+left.peer = right
+right.peer = left
+
+<span class="kw">del</span> left, right
+<span class="cm"># 两个对象互相引用，但外部已无法访问；需要循环 GC 识别</span></code></pre></div>
+
+        <h3>核心思路：扣除内部引用后重算可达性</h3>
+        <p>循环 GC 不等引用计数归零，而是换一个角度问：“除了这个圈子内部，还有没有别的引用指向它们？”</p>
+        <ol class="steps">
+          <li><strong>复制引用计数。</strong>把候选对象的引用计数复制一份，专供本次计算使用。</li>
+          <li><strong>扣除内部引用。</strong>减掉候选对象之间的互相引用，剩下的就是来自外部的引用。</li>
+          <li><strong>划分可达与不可达。</strong>仍有外部引用（或被可达对象引用）的存活，其余判定为不可达并清理。</li>
+        </ol>
+        <p>把这套判断放进“分代”的调度框架里执行，就是下一节的完整流程。</p>
+
+        <div class="callout"><strong>哪些对象会被 GC 跟踪？</strong>通常是可能持有其他对象引用的容器，例如列表、字典、集合、类实例。整数、字符串等简单原子对象通常不需要循环 GC 跟踪。CPython 还可能对只包含不可跟踪对象的容器进行优化。</div>
+
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+<span class="fn">print</span>(gc.is_tracked([]))       <span class="cm"># 通常为 True</span>
+<span class="fn">print</span>(gc.is_tracked(<span class="num">42</span>))       <span class="cm"># 通常为 False</span>
+<span class="fn">print</span>(gc.is_tracked({}))       <span class="cm"># 空字典可能未被跟踪（实现优化）</span>
+<span class="fn">print</span>(gc.is_tracked({<span class="str">"x"</span>: []})) <span class="cm"># 包含容器后通常被跟踪</span></code></pre></div>
+      </section>
+
+      <section id="generation">
+        <h2>4. 分代回收：为什么年轻对象查得更频繁</h2>
+        <p>分代假说认为：“大多数对象生命周期很短，而存活较久的对象往往会继续存活。”因此 GC 更频繁地扫描新对象，避免每次都把长期存活的对象重新扫一遍。</p>
+        <div class="cards">
+          <div class="mini-card"><b>gen0 年轻代</b><p>新分配、被 GC 跟踪的容器先进这一代；扫描最频繁。</p></div>
+          <div class="mini-card"><b>gen1 中年代</b><p>在年轻代回收中幸存的对象晋升到这里；扫描频率低一档。</p></div>
+          <div class="mini-card"><b>gen2 老年代</b><p>存活最久的一批；扫描最少，幸存者留在本代不再晋升。</p></div>
+        </div>
+
+        <h3>4.1 代是怎么组织对象的</h3>
+        <p>每个被 GC 跟踪的对象都带有一个 GC 头，记录它属于哪一代、同代链表中的前后指针、回收期间使用的引用计数副本，以及“正在被收集”“已终结”等标志位。所有跟踪对象按代挂在几条双向链表上，一次“收集”本质上就是遍历其中一条或多条链表。</p>
+        <div class="diagram"><span class="yellow">新分配、被 GC 跟踪的容器对象</span>
+        │  建立 GC 头，挂入 gen0
+        ▼
+   <span class="blue">gen0 年轻代</span>   ── 扫描最频繁
+        │  幸存者晋升
+        ▼
+   <span class="blue">gen1 中年代</span>   ── 扫描频率低一档
+        │  幸存者晋升
+        ▼
+   <span class="blue">gen2 老年代</span>   ── 扫描最少；幸存者留在本代</div>
+        <ul>
+          <li><strong>入代：</strong>容器对象被 GC 跟踪时进入 gen0，从此参与循环 GC 的扫描。</li>
+          <li><strong>合并：</strong>收集第 N 代时，比它更年轻的几代会被并入同一次扫描，一起判断存活与否。</li>
+          <li><strong>出代：</strong>判定不可达的对象在本轮被清理；幸存者在回收结束时被并入更老的一代。</li>
+        </ul>
+
+        <h3>4.2 什么时候触发、收集哪一代</h3>
+        <p>GC 维护“自上次回收以来被跟踪对象的净分配量”：分配加一、释放减一，按代分别记录。触发与选代规则可以概括成下表。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>条件</th><th>行为</th></tr></thead>
+            <tbody>
+              <tr><td><code>count0</code> 超过 <code>threshold0</code></td><td>启动一次回收，默认只检查最年轻的第 0 代。</td></tr>
+              <tr><td>自第 1 代上次被检查以来，第 0 代已被检查超过 <code>threshold1</code> 次</td><td>本次回收把第 1 代一并纳入扫描范围。</td></tr>
+              <tr><td>更老一代的检查次数继续累积达到 <code>threshold2</code></td><td>把最老的第 2 代也纳入，等价于一次全量回收。</td></tr>
+              <tr><td><code>threshold0</code> 设为 0</td><td>关闭自动回收，只剩手动 <code>gc.collect()</code>。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>默认阈值 <code>(700, 10, 10)</code> 的含义：年轻代每累计大约 700 个净分配就回收一次；它大约被检查 10 次，才会顺带扫一次第 1 代；第 1 代同理累积到 10 次，才带动最老的一代。这就是“年轻代回收最频繁、全量回收最少见”的来源。</p>
+        <p>第 2 代的纳入条件比前两代更复杂，官方文档把它单独拿出来讨论（“收集最老一代”），并在不同版本中调整过策略——3.14 系列还一度把它改成增量推进。实际节奏请以运行版本的 <code>gc.get_count()</code>、<code>gc.get_threshold()</code>、<code>gc.get_stats()</code> 为准。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+<span class="fn">print</span>(gc.get_count())      <span class="cm"># (count0, count1, count2)：净分配量，不是对象总数</span>
+<span class="fn">print</span>(gc.get_threshold())  <span class="cm"># (700, 10, 10)</span>
+
+gc.set_threshold(<span class="num">700</span>, <span class="num">10</span>, <span class="num">10</span>)
+<span class="cm"># 修改阈值前先监控和压测；默认值对多数应用是合理的</span>
+
+gc.collect()  <span class="cm"># 手动全量回收，返回 回收对象数 + 不可回收对象数</span></code></pre></div>
+        <div class="callout"><strong>自动回收是同步发生的</strong>它在分配对象的路径上被触发，直接跑在触发它的那个线程里，不会交给后台线程。因此回收耗时会计入本次请求的延迟——这正是需要监控 GC 停顿的原因。</div>
+
+        <h3 id="gen-flow">4.3 一次年轻代回收的完整流程</h3>
+        <p>下面把一次回收拆成八个阶段。括号里的函数名对应 CPython <code>Modules/gcmodule.c</code> 的实现，便于按名字检索源码；概念顺序在各个 3.x 版本中保持一致。</p>
+        <div class="diagram"><span class="green">① 触发</span>            count0 超过 threshold0，在分配路径上同步发生
+      │
+<span class="green">② 选定代数</span>        从年轻代开始逐个检查阈值；选中的第 N 代连同更年轻的代一起构成候选集合
+      │
+<span class="green">③ update_refs</span>      把每个候选对象的 ob_refcnt 复制到 GC 头的 gc_refs
+      │
+<span class="green">④ subtract_refs</span>    扣除候选集合内部的互相引用；剩下的 gc_refs 就是外部引用数
+      │
+<span class="green">⑤ move_unreachable</span> gc_refs 大于 0 的对象标为可达并传播标记；gc_refs 为 0 的移入 unreachable 链表
+      │
+<span class="green">⑥ 弱引用与终结器</span>   清空指向不可达对象的弱引用并回调；调用 __del__/tp_finalize；处理对象复活
+      │
+<span class="green">⑦ 断开并释放</span>       先用 tp_clear 断开不可达对象之间的引用，再让引用计数逐一归零、释放内存
+      │
+<span class="green">⑧ 晋升与清零</span>       幸存者并入更老的一代；被收集各代的计数清零，回收结束</div>
+        <ol class="steps">
+          <li><strong>触发：净分配量超过阈值。</strong>分配或释放被跟踪对象时更新 gen0 计数；<code>count0</code> 超过 <code>threshold0</code>，就在分配路径上启动本次回收。</li>
+          <li><strong>选代：确定这一轮扫到哪一代。</strong>从最年轻的代开始检查阈值，命中后把该代与所有更年轻的代合并成候选集合（<code>gc_list_merge</code>）；<code>gc.collect(2)</code> 这类调用会直接指定全量收集。</li>
+          <li><strong>update_refs：复制引用计数。</strong>遍历候选集合，把真实的 <code>ob_refcnt</code> 复制到 GC 头的 <code>gc_refs</code>。此后所有加减只作用于副本，真实计数不会被计算过程弄脏。</li>
+          <li><strong>subtract_refs：扣除集合内部的互相引用。</strong>遍历候选对象的每条引用，若被引用者也在候选集合中，就把它的 <code>gc_refs</code> 减一。全部走完后，<code>gc_refs</code> 表示“来自候选集合外部的引用数量”。</li>
+          <li><strong>move_unreachable：划分可达与不可达。</strong><code>gc_refs</code> 大于 0 的对象一定还有外部引用，标为可达，并从它们出发把能到达的对象一并标记；<code>gc_refs</code> 为 0 且没有被标记到的对象移入 unreachable 链表——它们已经无法从外界访问，只是被环圈住了。</li>
+          <li><strong>弱引用与终结器：按 PEP 442 的顺序处理。</strong>先清空指向不可达对象的弱引用并触发其回调（此刻这些对象仍然可用），再调用 <code>__del__</code> / <code>tp_finalize</code>（同一集合内的调用顺序不做保证）。如果某个对象在终结过程中复活、重新变得可达，整个不可达集合会被放回，本轮回收放弃。</li>
+          <li><strong>断开引用并释放。</strong>确认没有复活之后，不可达对象成为“循环垃圾”：先用 <code>tp_clear</code> 断开它们彼此持有的引用，避免深层递归和释放顺序问题，随后引用计数逐一归零，内存被释放。</li>
+          <li><strong>晋升与收尾。</strong>幸存对象并入更老的一代（gen0 → gen1、gen1 → gen2，第 2 代的幸存者留在原地）；被收集各代计数清零，统计写入 <code>gc.get_stats()</code>，然后等待下一次触发。</li>
+        </ol>
+        <div class="callout success"><strong>为什么要多一份 <code>gc_refs</code></strong>判断可达性需要临时“扣除”集合内部的引用，但真实引用计数是对象的命根子，不能被计算过程干扰。把 <code>ob_refcnt</code> 复制到 GC 头后再做加减和标记，回收结束后真实计数依然准确。</div>
+
+        <h3>4.4 老年代回收与全量回收</h3>
+        <ul>
+          <li><strong>候选集合更大：</strong>收集第 N 代会连带更年轻的代一起扫描，<code>gc.collect(2)</code> 需要遍历全部被跟踪对象。</li>
+          <li><strong>停顿更长：</strong>对象更多、引用更密，扫描耗时通常明显大于年轻代回收，低延迟服务在意的往往就是它。</li>
+          <li><strong>触发策略更保守：</strong>最老一代不是简单按阈值计数，官方文档对它单独描述；3.14 系列还一度把它改成增量推进，把一次长停顿摊到多次回收中。</li>
+          <li><strong>版本差异明显：</strong>3.14.5 起第 1 代与 <code>threshold2</code> 被恢复，行为重新对齐 3.13。判断线上节奏要看实测数据，而不是照搬资料里的数字。</li>
+        </ul>
+
+        <h3>4.5 晋升、永久代与观测分代行为</h3>
+        <p>晋升规则可以记成三句话：回收中幸存的对象被并入更老的一代；第 2 代已经是最老的一代，幸存者留在原地；只有真正被回收扫描过并幸存，才会晋升。</p>
+        <p><code>gc.freeze()</code> 提供另一条路：把当前全部被跟踪对象移入<strong>永久代</strong>，之后的回收直接忽略它们。<code>gc.unfreeze()</code> 把它们放回最老的一代，<code>gc.get_freeze_count()</code> 查看永久代对象数量。典型用法是在 Unix <code>fork()</code> 之前冻结：模块级对象不再参与回收，也就不会反复触发写时复制，子进程的内存共享更好。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+<span class="kw">class</span> <span class="fn">Payload</span>:
+    <span class="kw">pass</span>
+
+<span class="kw">def</span> <span class="fn">count_in</span>(generation):
+    <span class="kw">return</span> <span class="fn">sum</span>(<span class="fn">isinstance</span>(obj, Payload) <span class="kw">for</span> obj <span class="kw">in</span> gc.get_objects(generation))
+
+gc.collect()                            <span class="cm"># 先清一遍历史垃圾，便于观察</span>
+alive = [Payload() <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(<span class="num">5</span>)]    <span class="cm"># 保留强引用，否则会被引用计数立即回收</span>
+
+<span class="fn">print</span>(<span class="str">"刚创建:"</span>, count_in(<span class="num">0</span>))            <span class="cm"># 新对象位于 gen0</span>
+gc.collect(<span class="num">0</span>)                            <span class="cm"># 年轻代回收：幸存者晋升 gen1</span>
+<span class="fn">print</span>(<span class="str">"gen0 回收后:"</span>, count_in(<span class="num">0</span>), count_in(<span class="num">1</span>))
+gc.collect(<span class="num">1</span>)                            <span class="cm"># 第 1 代回收：幸存者晋升 gen2</span>
+<span class="fn">print</span>(<span class="str">"gen1 回收后:"</span>, count_in(<span class="num">1</span>), count_in(<span class="num">2</span>))
+
+<span class="cm"># 注意：3.14.0–3.14.4 取消了第 1 代，get_objects(1) 不返回对象；3.14.5 起恢复。</span></code></pre></div>
+        <div class="callout warning"><strong>3.14 系列：同一个大版本内也不一样</strong>3.14.0–3.14.4 取消第 1 代、改为两代模型并支持老年代增量收集：<code>gc.get_objects(1)</code> 不返回对象，<code>gc.collect(1)</code> 表示“推进一次增量收集”，<code>threshold2</code> 被忽略。3.14.5 起第 1 代和 <code>threshold2</code> 恢复，行为重新对齐 3.13。背诵“三代”或“两代”都不稳妥，用 <code>gc.get_threshold()</code> 和实测结果确认才准确。</div>
+      </section>
+
+      <section id="reachability">
+        <h2>5. 可达性分析：Python 和根集合算法的区别</h2>
+        <p>JVM、.NET、Go、V8 这些主流运行时判断对象是否该回收时，做的都是同一件事：<strong>从根集合出发</strong>沿引用标记，标记不到的就是垃圾。CPython 走的却是另一条路——它<strong>不枚举根</strong>，而是把引用计数当作“入度统计”，在候选集合内部做一次减法，反推“还有没有来自外部的引用”。这一节讲清这个区别，以及它换来了什么、失去了什么。</p>
+        <div class="diagram"><span class="yellow">根集合算法（JVM / Go / V8 / .NET）</span>
+   根集合：线程栈、寄存器、静态区、句柄表
+        │  从根出发沿引用标记
+        ▼
+   标记完的可达对象            没有标记到的 = 垃圾
+─────────────────────────────────────────────────────
+<span class="yellow">CPython</span>
+   候选集合：某一代里被跟踪的对象
+        │  用引用计数扣除集合内部的互相引用
+        ▼
+   差值仍为正 → 有外部引用 → 存活      差值归零且传播不到 = 垃圾</div>
+
+        <h3>5.1 两大家族</h3>
+        <p>把常见的垃圾回收实现按“怎么确定对象不可达”分类，能看清 Python 的位置。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>家族</th><th>代表</th><th>环怎么处理</th><th>关键前提</th></tr></thead>
+            <tbody>
+              <tr><td>精确追踪式</td><td>JVM（G1/ZGC）、.NET、V8、Go</td><td>可达性天然覆盖环，不需要额外机制</td><td>编译器/JIT 提供精确栈映射，配套写屏障</td></tr>
+              <tr><td>引用计数 + 环检测</td><td>CPython、PHP</td><td>由周期性或增量的环收集器处理</td><td>每次赋值维护计数；容器要支持遍历接口</td></tr>
+              <tr><td>纯引用计数</td><td>Objective-C / Swift（ARC）、Rust 的 <code>Rc</code>/<code>Arc</code></td><td>没有环收集器，环必须显式打破（<code>weak</code>、<code>unowned</code>）</td><td>同上，但省掉了环检测器</td></tr>
+              <tr><td>保守追踪式</td><td>Boehm GC</td><td>同追踪式</td><td>不需要编译器配合，直接扫描疑似指针，但不能移动对象</td></tr>
+              <tr><td>引用计数 + 从根标记清除</td><td>Perl 5</td><td>周期性全量标记清除</td><td>能扫描自己的解释器栈与符号表</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.2 CPython 的做法：用引用计数替代根集合</h3>
+        <p>为什么可以不枚举根？因为<strong>引用计数本身就是一份精确的入度统计</strong>：只要还有引用存在——无论是模块字典、栈帧、容器，还是 C 代码里的变量——引用计数都会体现出来（前提是扩展遵守 INCREF/DECREF 规则）。于是“谁还有外部引用”不需要扫描内存就能算出来：</p>
+        <ol class="steps">
+          <li>把候选集合里每个对象的引用计数复制一份（<code>gc_refs</code>）。</li>
+          <li>扣除候选对象之间的互相引用。</li>
+          <li>差值仍为正的对象，一定存在来自集合外部的引用——它可能直接就是一个根，也可能是老一代对象、未跟踪容器或 C 层引用。</li>
+          <li>从这些对象出发传播标记，没被标记到的就是垃圾。</li>
+        </ol>
+        <div class="callout success"><strong>关键结论</strong>CPython 不需要扫描 C 栈和寄存器，也不要求扩展暴露对象布局，只需要它们遵守引用计数规则。这正是它能和任意 C 扩展共存的原因——换成精确追踪式，就必须为每一段 C 代码提供栈映射，这在实践中做不到。</div>
+        <p>但这套判断只在<strong>候选集合内部</strong>成立。收集年轻代时，老一代对象天然被当成“外部引用”，所以跨代的环会多活一段时间，直到某次全量回收才被处理。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+<span class="kw">class</span> <span class="fn">Node</span>:
+    <span class="kw">pass</span>
+
+<span class="cm"># 情形一：纯粹的环，没有任何外部引用</span>
+a = Node(); b = Node()
+a.peer = b
+b.peer = a
+<span class="kw">del</span> a, b          <span class="cm"># 环内互相引用，两个对象的引用计数都还大于 0</span>
+gc.collect()      <span class="cm"># 扣除内部引用后差值为 0 → 判定为垃圾</span>
+
+<span class="cm"># 情形二：同样的环，但外部还留着一个引用</span>
+c = Node(); d = Node()
+c.peer = d
+d.peer = c
+keep = c          <span class="cm"># 模块全局引用，属于“候选集合外部”</span>
+<span class="kw">del</span> c, d
+gc.collect()      <span class="cm"># 差值仍为正 → 整圈存活</span></code></pre></div>
+
+        <h3 id="compare-table">5.3 逐项对比</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>维度</th><th>CPython</th><th>JVM / .NET</th><th>Go</th><th>V8</th></tr></thead>
+            <tbody>
+              <tr><td>根集合</td><td>不枚举根，靠引用计数差值反推外部引用</td><td>栈与寄存器映射、静态区、句柄，由编译器/JIT 提供</td><td>编译期栈映射</td><td>句柄表 + 保守扫描 C++ 栈</td></tr>
+              <tr><td>标记起点</td><td>候选代内部</td><td>根集合</td><td>根集合</td><td>根集合</td></tr>
+              <tr><td>写屏障</td><td>无</td><td>有（卡表 / SATB）</td><td>有（混合写屏障）</td><td>有</td></tr>
+              <tr><td>对象移动</td><td>不移，地址稳定</td><td>移动并压缩</td><td>不移（按 span 回收）</td><td>新生代复制 + 老生代整理</td></tr>
+              <tr><td>回收粒度</td><td>单个对象即时回收，外加按代周期扫描</td><td>按代 / 分区</td><td>并发标记清除</td><td>新生代 scavenger + 老生代整理</td></tr>
+              <tr><td>并发与增量</td><td>默认同步停顿（3.14.0–3.14.4 试过老年代增量）</td><td>并发标记，短停顿</td><td>并发标记，停顿通常在亚毫秒级</td><td>增量 + 并发标记</td></tr>
+              <tr><td>终结器时机</td><td>引用计数归零即刻执行；环内对象由 PEP 442 处理</td><td>终结器队列，时机不确定（finalization 已废弃）</td><td>独立 goroutine 执行，可能不执行</td><td><code>FinalizationRegistry</code>，时机不确定</td></tr>
+              <tr><td>栈扫描</td><td>不需要</td><td>需要（STW 或并发重扫）</td><td>需要</td><td>需要</td></tr>
+              <tr><td>碎片整理</td><td>不能</td><td>能</td><td>不能</td><td>能</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">表格概括的是典型实现：具体收集器（Serial / G1 / ZGC、Go 的 GOGC 策略、V8 的 Orinoco）各有取舍，细节请以各自文档为准。</p>
+
+        <h3>5.4 优点：这些差异换来了什么</h3>
+        <ul>
+          <li><strong>C 扩展友好：</strong>不需要扫描 C 栈与寄存器，也不要求扩展暴露对象内部布局，只要守住引用计数规则即可——这是决定性的工程优势。</li>
+          <li><strong>回收及时、成本分散：</strong>无环对象在最后一个引用消失的瞬间销毁，内存峰值低，回收开销摊在整个程序生命周期里，而不是集中在一次停顿中。</li>
+          <li><strong>终结时机可预期：</strong><code>__del__</code>、文件与锁的关闭、<code>weakref</code> 回调大多在可预期的时刻发生，这让隐式清理比“终结器队列”模型可靠得多。</li>
+          <li><strong>扫描范围小：</strong>整数、字符串等原子对象不进 GC 链表，环检测只扫“可能成环”的容器对象。</li>
+          <li><strong>对象地址稳定：</strong>可以放心把指针交给 C 代码，<code>id()</code> 在对象生命周期内稳定，不需要 pin 或句柄间接层。</li>
+          <li><strong>不需要预留腾挪空间：</strong>没有 survivor space、也没有“为 GC 预留 100% 堆”这类机制（对比 Go 的堆目标、JVM 的分代预留）。</li>
+          <li><strong>实现与调试更简单：</strong>没有写屏障、卡表、并发标记状态机这些部件，行为更容易预测和观测。</li>
+        </ul>
+
+        <h3>5.5 缺点：差异在哪里咬人</h3>
+        <ul>
+          <li><strong>环必须靠周期性扫描：</strong>引用计数替代不了环检测，而它默认是同步停顿，成本随被跟踪对象数增长。3.14.0–3.14.4 曾把老年代改成增量推进，3.14.5 又回退到与 3.13 一致的行为。</li>
+          <li><strong>引用计数的持续开销：</strong>每次赋值、传参、入容器都要更新计数，写放大明显、缓存局部性差；多线程下还要保证更新安全，自由线程构建因此用偏置引用计数、并把 PEP 683 的 immortal 对象排除在计数之外。</li>
+          <li><strong>没有写屏障 → 没有“老 → 新”引用记录：</strong>年轻代回收只能把老对象的引用一律视为外部引用，跨代浮动垃圾会多活；老年代回收也只能整体扫描，做不到 JVM 卡表那样的分区回收。</li>
+          <li><strong>不移动对象 → 不能整理碎片：</strong>pymalloc 的 arena 只有整体空闲时才可能归还系统，所以 RSS 常年不降；也无法使用复制式新生代回收——而那是停顿最短的回收方式。</li>
+          <li><strong>停顿不并发：</strong>默认构建下回收在分配路径上同步发生，堆越大停顿越明显；这也是低延迟服务关注 GC 监控的原因。</li>
+          <li><strong>每对象开销与两次遍历：</strong>被跟踪对象都要带 GC 头，一轮回收至少要遍历引用两遍（<code>subtract_refs</code> 与 <code>move_unreachable</code>）。</li>
+          <li><strong>正确性负担转嫁给扩展作者：</strong>漏掉 INCREF/DECREF 会直接崩溃或泄漏；追踪式 GC 里漏写屏障通常只是延迟回收，不会立即崩。</li>
+          <li><strong>两套机制、诊断更复杂：</strong>既要排查引用计数型泄漏（全局容器、闭包、traceback），又要排查环型垃圾（含“容器未实现遍历接口”导致回收不到的情况）。</li>
+        </ul>
+
+        <h3>5.6 同类实现：PHP、Perl、Swift 各走了一步</h3>
+        <ul>
+          <li><strong>PHP：</strong>同样是“引用计数 + 环收集器”，思路与 CPython 最接近，但收集器以增量方式运行、由“可能的根”缓冲区驱动，把停顿切得更碎。</li>
+          <li><strong>Perl 5：</strong>在引用计数之上做的是<strong>从根出发</strong>的周期性标记清除，需要扫描解释器栈与符号表，因此更像经典追踪式。</li>
+          <li><strong>Swift / Objective-C：</strong>只有 ARC，没有环收集器，环必须靠 <code>weak</code>/<code>unowned</code> 手动打破——这是“纯引用计数”路线的必然结果。</li>
+          <li><strong>Boehm GC：</strong>保守式追踪，不需要编译器配合，代价是不能移动对象，还可能因为把整数误认成指针而多留垃圾。</li>
+          <li><strong>PyPy：</strong>换成从根出发的增量分代标记清除，终结时机与 CPython 不同——这正是文档反复提醒“不要依赖作用域结束就立即释放资源”的原因。</li>
+        </ul>
+
+        <h3>5.7 实践上怎么用这些差异</h3>
+        <ul>
+          <li><strong>长驻服务：</strong>RSS 不降通常来自分配器与碎片，而不是“GC 不工作”；跨代浮动垃圾会把内存峰值拉长。先用 <code>gc.get_stats()</code> 和 <code>tracemalloc</code> 看清事实，再考虑阈值。</li>
+          <li><strong>延迟敏感：</strong>CPython 的回收成本分散在赋值操作上，通常比一次集中停顿更平滑；真正需要防的长停顿来自老年代与全量回收。</li>
+          <li><strong>原生内存：</strong>GC 只看得见 Python 对象，<code>malloc</code>、NumPy、GPU 缓冲有各自的分配器与缓存，需要单独的限制与释放策略。</li>
+          <li><strong>容量对比：</strong>JVM/Go 服务有压缩与并发标记，长时间运行后的内存形态和 Python 差别很大，不能直接类比。</li>
+        </ul>
+      </section>
+
+      <section id="api">
+        <h2>6. <code>gc</code> 模块常用 API</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>API</th><th>用途</th><th>注意事项</th></tr></thead>
+            <tbody>
+              <tr><td><code>gc.collect(generation=2)</code></td><td>执行一次回收；默认 <code>2</code> 表示全量回收，返回“回收对象数 + 不可回收对象数”。</td><td>generation 必须在 0–2 之间，否则抛 <code>ValueError</code>；回收进行中再调用行为未定义；代编号含义存在版本差异。</td></tr>
+              <tr><td><code>gc.enable()</code> / <code>gc.disable()</code></td><td>启用或停用自动循环 GC。</td><td>不影响引用计数。</td></tr>
+              <tr><td><code>gc.isenabled()</code></td><td>查看自动 GC 是否开启。</td><td>适合诊断运行环境。</td></tr>
+              <tr><td><code>gc.get_count()</code></td><td>读取各代计数，即自上次回收以来的净分配量。</td><td>不能直接等同于对象数量。</td></tr>
+              <tr><td><code>gc.get_threshold()</code> / <code>set_threshold()</code></td><td>读取或调整自动回收阈值。</td><td><code>threshold0=0</code> 会关闭自动回收。</td></tr>
+              <tr><td><code>gc.get_stats()</code></td><td>读取各代累计回收统计。</td><td>返回字典列表，包含 collections、collected、uncollectable。</td></tr>
+              <tr><td><code>gc.get_objects()</code></td><td>获取 GC 正在跟踪的对象，可用 <code>gc.get_objects(0)</code> 只取某一代。</td><td>开销和结果规模可能很大；3.14.0–3.14.4 中第 1 代不返回对象。</td></tr>
+              <tr><td><code>gc.get_referrers(obj)</code></td><td>查找直接引用目标的 GC 容器。</td><td>只适合调试；返回值可能包含临时或未完全初始化对象。</td></tr>
+              <tr><td><code>gc.get_referents(obj)</code></td><td>查看对象通过 GC 遍历接口引用的对象。</td><td>不保证列出所有语言层引用。</td></tr>
+              <tr><td><code>gc.is_tracked(obj)</code></td><td>判断对象是否被循环 GC 跟踪。</td><td>结果受类型和实现优化影响。</td></tr>
+              <tr><td><code>gc.set_debug(flags)</code></td><td>开启回收调试输出或保存不可达对象。</td><td>生产环境慎用。</td></tr>
+              <tr><td><code>gc.callbacks</code></td><td>在 GC 开始和结束时执行回调。</td><td>回调必须轻量，避免递归触发和明显阻塞。</td></tr>
+              <tr><td><code>gc.freeze()</code> / <code>unfreeze()</code> / <code>get_freeze_count()</code></td><td>把当前所有跟踪对象移入永久代（后续回收忽略它们）、放回最老一代、查看永久代对象数。</td><td>常见于 Unix <code>fork()</code> 前的写时复制优化；Python 3.7 起提供。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>监控 GC 停顿和回收结果</h3>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+<span class="kw">import</span> time
+
+starts = {}
+
+<span class="kw">def</span> <span class="fn">on_gc</span>(phase, info):
+    generation = info[<span class="str">"generation"</span>]
+    <span class="kw">if</span> phase == <span class="str">"start"</span>:
+        starts[generation] = time.perf_counter()
+    <span class="kw">else</span>:
+        elapsed_ms = (time.perf_counter() - starts.pop(generation, time.perf_counter())) * <span class="num">1000</span>
+        <span class="fn">print</span>(
+            <span class="str">f"GC gen={generation}: {elapsed_ms:.2f} ms, "</span>
+            <span class="str">f"collected={info['collected']}, uncollectable={info['uncollectable']}"</span>
+        )
+
+gc.callbacks.append(on_gc)</code></pre></div>
+      </section>
+
+      <section id="finalization">
+        <h2>7. <code>__del__</code>、上下文管理器与弱引用</h2>
+        <h3>不要把 <code>__del__</code> 当成可靠的资源管理工具</h3>
+        <p><code>__del__</code> 是终结器，不等同于 C++ 的确定性析构函数。它可能在解释器关闭阶段执行，也可能因对象复活、模块全局变量已被清理等因素产生复杂行为。现代 CPython 可以安全处理许多含 <code>__del__</code> 的引用环，但终结逻辑依然应尽量简单。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="cm"># 推荐：资源生命周期清晰、异常时也能关闭</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> file:
+    content = file.read()
+
+<span class="cm"># 对自定义资源，优先实现 __enter__ / __exit__ 或提供 close()</span></code></pre></div>
+
+        <h3>弱引用 <code>weakref</code></h3>
+        <p>弱引用允许引用对象但不增加其强引用计数。目标没有强引用后仍可被回收，适合缓存、观察者列表和对象映射等场景。</p>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> weakref
+
+<span class="kw">class</span> <span class="fn">User</span>:
+    <span class="kw">pass</span>
+
+user = User()
+user_ref = weakref.ref(user)
+<span class="fn">assert</span> user_ref() <span class="kw">is</span> user
+
+<span class="kw">del</span> user
+<span class="fn">assert</span> user_ref() <span class="kw">is None</span>
+
+<span class="cm"># 常用弱引用容器：</span>
+cache = weakref.WeakValueDictionary()</code></pre></div>
+        <p><code>weakref.finalize(obj, callback, ...)</code> 通常比手写 <code>__del__</code> 更容易管理清理回调，但它也不是替代 <code>with</code> 的理由。</p>
+      </section>
+
+      <section id="leak">
+        <h2>8. 内存泄漏与持续增长：如何系统排查</h2>
+        <p>Python 中所谓“内存泄漏”至少有三种情况，必须先区分：</p>
+        <ul>
+          <li><strong>仍被引用的对象持续累积：</strong>无界缓存、全局容器、消息队列、回调、闭包、日志处理器等。</li>
+          <li><strong>对象已释放但内存未归还操作系统：</strong>分配器保留 arena、堆碎片化或底层库缓存。</li>
+          <li><strong>C 扩展或本地资源泄漏：</strong>Python GC 看不到或无法修复底层分配错误。</li>
+        </ul>
+
+        <h3>推荐排查路径</h3>
+        <ol class="steps">
+          <li><strong>建立稳定复现。</strong>固定输入和并发，持续记录 RSS、Python 堆大小、对象数与请求量。</li>
+          <li><strong>判断是否为 Python 对象增长。</strong>使用 <code>tracemalloc</code> 比较快照；必要时使用对象图工具。</li>
+          <li><strong>定位增长的分配位置。</strong>按文件、行号和 traceback 分组，关注持续增长而非一次性峰值。</li>
+          <li><strong>寻找保留路径。</strong>检查全局字典、LRU 缓存、任务集合、异常 traceback、闭包和监听器。</li>
+          <li><strong>验证修复。</strong>用同一负载做前后对比，观察对象是否进入稳定平台，而不是只看一次 <code>gc.collect()</code>。</li>
+        </ol>
+
+        <h3>用 <code>tracemalloc</code> 比较快照</h3>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+<span class="kw">import</span> tracemalloc
+
+tracemalloc.start(<span class="num">25</span>)
+before = tracemalloc.take_snapshot()
+
+<span class="cm"># 运行怀疑会导致内存增长的业务操作</span>
+run_workload()
+
+gc.collect()
+after = tracemalloc.take_snapshot()
+
+<span class="kw">for</span> stat <span class="kw">in</span> after.compare_to(before, <span class="str">"lineno"</span>)[:<span class="num">15</span>]:
+    <span class="fn">print</span>(stat)</code></pre></div>
+
+        <h3>调试不可达对象</h3>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+gc.set_debug(gc.DEBUG_SAVEALL)
+unreachable = gc.collect()
+<span class="fn">print</span>(<span class="str">"unreachable:"</span>, unreachable)
+<span class="fn">print</span>(<span class="str">"saved in gc.garbage:"</span>, <span class="fn">len</span>(gc.garbage))
+
+<span class="cm"># 调试完成后必须清理保存列表，否则 DEBUG_SAVEALL 本身会保留对象</span>
+gc.garbage.clear()
+gc.set_debug(<span class="num">0</span>)</code></pre></div>
+
+        <div class="callout warning"><strong><code>gc.collect()</code> 后 RSS 不降，不等于 GC 失效</strong>CPython 的小对象分配器会复用内存池；只有满足条件的完整 arena 才可能归还系统。某些 C 库也会维护自己的缓存。应同时观察 tracemalloc、对象数量和 RSS。</div>
+      </section>
+
+      <section id="tuning">
+        <h2>9. GC 性能调优：什么时候值得动参数</h2>
+        <p>默认配置对大多数应用已经合理。调优前先测量 GC 次数、停顿时长、回收对象数和业务延迟；不要仅因“GC 听起来慢”就关闭它。</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>场景</th><th>可考虑的措施</th><th>主要风险</th></tr></thead>
+            <tbody>
+              <tr><td>大量短命容器，GC 触发过频</td><td>基准测试后适当提高阈值。</td><td>垃圾对象驻留更久，内存峰值上升。</td></tr>
+              <tr><td>低延迟关键区间</td><td>短暂禁用自动 GC，区间结束后恢复并选择合适时机回收。</td><td>异常路径未恢复；循环垃圾快速累积。</td></tr>
+              <tr><td>长期进程的缓存增长</td><td>优先限制缓存容量、设置过期策略。</td><td>调 GC 参数通常治标不治本。</td></tr>
+              <tr><td>Unix 服务 fork 子进程</td><td>按官方建议组合 <code>gc.disable()</code>、<code>gc.freeze()</code> 与 fork。</td><td>平台相关，流程错误会增加内存。</td></tr>
+              <tr><td>数值计算占用巨大</td><td>检查 NumPy/PyTorch 等底层分配器和设备缓存。</td><td><code>gc</code> 只看到 Python 包装对象。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>安全地临时关闭自动 GC</h3>
+        <div class="code-wrap"><button class="copy-btn">复制</button><pre><code><span class="kw">import</span> gc
+
+was_enabled = gc.isenabled()
+<span class="kw">try</span>:
+    <span class="kw">if</span> was_enabled:
+        gc.disable()
+    latency_sensitive_work()
+<span class="kw">finally</span>:
+    <span class="kw">if</span> was_enabled:
+        gc.enable()
+
+<span class="cm"># 是否主动 collect 应由延迟预算和实测决定</span></code></pre></div>
+
+        <div class="callout"><strong>关闭循环 GC 不会关闭引用计数</strong>绝大多数无环对象仍会在引用计数归零后被释放；被延迟处理的是循环垃圾。</div>
+      </section>
+
+      <section id="practice">
+        <h2>10. 工程最佳实践清单</h2>
+        <ul class="checklist">
+          <li>使用 <code>with</code> 管理文件、Socket、锁、数据库事务和外部资源。</li>
+          <li>为缓存设置容量上限、TTL 或淘汰策略，避免无界字典。</li>
+          <li>任务完成后移除回调、监听器、Future、后台任务和全局注册项。</li>
+          <li>避免让长生命周期对象意外捕获大对象，例如闭包、异常 traceback 和默认参数。</li>
+          <li>需要非拥有关系时考虑 <code>weakref</code>，但不要为了“消灭所有环”牺牲清晰设计。</li>
+          <li>用指标与基准测试指导阈值调整，并记录 Python 版本和实现。</li>
+          <li>分析内存时区分 Python 堆、C 扩展内存、设备内存和进程 RSS。</li>
+          <li>不要在高频路径调用 <code>gc.get_objects()</code> 或 <code>gc.get_referrers()</code>。</li>
+          <li>不要把定时 <code>gc.collect()</code> 当成通用修复；它会引入全局扫描和延迟抖动。</li>
+        </ul>
+      </section>
+
+      <section id="interview">
+        <h2>11. 高频面试问答</h2>
+        <details open><summary>Python 的垃圾回收机制是什么？</summary><div>如果限定 CPython：主要是引用计数，辅以分代的循环垃圾回收器；引用计数负责大多数对象的及时销毁，循环 GC 负责查找容器对象形成的不可达引用环。</div></details>
+        <details><summary><code>del x</code> 会删除对象吗？</summary><div><code>del x</code> 删除的是名称与对象之间的绑定。只有当这次操作使对象不再有强引用时，对象才可能被销毁；若仍被其他变量或容器引用，对象会继续存在。</div></details>
+        <details><summary>为什么循环引用不能仅靠引用计数回收？</summary><div>环内对象相互持有强引用，即使外部已经不可达，每个对象的引用计数仍大于 0，因此需要循环 GC 根据“外部可达性”识别整个不可达集合。</div></details>
+        <details><summary>分代回收中一次回收的完整流程是什么？</summary><div>净分配量超过 <code>threshold0</code> 触发回收；按阈值选出要收集的代数，并把更年轻的代并入候选集合；先把每个候选对象的引用计数复制成 <code>gc_refs</code>，再扣掉集合内部的互相引用，剩下的就是外部引用数；<code>gc_refs</code> 为 0 且无法从可达对象传播到达的对象判定为不可达；随后依次清空弱引用并回调、调用终结器、处理对象复活，最后断开不可达对象之间的引用并释放内存；幸存者晋升到更老的一代，被收集各代的计数清零。</div></details>
+        <details><summary>Python 的可达性分析和 JVM、Go 的根集合标记有什么区别？</summary><div>JVM、Go、V8 都从根集合（线程栈、寄存器、静态区、句柄）出发做精确标记，需要编译器或 JIT 提供栈映射，并依赖写屏障维护跨代/并发标记的状态。CPython 不枚举根，而是把引用计数当作入度统计：在候选集合内部扣除互相引用，差值仍为正就说明存在外部引用，从这些对象传播标记，其余判定为垃圾。好处是不用扫描 C 栈和寄存器，天然兼容任意 C 扩展；代价是无法整理碎片、没有“老→新”引用记录（跨代浮动垃圾会多活）、环检测只能周期性同步停顿。同类实现里 PHP 最接近，Perl 5 走的是从根标记清除，Swift/ARC 则完全没有环收集器。</div></details>
+        <details><summary>执行 <code>gc.collect()</code> 为什么进程内存没有下降？</summary><div>对象空间可能被 Python 分配器保留以便复用，底层堆可能碎片化，或内存来自 C 扩展和外部库。对象被回收与 RSS 立即下降不是同一件事。</div></details>
+        <details><summary>如何避免 Python 内存泄漏？</summary><div>限制缓存，及时解除全局注册和回调，使用上下文管理器关闭资源，监控长生命周期容器，并通过 tracemalloc 快照和引用路径定位真正的保留者。</div></details>
+        <details><summary><code>gc.disable()</code> 后 Python 还会释放对象吗？</summary><div>在 CPython 中会。它只关闭自动循环 GC，引用计数仍然工作；但不可达引用环会继续积累，除非重新启用或手动回收。</div></details>
+        <details><summary>弱引用的典型用途是什么？</summary><div>用于不应延长目标生命周期的关系，例如缓存值、观察者、对象注册表、父对象反向引用等。目标被回收后，弱引用返回 <code>None</code>，弱引用容器会自动移除相应条目。</div></details>
+      </section>
+
+      <section id="version">
+        <h2>12. 版本与实现差异</h2>
+        <ul>
+          <li><strong>CPython：</strong>以引用计数加循环 GC 为核心。本文绝大多数行为描述针对 CPython。</li>
+          <li><strong>PyPy：</strong>通常采用追踪式垃圾回收，对象终结时机与 CPython 不同；不要依赖引用离开作用域后资源立即关闭。</li>
+          <li><strong>Python 3.14 系列：</strong>3.14.0–3.14.4 取消第 1 代、改为两代模型并支持老年代增量收集（<code>collect(1)</code> 表示推进一步，<code>threshold2</code> 被忽略，<code>get_objects(1)</code> 为空）；3.14.5 起第 1 代与 <code>threshold2</code> 恢复，重新对齐 3.13。</li>
+          <li><strong>自由线程 CPython：</strong>自动回收还会参考内存增长：若内存较上次回收增长不足 10%，且净分配量未超过 <code>40 × threshold0</code>，就跳过本次回收；调优时应核对对应版本的官方文档。</li>
+        </ul>
+        <div class="callout success"><strong>阅读资料时先看版本</strong>GC 属于实现细节较多、持续演进的领域。生产调优应以目标 Python 版本的官方文档、真实指标和基准测试为准。</div>
+        <p class="muted">延伸阅读：Python 标准库 <code>gc</code>、<code>weakref</code>、<code>tracemalloc</code> 文档，以及 CPython 开发者指南中的垃圾回收设计说明。</p>
+      </section>
+    </main>
+  </div>
+
+  <footer>Python GC 垃圾回收知识总结 · 主要面向 CPython · 最后更新：2026-09</footer>
+  <button class="back-top" id="backTop" title="返回顶部" aria-label="返回顶部">↑</button>
+
+  <script>
+    const root = document.documentElement;
+    const themeButton = document.getElementById('themeBtn');
+    const savedTheme = localStorage.getItem('python-gc-theme');
+    if (savedTheme) root.dataset.theme = savedTheme;
+
+    themeButton.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      localStorage.setItem('python-gc-theme', next);
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const code = button.nextElementSibling.innerText;
+        try {
+          await navigator.clipboard.writeText(code);
+          button.textContent = '已复制';
+          setTimeout(() => button.textContent = '复制', 1200);
+        } catch {
+          button.textContent = '复制失败';
+        }
+      });
+    });
+
+    const backTop = document.getElementById('backTop');
+    window.addEventListener('scroll', () => backTop.classList.toggle('show', window.scrollY > 600));
+    backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    const tocLinks = [...document.querySelectorAll('.toc a')];
+    const sections = [...document.querySelectorAll('main section')];
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          tocLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+        }
+      });
+    }, { rootMargin: '-20% 0px -68% 0px' });
+    sections.forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>
