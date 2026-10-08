@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pi-wiki-agent 面试复习笔记</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --paper: #ffffff;
+      --ink: #1e2430;
+      --muted: #667085;
+      --line: #d9dee8;
+      --accent: #1f7a8c;
+      --accent-2: #875c12;
+      --accent-3: #5c6bc0;
+      --soft: #e9f6f8;
+      --soft-2: #fff5df;
+      --soft-3: #eef0ff;
+      --danger: #a83b3b;
+      --ok: #297a4a;
+      --code: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    aside h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    aside p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 0;
+      color: #344054;
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1120px;
+      padding: 36px 42px 72px;
+    }
+
+    header {
+      padding: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 34px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 42px 0 14px;
+      font-size: 24px;
+      line-height: 1.3;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    ul, ol {
+      margin: 8px 0 12px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #eef1f6;
+      color: var(--code);
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 12px 0;
+      padding: 16px;
+      border-radius: 8px;
+      background: #101828;
+      color: #f8fafc;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 22px;
+      background: var(--paper);
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f4f8;
+      font-weight: 700;
+    }
+
+    .section {
+      margin-top: 22px;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fafbfc;
+    }
+
+    .stat b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 17px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #165b68;
+      font-size: 13px;
+    }
+
+    .callout {
+      margin: 14px 0;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: var(--soft);
+      border-radius: 6px;
+    }
+
+    .warning {
+      border-left-color: var(--danger);
+      background: #fff0f0;
+    }
+
+    .gold {
+      border-left-color: var(--accent-2);
+      background: var(--soft-2);
+    }
+
+    .purple {
+      border-left-color: var(--accent-3);
+      background: var(--soft-3);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0;
+      align-items: stretch;
+    }
+
+    .step {
+      min-height: 112px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      position: relative;
+    }
+
+    .step b {
+      display: block;
+      margin-bottom: 5px;
+      color: #0f3440;
+    }
+
+    .step small {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .qa {
+      border-top: 1px solid var(--line);
+      padding: 18px 0;
+    }
+
+    .qa:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .qa .q {
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .qa .a {
+      margin-top: 7px;
+      color: #344054;
+    }
+
+    .label {
+      display: inline-block;
+      margin-right: 7px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #eef1f6;
+      color: #475467;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .good {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .bad {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        display: block;
+      }
+
+      aside {
+        position: static;
+        height: auto;
+      }
+
+      main {
+        padding: 24px 18px 48px;
+      }
+
+      .hero-grid, .cards, .flow {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h2>pi-wiki-agent</h2>
+      <p>Agent 应用开发工程师面试复习版</p>
+      <nav>
+        <a href="#position">1. 项目定位</a>
+        <a href="#story">2. 面试讲述主线</a>
+        <a href="#architecture">3. 逻辑架构</a>
+        <a href="#pipeline">4. 核心执行链路</a>
+        <a href="#modules">5. 模块拆解</a>
+        <a href="#highlights">6. 项目亮点</a>
+        <a href="#details">7. 技术细节</a>
+        <a href="#questions">8. 高频面试问题</a>
+        <a href="#codeqa">9. 代码级追问</a>
+        <a href="#flowcharts">10. 核心流程图</a>
+        <a href="#interviewqa">11. 面试追问库</a>
+        <a href="#api">12. FastAPI 接口</a>
+        <a href="#resume">13. 简历表达</a>
+        <a href="#prep">14. 复习清单</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header>
+        <h1>pi-wiki-agent 面试复习笔记</h1>
+        <p><b>一句话：</b>这是一个 VCS 驱动的 Wiki 文档同步 Agent 平台，能够监听代码提交，根据 diff 自动分析受影响文档，规划 Wiki 更新任务，并通过多 Agent 工作流自动修改文档。</p>
+        <div class="tag-row">
+          <span class="tag">LLM Agent</span>
+          <span class="tag">多 Agent 编排</span>
+          <span class="tag">DAG 并行执行</span>
+          <span class="tag">YAML 工作流编译器</span>
+          <span class="tag">结构化输出</span>
+          <span class="tag">断点续跑</span>
+          <span class="tag">FastAPI + Vue 3</span>
+          <span class="tag">SSE 流式进度</span>
+          <span class="tag">LLM-as-Judge</span>
+        </div>
+        <div class="hero-grid">
+          <div class="stat"><b>业务问题</b>代码变化后 Wiki 文档容易过期，人工维护成本高。</div>
+          <div class="stat"><b>核心方案</b>把 diff 作为输入，把 Wiki 作为可追溯的派生产物。</div>
+          <div class="stat"><b>面试重点</b>讲清 Agent 工程化，而不是只讲 Prompt。</div>
+        </div>
+      </header>
+
+      <section id="position" class="section">
+        <h2>1. 项目定位</h2>
+        <p>这个项目不是普通聊天机器人，而是一个面向真实代码仓库的 Agent 应用系统。它解决的问题是：项目代码频繁变化，但 Wiki 文档不会自动同步，长期会出现过期内容、断链、缺失章节和代码文档不一致。</p>
+        <p>你的设计思路是：把 Wiki 当作代码仓库的派生产物。每次提交产生 diff，系统通过反向索引找到受影响的 Wiki 章节，再由 Agent 完成影响分析、更新规划和文档写入。</p>
+        <div class="callout">
+          <b>面试时的定位话术：</b>
+          我做的是一个 VCS 驱动的文档同步 Agent 平台。它不是让 LLM 自由写文档，而是把代码 diff、反向索引、结构化规划、DAG 执行、断点恢复和质量评测串成一个可运行的工程系统。
+        </div>
+      </section>
+
+      <section id="story" class="section">
+        <h2>2. 面试讲述主线</h2>
+        <ol>
+          <li><b>先讲痛点：</b>代码变更后 Wiki 很容易腐烂，靠人补文档不稳定。</li>
+          <li><b>再讲输入输出：</b>输入是 commit message、changed files、unified diff；输出是被精确更新的 `.wiki/*.md` 页面。</li>
+          <li><b>讲核心链路：</b>Analyze 分析影响，Plan 生成结构化任务，Write 并行更新页面。</li>
+          <li><b>讲工程化：</b>反向索引、章节锚点、结构化输出、DAG 并发、checkpoint、沙箱、评测框架。</li>
+          <li><b>讲结果价值：</b>减少重复 LLM 调用，提升文档更新稳定性，可视化 Agent 执行过程，能被测试和评估。</li>
+        </ol>
+        <div class="gold callout">
+          <b>注意：</b>不要把重点放在“我调用了某个大模型”。重点应该放在“我如何让 LLM 在复杂任务里稳定、可控、可恢复、可评测地工作”。
+        </div>
+      </section>
+
+      <section id="architecture" class="section">
+        <h2>3. 逻辑架构</h2>
+        <div class="flow">
+          <div class="step"><b>VCS 层</b><small>Git / SVN 监控提交，提取 commit message、changed files、diff、revision。</small></div>
+          <div class="step"><b>索引层</b><small>读取 `.wiki/repowiki-metadata.json`，定位代码文件对应的 Wiki 页面和章节。</small></div>
+          <div class="step"><b>工作流层</b><small>把 YAML 工作流编译成 Python AST，再在受限沙箱中运行。</small></div>
+          <div class="step"><b>Agent 层</b><small>启动 diff-analyzer、wiki-planner、wiki-writer 等子 Agent，并限制工具和输出格式。</small></div>
+          <div class="step"><b>产品层</b><small>FastAPI + Vue 3 提供项目管理、SSE 进度、模型管理、质量检查和定时任务。</small></div>
+        </div>
+
+        <h3>架构分层</h3>
+        <table>
+          <thead>
+            <tr><th>层级</th><th>职责</th><th>对应代码</th><th>面试怎么讲</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>LLM Provider 层</td>
+              <td>统一 OpenAI、Anthropic、Gemini、DeepSeek 等模型调用、流式响应、价格和上下文能力。</td>
+              <td><code>packages/ai</code></td>
+              <td>避免业务代码绑定单一模型，方便切换和扩展 provider。</td>
+            </tr>
+            <tr>
+              <td>Agent Loop 层</td>
+              <td>处理消息循环、工具调用、工具结果回传、事件流和取消。</td>
+              <td><code>packages/agent</code></td>
+              <td>这是 Agent 的执行内核，负责让模型和工具形成闭环。</td>
+            </tr>
+            <tr>
+              <td>Wiki Agent 核心层</td>
+              <td>文档同步、工作流编译、DAG 调度、质量检查、评测。</td>
+              <td><code>packages/wiki-agent</code></td>
+              <td>项目最核心的业务层，体现 Agent 应用工程能力。</td>
+            </tr>
+            <tr>
+              <td>桌面服务层</td>
+              <td>REST / SSE API、项目配置、后台任务、模型管理。</td>
+              <td><code>desktop</code></td>
+              <td>把 Agent 能力产品化，让用户能看见进度和结果。</td>
+            </tr>
+            <tr>
+              <td>前端层</td>
+              <td>项目列表、同步入口、质量面板、设置页、新手引导。</td>
+              <td><code>frontend</code></td>
+              <td>不仅是算法，还提供了完整可用的 Agent 应用界面。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="pipeline" class="section">
+        <h2>4. 核心执行链路</h2>
+        <h3>一次提交同步发生了什么</h3>
+        <ol>
+          <li>用户选择项目和提交，系统从 VCS 获取变更文件、commit message、revision 和 diff。</li>
+          <li><code>WikiIndexer</code> 根据 changed files 查询反向索引，得到受影响的 Wiki 页面和章节。</li>
+          <li>系统把每个变更文件的 diff 写入 `.wiki/chain/diffs/&lt;revision&gt;/`，让后续 Agent 可以按文件读取。</li>
+          <li>加载内置或项目自定义 Agent 定义，例如 <code>diff-analyzer</code>、<code>wiki-planner</code>、<code>wiki-writer</code>。</li>
+          <li>加载 `.wiki/workflows/sync.yaml`，经 YAML → IR → AST → Python 编译为可执行工作流。</li>
+          <li>运行工作流：Analyze 分析 diff 影响，Plan 生成结构化任务，Write 按 DAG 并行更新 Wiki 页面。</li>
+          <li>执行过程中通过 SSE 把 phase、Agent 开始结束、工具调用、文本增量推给前端。</li>
+          <li>成功后清理临时 diff 和 checkpoint；如果失败，则保留 checkpoint 用于恢复。</li>
+        </ol>
+
+        <h3>三阶段 Agent 工作流</h3>
+        <table>
+          <thead>
+            <tr><th>阶段</th><th>Agent</th><th>输入</th><th>输出</th><th>为什么需要</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Analyze</td>
+              <td><code>diff-analyzer</code></td>
+              <td>commit message、changed files、diff、affected sections</td>
+              <td>每个变更对 Wiki 的影响分析</td>
+              <td>先理解代码变化，避免直接让写作 Agent 盲改文档。</td>
+            </tr>
+            <tr>
+              <td>Plan</td>
+              <td><code>wiki-planner</code></td>
+              <td>Analyze 输出</td>
+              <td><code>file_tasks</code> 和 <code>no_change_files</code></td>
+              <td>把自然语言分析变成结构化任务，后续才能并行执行和校验。</td>
+            </tr>
+            <tr>
+              <td>Write</td>
+              <td><code>wiki-writer</code></td>
+              <td>结构化任务、目标 Wiki 页面、章节信息</td>
+              <td>修改后的 Wiki 页面</td>
+              <td>只更新受影响章节，保留章节标记和 source 溯源。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <pre><code>commit diff
+  → reverse index 找到 affected sections
+  → Analyze Agent 理解变更
+  → Plan Agent 产出结构化 JSON 任务
+  → DAG 调度多个 Writer Agent
+  → 修改 .wiki/*.md
+  → quality checker / eval 验证结果</code></pre>
+      </section>
+
+      <section id="modules" class="section">
+        <h2>5. 模块拆解</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>1. 反向索引与 Wiki 格式</h3>
+            <p>Wiki 页面使用 <code>WIKI_SECTION</code> HTML 注释作为稳定锚点，用 <code>**source**:[...](file://...)</code> 建立 Wiki → 代码追溯，再用 <code>repowiki-metadata.json</code> 建立代码 → Wiki 的反向索引。</p>
+            <p><b>价值：</b>让 Agent 精确知道改哪个页面、哪个章节，而不是在长 Markdown 中猜位置。</p>
+          </div>
+
+          <div class="card">
+            <h3>2. 工作流编译器</h3>
+            <p>用户用 YAML 描述 phase、step、Agent、输出 schema 和执行模式。系统先解析成 IR 数据结构，再用 <code>WorkflowASTBuilder</code> 生成 Python AST，最后 <code>ast.unparse</code> 成脚本交给运行时。</p>
+            <p><b>价值：</b>工作流可配置，但执行逻辑仍然可控、可检查、可注入 checkpoint。</p>
+          </div>
+
+          <div class="card">
+            <h3>3. 运行时沙箱</h3>
+            <p><code>run_workflow()</code> 会解析脚本并检查危险 AST 节点，拒绝 <code>import</code>、<code>open</code>、<code>eval</code>、<code>exec</code>、<code>globals</code> 等能力，只注入安全 builtins 和 Agent 调用函数。</p>
+            <p><b>价值：</b>项目工作流可能来自用户仓库，不能直接执行不受限制的 Python。</p>
+          </div>
+
+          <div class="card">
+            <h3>4. WorkflowAgent 子 Agent</h3>
+            <p>每次 <code>agent()</code> 调用都会创建一个独立的 <code>WikiSession</code>。如果 step 声明 schema，会挂载 <code>structured_output</code> 工具，要求模型最终通过工具调用返回结构化结果。</p>
+            <p><b>价值：</b>每个子 Agent 有独立上下文、工具白名单和系统提示词，职责更清晰。</p>
+          </div>
+
+          <div class="card">
+            <h3>5. DAG 并行与断点续跑</h3>
+            <p>工作流支持 serial、parallel、dag、pipeline。DAG 模式下根据任务依赖做拓扑执行，并为 phase 或每个 task 生成 checkpoint 文件。</p>
+            <p><b>价值：</b>大型 Wiki 同步失败后不用重跑全部 LLM 调用，只恢复失败任务。</p>
+          </div>
+
+          <div class="card">
+            <h3>6. 桌面端与可观测性</h3>
+            <p>FastAPI 暴露 REST 和 SSE 接口，Vue 3 前端实时展示 phase、Agent、工具调用、生成文本、模型设置和质量检查结果。</p>
+            <p><b>价值：</b>Agent 不再是黑盒脚本，用户能看到它正在做什么。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="highlights" class="section">
+        <h2>6. 项目亮点</h2>
+        <table>
+          <thead>
+            <tr><th>亮点</th><th>技术实现</th><th>面试价值</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>DAG 多 Agent 编排</td>
+              <td>Planner 生成任务，Writer 按依赖关系并行执行。</td>
+              <td>体现你理解复杂 Agent 任务拆解，而不是单轮问答。</td>
+            </tr>
+            <tr>
+              <td>结构化输出</td>
+              <td><code>output_schema</code> 编译为 JSON Schema，运行时挂载 <code>structured_output</code> 工具。</td>
+              <td>回答 LLM 输出不稳定的问题。</td>
+            </tr>
+            <tr>
+              <td>YAML → AST 工作流编译器</td>
+              <td>YAML 解析成 IR，再生成 Python AST，统一注入 checkpoint、并发、日志和安全检查。</td>
+              <td>这是区别于普通业务 CRUD 的高级工程设计。</td>
+            </tr>
+            <tr>
+              <td>断点续跑</td>
+              <td>每个 phase 或 DAG task 写入 `.wiki/checkpoints/&lt;revision&gt;/`。</td>
+              <td>体现成本意识和生产可用性，LLM 调用失败很常见。</td>
+            </tr>
+            <tr>
+              <td>文档溯源</td>
+              <td>章节标记、source 链接、反向索引三件套。</td>
+              <td>把“让 LLM 写文档”变成可定位、可维护的系统。</td>
+            </tr>
+            <tr>
+              <td>质量检查和自动修复</td>
+              <td>扫描断链、过期内容、空章节、重复章节、HTML 实体等问题。</td>
+              <td>说明你考虑了 Agent 输出后的治理闭环。</td>
+            </tr>
+            <tr>
+              <td>评测框架</td>
+              <td>diff.txt + args.json + expected.json，结构断言、pass@k、LLM-as-Judge。</td>
+              <td>Agent 应用最难的是评估，你有系统化方案。</td>
+            </tr>
+            <tr>
+              <td>产品化</td>
+              <td>FastAPI + Vue 3 + SSE + Electron 打包。</td>
+              <td>证明你能把 Agent 能力做成用户可用工具。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="details" class="section">
+        <h2>7. 技术细节复习</h2>
+        <h3>为什么需要反向索引</h3>
+        <p>如果只把完整 diff 丢给 LLM，它需要自己判断哪些 Wiki 页面受影响，成本高且容易漏。反向索引把源文件映射到 Wiki 页面和章节，系统可以先用确定性逻辑缩小范围，再交给 Agent 做语义判断。</p>
+
+        <h3>为什么用 WIKI_SECTION 注释</h3>
+        <p>Markdown 标题会被模型改写，行号也会随内容变化而失效。HTML 注释对读者不可见，但对 Agent 和解析器稳定可见，适合作为章节边界。</p>
+
+        <h3>为什么 Plan 阶段要结构化输出</h3>
+        <p>Plan 阶段是后续执行的接口。如果它输出自然语言，Writer 阶段难以稳定解析，也无法做并行调度。结构化输出让任务包含 <code>wiki_page</code>、<code>section</code>、<code>action</code>、<code>instructions</code> 等字段，系统可以校验、调度和记录。</p>
+
+        <h3>为什么用 AST 而不是字符串拼接 Python</h3>
+        <p>AST 可以在生成代码前做结构化校验，避免字符串模板带来的语法错误和注入风险。并且 checkpoint、并发控制、日志、沙箱约束可以统一由编译器插入，而不需要每个工作流手写。</p>
+
+        <h3>为什么要断点续跑</h3>
+        <p>LLM 调用成本高、耗时长，也可能因为网络、限流或模型输出错误失败。断点续跑把每个阶段或任务变成可恢复单元，失败后只重跑未完成部分。</p>
+
+        <h3>为什么要 SSE</h3>
+        <p>Agent 执行时间长，而且中间会调用工具、并行运行多个子任务。SSE 适合服务端单向持续推送，让前端实时显示进度，不需要轮询。</p>
+
+        <h3>为什么要 LLM-as-Judge</h3>
+        <p>Wiki 文档质量不是简单字符串匹配能判断的。结构断言可以检查页面和章节是否被改，但事实正确性和覆盖完整性需要语义评估，所以引入 LLM Judge，并用结构化输出约束评分结果。</p>
+      </section>
+
+      <section id="questions" class="section">
+        <h2>8. 高频面试问题与回答要点</h2>
+
+        <div class="qa">
+          <div class="q">Q1：这个项目和普通 RAG / 聊天机器人有什么区别？</div>
+          <div class="a">普通聊天机器人主要解决问答，这个项目解决的是代码仓库里的持续文档维护。它不是只把上下文喂给模型，而是把 VCS、反向索引、工作流编排、工具调用、结构化输出、断点恢复和质量评测组合起来，让 Agent 能执行一个可落地的工程任务。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q2：为什么要拆成 Analyze、Plan、Write 三个阶段？</div>
+          <div class="a">因为直接让一个 Agent 从 diff 到修改文档，任务太大且不可控。Analyze 专注理解代码影响，Plan 专注把影响转成结构化任务，Write 专注执行具体页面修改。这样每个 Agent 职责单一，输出更容易校验，也方便并行和失败恢复。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q3：DAG 并行解决了什么问题？</div>
+          <div class="a">不同 Wiki 页面或章节通常可以独立更新，但有些任务之间存在依赖。DAG 允许没有依赖的任务并行执行，有依赖的任务按拓扑顺序执行。这样既能提升速度，又避免多个 Writer 同时修改互相关联内容导致冲突。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q4：LLM 输出不稳定怎么办？</div>
+          <div class="a">关键规划阶段不解析自由文本，而是使用 structured_output 工具强制模型按照 JSON Schema 返回结果。系统拿到结构化数据后可以做字段校验、枚举约束和任务调度。对于最终文档内容，则通过章节边界、source 链接和质量检查降低风险。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q5：为什么要做 YAML → AST 编译器？</div>
+          <div class="a">YAML 对用户友好，适合描述工作流；Python AST 对系统友好，适合插入并发、checkpoint、日志、结构化输出和安全限制。相比字符串拼接，AST 更可控，也能在执行前做静态检查。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q6：运行用户自定义工作流有没有安全风险？</div>
+          <div class="a">有，所以运行时做了沙箱约束。脚本执行前会遍历 AST，拒绝 import、open、eval、exec、globals 等危险操作。运行时只注入有限 builtins 和受控的 agent、checkpoint、log 等函数。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q7：断点续跑具体怎么设计？</div>
+          <div class="a">以 revision 作为 namespace，在 `.wiki/checkpoints/&lt;revision&gt;/` 下保存 phase 或 task 的结果。执行前先 load checkpoint，命中则跳过对应 LLM 调用；未命中则正常执行并 save。DAG for_each 模式下可以细到单个任务，例如 50 个任务完成 47 个后失败，下次只跑剩下 3 个。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q8：怎么判断哪些 Wiki 页面需要更新？</div>
+          <div class="a">系统维护 `.wiki/repowiki-metadata.json` 反向索引，记录 source file、wiki page、section id 的映射。提交发生后，根据 changed files 查索引，得到 affected sections，再把这些信息交给 Analyze 和 Plan 阶段。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q9：为什么不让 Agent 自己全仓库搜索？</div>
+          <div class="a">全仓库搜索成本高、慢、不稳定，而且容易引入无关上下文。确定性索引可以先把范围缩小到相关章节，Agent 只处理必要上下文，速度和准确性都会更好。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q10：如果多个 Writer 同时改同一个 Wiki 页面怎么办？</div>
+          <div class="a">Plan 阶段会尽量把同一页面的多个文件修改合并成一条任务；对于存在依赖关系的任务，可以通过 DAG 依赖控制执行顺序。后续还可以引入页面级锁或合并策略来增强并发写安全。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q11：质量检查器检查什么？</div>
+          <div class="a">主要分为可追溯性和新鲜度。可追溯性包括 source 链接是否存在、反向索引是否指向有效页面和源文件、是否有孤儿页面、索引章节是否已删除。新鲜度包括源文件是否比 Wiki 更新、空章节、重复章节、HTML 实体残留等。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q12：怎么评估 Agent 写得好不好？</div>
+          <div class="a">测试用例由 diff.txt、args.json、expected.json 组成。结构断言检查是否更新了预期页面和章节；多次运行计算 pass@k；LLM-as-Judge 从 correctness 和 completeness 两个维度评价内容是否准确、是否覆盖关键变更。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q13：为什么需要桌面端？</div>
+          <div class="a">Agent 工作流执行时间长，用户需要看到进度、工具调用、错误和结果。桌面端把命令行能力产品化，提供项目管理、同步触发、SSE 流式进度、质量面板、模型管理和定时任务配置。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q14：这个项目有哪些难点？</div>
+          <div class="a">难点不在调用 LLM，而在把 LLM 放进可靠系统里：任务如何拆分、输出如何约束、并发如何调度、失败如何恢复、上下文如何缩小、结果如何评估、用户如何观察执行过程。</div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q15：如果让你继续优化，你会做什么？</div>
+          <div class="a">可以从四个方向讲：一是把 JSON 反向索引升级为 SQLite 或 FTS，提高大仓库查询能力；二是增加页面级锁和冲突合并；三是引入更细粒度的成本和 token 监控；四是完善人工反馈闭环，把用户修正文档的行为反哺评测和提示词。</div>
+        </div>
+      </section>
+
+      <section id="codeqa" class="section">
+        <h2>9. 代码级追问与答案</h2>
+        <p>这一章用于应对面试官从“架构问题”继续追到“代码怎么实现”。回答时建议先说链路，再点出关键文件和函数，最后补一句设计取舍。</p>
+
+        <div class="qa">
+          <div class="q">Q1：FastAPI 请求进来后，workflow-sync 的完整调用链是什么？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>desktop/src/pi_wiki_desktop/api/v1/endpoints/workflow_sync.py</code> 的 <code>workflow_sync_commit_stream()</code>。</p>
+            <p>请求进入后，接口先通过 <code>load_projects()</code> 找项目配置，再用 <code>create_monitor(cfg["path"])</code> 获取 VCS monitor，通过 <code>monitor.get_commit(rev)</code> 取提交信息。然后加载 <code>sync.yaml</code>，创建 <code>asyncio.Queue</code> 承接 Agent 进度事件，定义 <code>on_agent_start</code>、<code>on_agent_end</code>、<code>on_phase</code>、<code>on_event</code> 这些回调。真正执行逻辑被包进内部协程 <code>_run_workflow()</code>，再交给 <code>run_background("workflow-sync", _run_workflow())</code> 后台执行。</p>
+            <p><b>面试回答：</b>“入口是 FastAPI 的 async endpoint，它在 uvicorn 的事件循环里运行。endpoint 不直接阻塞等待 Agent 完成，而是创建后台 task，同时通过 SSE 持续把 queue 里的进度事件返回给前端。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q2：<code>run_background()</code> 里的 <code>asyncio.create_task</code> 做了什么？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>desktop/src/pi_wiki_desktop/activity.py</code> 的 <code>run_background(label, coro)</code>。</p>
+            <p><code>asyncio.create_task(coro)</code> 会把 coroutine 包装成 <code>Task</code>，注册到当前正在运行的事件循环中，并安排它后续执行。因为调用链来自 FastAPI 的 <code>async def</code> endpoint，所以此时已经处于 uvicorn / Starlette 管理的 asyncio event loop 里。</p>
+            <p>项目里还会把 <code>id(task)</code> 记录到 <code>_active</code> 字典，用于桌面宠物或活动状态判断；<code>task.add_done_callback(lambda t: _active.pop(id(t), None))</code> 表示任务完成、异常或取消时自动清理活跃状态。</p>
+            <p><b>注意点：</b>如果在普通同步函数、且当前线程没有 running loop，直接调用 <code>asyncio.create_task</code> 会报 <code>RuntimeError: no running event loop</code>。</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q3：SSE 流式进度是怎么实现的？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>workflow_sync.py</code> 中的 <code>queue: asyncio.Queue[dict] = asyncio.Queue()</code>、<code>_event_stream()</code> 和 <code>StreamingResponse</code>。</p>
+            <p>后台任务执行 Agent 工作流，进度回调通过 <code>queue.put_nowait({...})</code> 写入事件。HTTP 响应这边的 <code>_event_stream()</code> 是一个 async generator，它循环 <code>await asyncio.wait_for(queue.get(), timeout=300)</code>，拿到事件后 yield 成 SSE 格式：<code>data: {...}\n\n</code>。</p>
+            <p>当事件类型是 <code>workflow_done</code> 时，流式响应会 <code>await task</code>，确认后台任务收尾完成，然后 return 结束连接。</p>
+            <p><b>面试回答：</b>“SSE 这块本质是生产者消费者模型。后台 Agent 是生产者，把事件写入 asyncio.Queue；StreamingResponse 是消费者，把事件按 SSE 协议推给浏览器。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q4：<code>execute_workflow_sync()</code> 具体负责什么？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow_sync.py</code> 的 <code>execute_workflow_sync()</code>。</p>
+            <p>它是“提交同步”到“工作流运行”的桥接层。主要步骤是：校验 changed files；用 <code>WikiIndexer(project_path).get_affected_sections(changed_files)</code> 查询受影响 Wiki 章节；创建 <code>.wiki/chain/diffs/&lt;revision&gt;/</code> 并写入每个文件的 diff；加载内置和项目自定义 Agent 定义；组装传给工作流的 <code>args</code>；将 YAML 工作流通过 <code>compile_workflow_yaml(script, agent_defs)</code> 编译成 Python 脚本；创建或复用 <code>WorkflowAgent</code>；最后调用 <code>run_workflow()</code>。</p>
+            <p><b>面试回答：</b>“这个函数不是具体写 Wiki 的地方，它负责准备上下文和运行环境，把 VCS 信息、反向索引、diff 文件、Agent 定义、模型和回调都接到 workflow engine 上。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q5：工作流 YAML 是怎么变成可执行逻辑的？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/ast_compiler/builder.py</code> 的 <code>WorkflowASTBuilder</code>。</p>
+            <p>链路是 YAML → IR → AST → Python。YAML 先解析成 <code>WorkflowDef</code>、<code>PhaseDef</code>、<code>StepDef</code> 这样的 IR 数据结构。<code>WorkflowASTBuilder.build()</code> 再按固定结构生成一个 <code>ast.Module</code>，包括 meta、初始化变量、checkpoint 元数据、各个 phase、清理逻辑和 return。</p>
+            <p>不同执行模式走不同构建函数：<code>_build_serial()</code>、<code>_build_parallel()</code>、<code>_build_dag()</code>、<code>_build_pipeline()</code>。这样 checkpoint、并发、日志、结构化输出等逻辑可以统一由编译器注入。</p>
+            <p><b>面试回答：</b>“我没有直接字符串拼接 Python，而是生成 AST。这样更容易做静态检查，也更容易统一插入 checkpoint 和并发控制。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q6：<code>run_workflow()</code> 如何保证用户工作流相对安全？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/workflow.py</code> 的 <code>parse_workflow_script()</code>、<code>_DeterminismVisitor</code> 和 <code>run_workflow()</code>。</p>
+            <p>执行前会先解析 Python AST，要求第一条语句是 literal 形式的 <code>meta</code>。随后 <code>_DeterminismVisitor</code> 遍历 AST，拒绝 <code>import</code>、<code>open()</code>、<code>eval()</code>、<code>exec()</code>、<code>compile()</code>、<code>globals()</code>、<code>locals()</code>、<code>__import__</code> 等危险能力。</p>
+            <p>运行时不是给完整 Python 环境，而是构建受限 <code>__builtins__</code>，再注入受控的 <code>agent</code>、<code>checkpoint</code>、<code>phase</code>、<code>log</code> 等函数。</p>
+            <p><b>边界：</b>这属于应用级沙箱，能拦住大部分明显危险操作，但如果要跑不可信第三方脚本，生产上还应该配合进程级隔离、容器或权限隔离。</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q7：结构化输出工具是怎么工作的？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/structured_output.py</code> 的 <code>create_structured_output_tool()</code>，以及 <code>workflow_agent.py</code> 的 <code>WorkflowAgent.run()</code>。</p>
+            <p>当 step 声明 schema 时，<code>WorkflowAgent.run()</code> 会创建 <code>StructuredOutputCapture</code>，并把 <code>create_structured_output_tool(schema, capture)</code> 追加到子 Agent 的工具列表中。这个工具的 <code>parameters</code> 就是 JSON Schema。</p>
+            <p>模型调用 <code>structured_output</code> 时，工具执行函数把参数保存到 <code>capture.value</code>，并设置 <code>capture.called = True</code>。子 Agent 结束后，<code>WorkflowAgent.run()</code> 如果发现 capture 被调用，就直接返回 <code>capture.value</code>，而不是解析自然语言。</p>
+            <p><b>面试回答：</b>“Plan 阶段的输出不是靠正则解析，而是把 JSON Schema 暴露成一个 terminating tool，让模型通过工具调用交付机器可读结果。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q8：子 Agent 是如何隔离和恢复的？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/workflow_agent.py</code> 的 <code>WorkflowAgent.run()</code>。</p>
+            <p>每次运行子 Agent 都会创建一个 <code>WikiSession</code>。如果有 <code>resume_from</code> 且文件存在，就通过 <code>SessionManager.open(resume_from)</code> 恢复已有会话；否则用 <code>SessionManager.in_memory(self.cwd)</code> 创建新会话，并记录 <code>last_session_path</code>。</p>
+            <p>每个子 Agent 可以有自己的 label、system prompt、active tools、skills 和 schema。事件回调会把文本增量、工具开始和工具结束等事件转发给上层 SSE。</p>
+            <p><b>面试回答：</b>“工作流里的 agent 调用不是复用一个大上下文硬塞所有任务，而是每个子任务创建独立会话。这样职责清晰，也方便从 session_path 恢复。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q9：checkpoint 断点续跑在代码里怎么落地？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/checkpoint.py</code> 的 <code>CheckpointStore</code>，以及 <code>builder.py</code> 中 <code>_build_serial()</code>、<code>_build_dag()</code>、<code>_build_dag_*_branch()</code>。</p>
+            <p><code>run_workflow()</code> 会注入 <code>CheckpointStore</code>，namespace 通常和 revision 绑定。AST builder 生成的代码会在每个 phase 执行前调用 <code>checkpoint.load()</code>，命中则跳过执行；未命中则运行 Agent，并在成功后 <code>checkpoint.save()</code>。</p>
+            <p>DAG + for_each 更细：每个任务有独立 checkpoint。代码生成里区分 cached branch、resume branch、fresh branch：已完成的直接用 value；有 session_path 但没有 value 的尝试恢复；完全没有记录的正常执行。</p>
+            <p><b>面试回答：</b>“断点不是业务函数里到处手写的，而是编译器生成的统一逻辑，所以所有执行模式都天然支持恢复。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q10：DAG 并行具体由谁负责？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>builder.py</code> 的 <code>_build_dag()</code>、<code>_build_dag_for_each_body()</code>。</p>
+            <p>YAML 中 phase 设置 <code>mode: dag</code> 后，编译器会生成 DAG 执行代码。任务 ID 和依赖来自 Planner 产出的任务字段或 step 配置。运行逻辑会根据依赖关系判断可执行任务，并配合并发限制执行多个 Agent。</p>
+            <p>这个设计把“任务依赖声明”和“执行调度实现”分开：LLM 或 YAML 只负责声明任务与依赖，调度、恢复、并发控制由引擎负责。</p>
+            <p><b>面试回答：</b>“DAG 不是让模型自己并行，而是模型输出任务结构，系统用确定性调度执行。这样可控性比让 Agent 自己决定下一步更强。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q11：质量检查器的实现思路是什么？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/core/wiki_quality.py</code> 的 <code>WikiQualityChecker.run_checks()</code>。</p>
+            <p>它先遍历 `.wiki/**/*.md` 页面，再读取 <code>repowiki-metadata.json</code>。P0 类检查关注可追溯性，例如 source 链接是否指向存在文件、索引里的页面和源文件是否存在、是否有 orphan page、索引章节是否已删除。P1 类检查关注新鲜度和格式，例如源文件修改时间是否晚于 Wiki、空章节、重复章节、HTML entity 残留、frontmatter related 格式。</p>
+            <p><b>面试回答：</b>“质量检查器是 Agent 输出后的治理层。它不依赖 LLM，先用确定性规则发现结构性问题，再把报告交给修复工作流。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q12：评测框架需要掌握到什么程度？</div>
+          <div class="a">
+            <p><span class="label">代码入口</span><code>packages/wiki-agent/src/pi_wiki_agent/eval/runner.py</code> 的 <code>TestRunner</code>。</p>
+            <p>你要能讲清 case 由 <code>diff.txt</code>、<code>args.json</code>、<code>expected.json</code> 组成。<code>TestRunner.run_all()</code> 遍历用例，<code>_run_one()</code> 负责重置 Wiki、执行 workflow、做结构断言，并在真实运行时调用 LLM Judge 评估内容正确性和完整性。</p>
+            <p><b>面试回答：</b>“我没有只靠人工看效果，而是把真实提交 diff 抽象成测试用例。结构断言负责确定性检查，LLM Judge 负责语义质量评估，重复运行可以算 pass@k。”</p>
+          </div>
+        </div>
+
+        <div class="qa">
+          <div class="q">Q13：哪些代码必须熟到可以现场讲？哪些知道即可？</div>
+          <div class="a">
+            <p><span class="label">必须熟</span><code>workflow_sync.py</code>、<code>workflow_sync.py endpoint</code>、<code>workflow.py</code>、<code>workflow_agent.py</code>、<code>builder.py</code>、<code>structured_output.py</code>、<code>activity.py</code>、<code>wiki_quality.py</code>。</p>
+            <p><span class="label">掌握思路</span><code>eval/runner.py</code>、<code>agent_loop.py</code>、<code>agent_session.py</code>、<code>indexer.py</code>、<code>frontend/app.js</code>。</p>
+            <p><span class="label">知道作用即可</span>Electron 打包、每个 provider 的 payload 细节、OAuth 细节、TUI 组件、每个前端交互样式。</p>
+            <p><b>面试回答：</b>“主链路和核心抽象我能讲实现；边缘模块我能讲它在系统里的职责和扩展方向，不需要逐行背。”</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="flowcharts" class="section">
+        <h2>10. 核心流程图</h2>
+        <p>这一章把面试时最容易被追问的三条调用链画成流程图：<code>workflow_sync_commit_stream()</code> 负责 HTTP/SSE 控制，<code>execute_workflow_sync()</code> 负责准备工作流上下文，<code>run_workflow()</code> 是实际运行 workflow 脚本的运行时内核。</p>
+        <div class="callout">
+          <b>复述顺序：</b>
+          先讲 FastAPI 如何接收请求并返回 SSE，再讲 execute_workflow_sync 如何准备 diff、索引、Agent 定义和 YAML 编译，最后讲 run_workflow 如何注入运行时 API 并在沙箱里执行工作流。
+        </div>
+
+        <h3>1. workflow_sync_commit_stream 请求与 SSE 控制流</h3>
+        <p>这个接口位于 <code>desktop/src/pi_wiki_desktop/api/v1/endpoints/workflow_sync.py</code>。它本身不直接写 Wiki，而是负责读取项目和提交、加载 workflow、启动后台任务，并通过 SSE 把 Agent 进度实时推给前端。</p>
+        <pre class="mermaid">
+flowchart TD
+    A["HTTP 请求进入&lt;br/&gt;POST /api/projects/{name}/workflow-sync/{rev}/stream"]
+    B["读取项目配置&lt;br/&gt;load_projects().get(name)"]
+    C{"项目存在?"}
+    D["返回 404&lt;br/&gt;项目不存在"]
+    E["创建 VCS monitor&lt;br/&gt;create_monitor(cfg['path'])"]
+    F["读取提交信息&lt;br/&gt;monitor.get_commit(rev)"]
+    G["确定 workflow 脚本名&lt;br/&gt;默认 sync.yaml"]
+    H["加载 workflow YAML&lt;br/&gt;_load_workflow_script()"]
+    I["创建 asyncio.Queue&lt;br/&gt;承接 Agent 进度事件"]
+    J["定义 SSE 回调&lt;br/&gt;on_agent_start / on_agent_end / on_phase / on_event"]
+    K["定义后台协程&lt;br/&gt;_run_workflow()"]
+    L["run_background 创建后台任务&lt;br/&gt;asyncio.create_task"]
+    M["定义 SSE 事件流&lt;br/&gt;_event_stream()"]
+    N["返回 StreamingResponse&lt;br/&gt;media_type=text/event-stream"]
+    O["后台执行 execute_workflow_sync()"]
+    P["workflow 运行中&lt;br/&gt;phase / agent / tool 事件"]
+    Q["事件写入 queue&lt;br/&gt;queue.put / put_nowait"]
+    R["SSE 从 queue 读取事件&lt;br/&gt;await queue.get()"]
+    S["推送给前端&lt;br/&gt;yield data: JSON"]
+    T{"事件类型是 workflow_done?"}
+    U["继续等待下一个事件"]
+    V["await task&lt;br/&gt;确认后台任务结束"]
+    W["结束 SSE 连接"]
+
+    A --> B --> C
+    C -- 否 --> D
+    C -- 是 --> E --> F --> G --> H --> I --> J --> K --> L --> M --> N
+    L --> O --> P --> Q
+    M --> R --> S --> T
+    Q --> R
+    T -- 否 --> U --> R
+    T -- 是 --> V --> W
+        </pre>
+
+        <h3>2. execute_workflow_sync 工作流同步编排</h3>
+        <p><code>execute_workflow_sync()</code> 位于 <code>packages/wiki-agent/src/pi_wiki_agent/core/workflow_sync.py</code>。它是同步编排器，负责准备工作流需要的全部上下文，包括受影响 Wiki 章节、临时 diff 文件、Agent 定义、模型、trace/replay 配置，并最终调用 <code>run_workflow()</code>。</p>
+        <pre class="mermaid">
+flowchart TD
+    A["execute_workflow_sync() 被调用&lt;br/&gt;来自 workflow_sync_commit_stream 的后台任务"]
+    B["导入 workflow 运行器&lt;br/&gt;WorkflowRunOptions / run_workflow"]
+    C["记录启动日志&lt;br/&gt;project / changed_files / revision"]
+    D{"changed_files 为空?"}
+    E["抛出 ValueError&lt;br/&gt;changed_files is empty or None"]
+    F["规范化输入&lt;br/&gt;commit_message / diff 默认为空字符串"]
+    G["创建 WikiIndexer&lt;br/&gt;WikiIndexer(project_path)"]
+    H["查询受影响 Wiki 章节&lt;br/&gt;get_affected_sections(changed_files)"]
+    I["格式化 affected sections&lt;br/&gt;_format_affected_sections(affected)"]
+    J["创建工作目录&lt;br/&gt;.wiki/chain"]
+    K["创建 diffs 目录&lt;br/&gt;.wiki/chain/diffs/{revision}"]
+    L["创建 VCS monitor&lt;br/&gt;create_monitor(project_path)"]
+    M["写入每个文件的 diff&lt;br/&gt;monitor.write_file_diffs(...)"]
+    N["加载 workflow agent 定义&lt;br/&gt;_load_workflow_agent_defs(project_path)"]
+    O["组装 workflow args&lt;br/&gt;project_path / changed_files / diff / affected_sections / revision / agent_defs"]
+    P{"extra_args 存在?"}
+    Q["合并 extra_args&lt;br/&gt;args.update(extra_args)"]
+    R{"是否已传入 agent?"}
+    S["解析模型&lt;br/&gt;_resolve_model(model, model_registry)"]
+    T["编译 YAML workflow&lt;br/&gt;compile_workflow_yaml(script, agent_defs)"]
+    U{"是否已传入 agent?"}
+    V["创建 WorkflowAgent&lt;br/&gt;WorkflowAgent(cwd=project_path, model=resolved_model, ...)"]
+    W["处理 record / replay 模式&lt;br/&gt;PI_WIKI_TRACE_MODE / PI_WIKI_TRACE_FILE"]
+    X["确定并发数&lt;br/&gt;replay/record 时 concurrency=1&lt;br/&gt;否则 concurrency=8"]
+    Y["调用 run_workflow()&lt;br/&gt;传入 script + WorkflowRunOptions"]
+    Z["workflow 引擎执行&lt;br/&gt;Analyze / Plan / Write 多 Agent 流程"]
+    AA["记录最终结果日志"]
+    AB["清理临时 diff 目录&lt;br/&gt;shutil.rmtree(diffs_dir)"]
+    AC["返回 WorkflowRunResult"]
+
+    A --> B --> C --> D
+    D -- 是 --> E
+    D -- 否 --> F --> G --> H --> I --> J --> K --> L --> M --> N --> O --> P
+    P -- 是 --> Q --> R
+    P -- 否 --> R
+    R -- 否 --> S --> T
+    R -- 是 --> T
+    T --> U
+    U -- 否 --> V --> W
+    U -- 是 --> W
+    W --> X --> Y --> Z --> AA --> AB --> AC
+        </pre>
+
+        <h3>3. run_workflow 工作流运行时内核</h3>
+        <p><code>run_workflow()</code> 位于 <code>packages/wiki-agent/src/pi_wiki_agent/core/workflow/workflow.py</code>。它像一个小型 workflow 虚拟机：解析脚本，创建运行状态，注入 <code>agent</code>、<code>parallel</code>、<code>pipeline</code>、<code>dag</code>、<code>checkpoint</code> 等 API，然后在受限沙箱中执行生成出来的 <code>__workflow__()</code>。</p>
+        <pre class="mermaid">
+flowchart TD
+    A["run_workflow(script, options) 被调用"]
+    B["初始化 options 和开始时间&lt;br/&gt;options = options or WorkflowRunOptions()"]
+    C["解析 workflow 脚本&lt;br/&gt;parse_workflow_script(script)"]
+    D["得到 meta 和 body&lt;br/&gt;meta: 工作流元信息&lt;br/&gt;body: 实际执行代码"]
+    E["初始化运行状态 state&lt;br/&gt;current_phase / logs / phases / agent_count / spent"]
+    F{"是否传入 options.agent?"}
+    G["使用外部注入的 agent_runner&lt;br/&gt;通常是 WorkflowAgent"]
+    H["创建默认 WorkflowAgent&lt;br/&gt;cwd / model / registry / auth_storage"]
+    I["计算并发数&lt;br/&gt;默认 min(cpu_count - 2, 16)"]
+    J["创建 asyncio.Semaphore&lt;br/&gt;控制 agent 并发"]
+    K["读取取消信号&lt;br/&gt;signal = options.signal"]
+    L["定义内部工具函数&lt;br/&gt;_check_aborted / _log / _phase / _Budget"]
+    M["定义 _agent()&lt;br/&gt;封装一次子 Agent 调用"]
+    N["定义 _parallel()&lt;br/&gt;并发执行 thunks"]
+    O["定义 _pipeline()&lt;br/&gt;items 依次经过多个 stage"]
+    P["定义 _dag()&lt;br/&gt;校验 DAG + 环检测 + 拓扑并发执行"]
+    Q["创建 CheckpointStore&lt;br/&gt;.wiki/checkpoints/{commit_hash}"]
+    R["定义 agent_session_path()&lt;br/&gt;返回最近一次子 Agent session 路径"]
+    S["构造 sandbox_globals&lt;br/&gt;注入运行时 API / args / cwd / safe builtins"]
+    T["把 body 包装成异步函数&lt;br/&gt;async def __workflow__()"]
+    U["exec(wrapper, sandbox_globals, local_vars)&lt;br/&gt;定义 __workflow__"]
+    V["await __workflow__()&lt;br/&gt;执行编译后的 workflow body"]
+    W["校验 result 可 JSON 序列化&lt;br/&gt;_assert_serializable()"]
+    X["组装 WorkflowRunResult&lt;br/&gt;meta / result / logs / phases / agent_count / duration_ms"]
+    Y["返回 WorkflowRunResult"]
+
+    A --> B --> C --> D --> E --> F
+    F -- 是 --> G --> I
+    F -- 否 --> H --> I
+    I --> J --> K --> L --> M --> N --> O --> P --> Q --> R --> S --> T --> U --> V --> W --> X --> Y
+        </pre>
+
+        <h3>4. run_workflow 中 agent(...) 的子流程</h3>
+        <p>工作流脚本里每次调用 <code>agent(...)</code>，都会进入 <code>run_workflow()</code> 内部定义的 <code>_agent()</code>。这里负责解析 agent 选项、读取 agent definition、触发 SSE 回调、进入 <code>WorkflowAgent.run()</code> 执行真正的 LLM 子任务。</p>
+        <pre class="mermaid">
+flowchart TD
+    A["workflow body 中调用 agent(...)"]
+    B["_agent() 检查 abort&lt;br/&gt;检查 token budget"]
+    C["规范化 agent options&lt;br/&gt;label / phase / schema / agent name / resume_from"]
+    D{"是否指定 agent 定义名?"}
+    E["从 options.args['agent_defs'] 读取定义&lt;br/&gt;tools / system_prompt / skills / model"]
+    F["进入 semaphore&lt;br/&gt;限制并发 Agent 数"]
+    G["触发 on_agent_start 回调&lt;br/&gt;前端可收到 SSE"]
+    H["构造 instructions 和 run_kwargs"]
+    I["调用 agent_runner.run()&lt;br/&gt;实际进入 WorkflowAgent.run()"]
+    J["子 Agent 执行 LLM + 工具调用"]
+    K["估算 token spent&lt;br/&gt;记录日志"]
+    L["触发 on_agent_end 回调"]
+    M["返回子 Agent 结果"]
+
+    A --> B --> C --> D
+    D -- 是 --> E --> F
+    D -- 否 --> F
+    F --> G --> H --> I --> J --> K --> L --> M
+        </pre>
+      </section>
+
+        <h3>5. dag() 内部拓扑调度流程</h3>
+        <p><code>dag()</code> 是 <code>run_workflow()</code> 内部注入给工作流脚本的运行时 API。它接收任务列表，每个任务包含 <code>id</code>、<code>fn</code> 和 <code>depends_on</code>，先做结构校验和环检测，再用类似 Kahn 算法的 ready 队列批量并发执行可运行任务。<code>seed</code> 用于注入已经完成的任务结果，配合 checkpoint 实现断点续跑。</p>
+        <pre class="mermaid">
+flowchart TD
+    A["workflow body 调用 dag(tasks, seed)"]
+    B["检查 tasks 是 list&lt;br/&gt;空列表直接返回 {}"]
+    C["规范化 seed&lt;br/&gt;seed = seed or {}"]
+    D["校验 task 结构&lt;br/&gt;每个 task 必须是 dict"]
+    E["校验 id&lt;br/&gt;必须是非空字符串且不能重复"]
+    F["校验 fn&lt;br/&gt;必须是 callable"]
+    G["校验 depends_on&lt;br/&gt;必须是字符串列表"]
+    H["构建 task_map&lt;br/&gt;id -> task"]
+    I["校验依赖引用存在&lt;br/&gt;dep 必须在 task_map 中"]
+    J["DFS 三色标记环检测&lt;br/&gt;WHITE / GRAY / BLACK"]
+    K{"发现环?"}
+    L["抛出 ValueError&lt;br/&gt;dag has a cycle"]
+    M["构建 in_degree&lt;br/&gt;每个任务剩余依赖数"]
+    N["构建 dependents&lt;br/&gt;每个任务完成后影响哪些后继"]
+    O["合并 seed 已完成结果&lt;br/&gt;已有 value 的任务直接写入 results"]
+    P["降低 seed 后继节点入度&lt;br/&gt;让可恢复任务继续往后跑"]
+    Q["生成 ready 队列&lt;br/&gt;入度为 0 且尚未完成"]
+    R{"ready 为空?"}
+    S["并发执行当前 ready batch&lt;br/&gt;asyncio.gather(_run_one(...))"]
+    T["_run_one 检查依赖是否失败&lt;br/&gt;失败则跳过当前任务"]
+    U["调用 task['fn']()&lt;br/&gt;执行实际任务函数"]
+    V{"任务结果为 None 或异常?"}
+    W["记录 failed&lt;br/&gt;result = None"]
+    X["记录成功结果&lt;br/&gt;results[tid] = result"]
+    Y["降低后继节点 in_degree"]
+    Z["收集下一批 ready"]
+    AA["补齐未处理任务为 None&lt;br/&gt;通常是失败依赖的后代"]
+    AB["返回 results&lt;br/&gt;{task_id: result}"]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+    K -- 是 --> L
+    K -- 否 --> M --> N --> O --> P --> Q --> R
+    R -- 否 --> S --> T --> U --> V
+    V -- 是 --> W --> Y
+    V -- 否 --> X --> Y
+    Y --> Z --> R
+    R -- 是 --> AA --> AB
+        </pre>
+
+        <div class="callout">
+          <b>面试讲法：</b>
+          <code>dag()</code> 的关键不是让模型自己并行，而是让模型或工作流声明任务依赖，运行时用确定性算法调度。它先防御性校验任务结构和环，再利用 ready 队列最大化并发；同时通过 <code>seed</code> 接入 checkpoint，已经完成的任务不会重复跑。
+        </div>
+      <section id="interviewqa" class="section">
+        <h2>11. 面试追问库与参考答案</h2>
+        <p>这一章模拟面试官沿着 <code>workflow_sync_commit_stream → execute_workflow_sync → run_workflow → dag/agent</code> 这条链路逐层追问。回答时建议采用“三段式”：先给结论，再说代码入口，最后讲设计取舍或风险。</p>
+        <div class="callout">
+          <b>高频核心：</b>
+          三阶段 Agent、YAML → AST → sandbox、DAG 拓扑调度、checkpoint 断点恢复、SSE + background task + queue，这五块最容易被深挖。
+        </div>
+
+        <h3>一、整体链路</h3>
+        <div class="qa"><div class="q">Q1：你能从一次前端点击“同步”开始，完整讲一下请求到 Agent 执行结束的链路吗？</div><div class="a">前端请求 <code>/api/projects/{name}/workflow-sync/{rev}/stream</code>，FastAPI 读取项目配置和 commit，加载 workflow YAML，创建 <code>asyncio.Queue</code> 和 SSE 回调，然后用 <code>run_background()</code> 启动后台任务。后台进入 <code>execute_workflow_sync()</code> 准备 diff、索引、Agent 定义并编译 YAML，最后由 <code>run_workflow()</code> 执行 Analyze / Plan / Write，多 Agent 进度通过 queue 推给 SSE。</div></div>
+        <div class="qa"><div class="q">Q2：<code>workflow_sync_commit_stream()</code> 为什么不直接 <code>await execute_workflow_sync()</code>，而是用 <code>run_background()</code>？</div><div class="a">因为 workflow 是长耗时任务，如果直接 await，接口虽然也能等结果，但无法优雅地边执行边推送进度。后台 task 负责运行 Agent，SSE generator 负责持续读取 queue 并返回事件，两者解耦后前端能实时看到阶段、工具调用和最终状态。</div></div>
+        <div class="qa"><div class="q">Q3：这个接口为什么选择 SSE，而不是 WebSocket 或普通轮询？</div><div class="a">这里是服务端单向推送：后端不断把 Agent 进度发给前端，前端不需要持续双向通信。SSE 比 WebSocket 简单，天然基于 HTTP，适合日志和进度流；轮询会增加延迟和请求开销，也不适合 token 流式输出。</div></div>
+        <div class="qa"><div class="q">Q4：如果前端断开 SSE 连接，后台 workflow 还会继续跑吗？</div><div class="a">按当前结构，后台任务已经通过 <code>asyncio.create_task()</code> 加入事件循环，通常会继续运行。SSE 断开只影响事件消费端，不会自动取消后台 task。要实现断开即取消，需要在 StreamingResponse 或 request disconnect 检测里显式设置取消信号。</div></div>
+        <div class="qa"><div class="q">Q5：<code>workflow_done</code> 事件什么时候发？如果中间异常了，前端会收到什么？</div><div class="a"><code>_run_workflow()</code> 成功执行完 <code>execute_workflow_sync()</code> 后会 put 一个 <code>success: true</code> 的 <code>workflow_done</code>。如果异常，会记录失败状态并 put <code>success: false</code> 和 <code>error</code> 字段，SSE 读到 <code>workflow_done</code> 后 <code>await task</code> 并结束连接。</div></div>
+
+        <h3>二、FastAPI / asyncio</h3>
+        <div class="qa"><div class="q">Q6：<code>asyncio.create_task()</code> 在这里创建的 task 属于哪个事件循环？</div><div class="a">属于当前 FastAPI 请求所在的 running event loop，也就是 uvicorn / Starlette 管理的 asyncio 事件循环。因为 endpoint 是 <code>async def</code>，调用 <code>run_background()</code> 时已经在事件循环上下文里。</div></div>
+        <div class="qa"><div class="q">Q7：如果这个接口从 <code>def</code> endpoint 里调用 <code>create_task()</code> 会怎样？</div><div class="a">普通 <code>def</code> endpoint 通常在线程池里执行，当前线程不一定有 running event loop，直接 <code>asyncio.create_task()</code> 可能抛 <code>RuntimeError: no running event loop</code>。所以这类后台异步任务适合从 <code>async def</code> endpoint 调用。</div></div>
+        <div class="qa"><div class="q">Q8：<code>asyncio.Queue</code> 在这里起什么作用？为什么不直接在回调里 <code>yield</code>？</div><div class="a">Queue 是后台任务和 SSE generator 之间的异步桥梁。Agent 回调是由 workflow 执行过程触发的，不能直接控制 HTTP 响应的 yield；通过 queue，生产者只管 put 事件，消费者只管按 SSE 协议 yield。</div></div>
+        <div class="qa"><div class="q">Q9：<code>_event_stream()</code> 里面为什么要 <code>await task</code>？</div><div class="a">收到 <code>workflow_done</code> 后说明后台逻辑已经放出了最终事件，但 <code>await task</code> 可以确保后台协程真正收尾完成。如果后台 task 有未传播的异常，这里也能让异常进入 await 流程，避免静默悬挂。</div></div>
+        <div class="qa"><div class="q">Q10：如果后台任务永远不往 queue 里写数据，SSE 会怎样？</div><div class="a"><code>_event_stream()</code> 使用 <code>asyncio.wait_for(queue.get(), timeout=300)</code>。如果超时没有事件，会发送一个 <code>{"type": "timeout"}</code>，然后结束连接，避免 HTTP 连接无限挂住。</div></div>
+
+        <h3>三、execute_workflow_sync</h3>
+        <div class="qa"><div class="q">Q11：<code>execute_workflow_sync()</code> 的职责边界是什么？它和 <code>run_workflow()</code> 分别负责什么？</div><div class="a"><code>execute_workflow_sync()</code> 是同步编排器，负责准备上下文：changed files、affected sections、diff 文件、agent_defs、模型、并发和 trace/replay。<code>run_workflow()</code> 是运行时内核，负责执行已经编译好的 workflow 脚本，注入 <code>agent/dag/checkpoint</code> 等运行时 API。</div></div>
+        <div class="qa"><div class="q">Q12：为什么一开始要用 <code>WikiIndexer.get_affected_sections(changed_files)</code>？</div><div class="a">这是用确定性索引先缩小上下文范围。changed files 可以映射到具体 Wiki 页面和章节，Agent 不必全仓库猜哪些文档相关，能降低 token 成本、减少误改和漏改。</div></div>
+        <div class="qa"><div class="q">Q13：如果没有反向索引，能不能直接把完整 diff 丢给 Agent？缺点是什么？</div><div class="a">可以做 demo，但生产效果差。完整 diff 会带来高 token 成本、相关页面定位不稳定、长上下文遗漏、误改无关章节等问题。反向索引把“查找范围”交给确定性代码，把“语义判断”交给 Agent。</div></div>
+        <div class="qa"><div class="q">Q14：为什么要把每个文件的 diff 写到 <code>.wiki/chain/diffs/{revision}</code>？</div><div class="a">这样每个子 Agent 可以按需读取具体文件 diff，而不是所有上下文都塞进 prompt。它也让调试和复现更容易：某个 revision 的输入被落盘，Agent 可以通过工具读取。</div></div>
+        <div class="qa"><div class="q">Q15：<code>_load_workflow_agent_defs()</code> 加载内置 Agent 和项目自定义 Agent 时，谁的优先级更高？为什么？</div><div class="a">内置 Agent 先加载，项目目录 <code>.wiki/workflows/agents/*.md</code> 后加载并覆盖同名定义。这样系统有默认能力，同时允许项目按自己的仓库规范定制 prompt、工具和模型。</div></div>
+
+        <h3>四、WorkflowAgent / WikiSession</h3>
+        <div class="qa"><div class="q">Q16：<code>WorkflowAgent</code> 和 <code>WikiSession</code> 的关系是什么？</div><div class="a"><code>WorkflowAgent</code> 是工作流里的子 Agent runner，负责根据每个 step 创建并运行子任务；<code>WikiSession</code> 是具体 Agent 会话，里面包含模型、工具、system prompt、消息历史和事件流。</div></div>
+        <div class="qa"><div class="q">Q17：为什么每次子 Agent 调用都新建一个 <code>WikiSession</code>？</div><div class="a">这样每个子任务上下文隔离，角色提示词、工具白名单、结构化输出工具和 session_path 都能独立管理。它也方便断点恢复：失败时可以根据某个子 Agent 的 session 文件继续。</div></div>
+        <div class="qa"><div class="q">Q18：<code>WorkflowAgent.run()</code> 中 <code>full_prompt</code>、<code>system_prompt</code>、<code>instructions</code> 分别承载什么？</div><div class="a"><code>system_prompt</code> 是角色级长期约束，来自 agent definition；<code>instructions</code> 是 workflow runtime 根据 phase/schema 生成的额外执行要求；<code>full_prompt</code> 是本次任务消息，包含 label、任务内容和结构化输出约束。</div></div>
+        <div class="qa"><div class="q">Q19：skill prompt 可能重复，具体是哪两条路径导致的？</div><div class="a">一条是在 <code>WorkflowAgent.run()</code> 根据 <code>skill_names</code> 把 <code>format_skills_for_prompt()</code> 拼进 <code>full_prompt</code>；另一条是在 <code>WikiSession.__init__()</code> 把 <code>skills</code> 拼进 system prompt。如果两边包含同一批 skill，就会重复出现 available_skills 说明。</div></div>
+        <div class="qa"><div class="q">Q20：<code>structured_output</code> 工具为什么作为 extra tool 注入，而不是让模型直接输出 JSON 文本？</div><div class="a">工具调用有 schema 约束和明确的调用边界，参数由工具系统校验并捕获。直接输出 JSON 文本容易出现 markdown 包裹、格式错误、字段缺失或解释性文字混入，后续调度会不稳定。</div></div>
+
+        <h3>五、run_workflow 运行时</h3>
+        <div class="qa"><div class="q">Q21：为什么说 <code>run_workflow()</code> 像一个“小型工作流虚拟机”？</div><div class="a">它解析 workflow body，创建运行状态，注入 <code>agent/parallel/pipeline/dag/checkpoint/log/phase</code> 等运行时 API，再在受限 globals 中执行 <code>__workflow__()</code>。workflow 脚本实际运行在它提供的运行时环境里。</div></div>
+        <div class="qa"><div class="q">Q22：<code>parse_workflow_script()</code> 为什么要求第一句必须是 <code>meta = {...}</code>？</div><div class="a">meta 是工作流的声明信息，包括名称、描述和 phases。强制放在第一句可以先静态解析工作流元信息，便于 UI 展示、校验和结果返回，也避免执行 body 后才知道工作流是什么。</div></div>
+        <div class="qa"><div class="q">Q23：<code>run_workflow()</code> 注入了哪些运行时 API？各自干什么？</div><div class="a">核心 API 包括：<code>agent</code> 调子 Agent，<code>parallel</code> 并发执行函数列表，<code>pipeline</code> 让数据经过多阶段处理，<code>dag</code> 按依赖拓扑执行任务，<code>checkpoint</code> 做断点保存/恢复，<code>phase/log</code> 做可观测性，<code>args/cwd/budget</code> 提供上下文。</div></div>
+        <div class="qa"><div class="q">Q24：<code>sandbox_globals</code> 里为什么要限制 <code>__builtins__</code>？</div><div class="a">workflow 可能来自项目目录，不能给它完整 Python 权限。限制 builtins 可以减少文件访问、动态执行、导入和反射等风险，只暴露工作流真正需要的安全能力。</div></div>
+        <div class="qa"><div class="q">Q25：<code>_DeterminismVisitor</code> 禁止了哪些操作？这能完全保证安全吗？</div><div class="a">它会拒绝 <code>import</code>、<code>open</code>、<code>eval</code>、<code>exec</code>、<code>compile</code>、<code>globals</code>、<code>locals</code>、<code>__import__</code> 等危险操作。它是应用级防护，不等于强安全沙箱；对不可信代码，仍建议进程、容器或系统权限隔离。</div></div>
+
+        <h3>六、DAG 调度</h3>
+        <div class="qa"><div class="q">Q26：<code>dag()</code> 的输入数据结构是什么？</div><div class="a">输入是 task dict 列表，每个 task 至少包含 <code>id</code>、<code>fn</code>、<code>depends_on</code>。<code>id</code> 是唯一任务标识，<code>fn</code> 是可 await 的任务函数，<code>depends_on</code> 表示前置依赖列表。</div></div>
+        <div class="qa"><div class="q">Q27：为什么要先校验 task 的 <code>id</code>、<code>fn</code>、<code>depends_on</code>？</div><div class="a">DAG 调度依赖结构正确性。id 不唯一会覆盖结果，fn 不可调用无法执行，depends_on 类型错误会导致拓扑计算不可靠。提前失败比执行到一半才报错更好定位。</div></div>
+        <div class="qa"><div class="q">Q28：三色 DFS 环检测是怎么工作的？</div><div class="a">每个节点有 WHITE、GRAY、BLACK 三种状态。DFS 进入节点标 GRAY，退出标 BLACK；如果遍历依赖时遇到 GRAY 节点，说明回到了当前递归栈中的节点，也就是存在环。</div></div>
+        <div class="qa"><div class="q">Q29：Kahn 算法在这里是怎么体现的？</div><div class="a">代码先计算每个任务的 <code>in_degree</code>，即剩余依赖数。入度为 0 的任务进入 ready 队列并并发执行；任务完成后降低后继节点入度，新的 0 入度节点进入下一批 ready。</div></div>
+        <div class="qa"><div class="q">Q30：<code>ready</code> 队列代表什么？</div><div class="a"><code>ready</code> 代表当前所有依赖都已满足、可以立即运行的任务集合。每一轮 ready 可以用 <code>asyncio.gather</code> 并发执行，从而最大化利用并发。</div></div>
+        <div class="qa"><div class="q">Q31：如果某个任务失败了，它的后继任务怎么处理？</div><div class="a">失败任务会加入 <code>failed</code> 集合。后继任务执行前会检查依赖是否失败，如果依赖失败则跳过当前任务并返回 None，避免基于不完整结果继续生成错误内容。</div></div>
+        <div class="qa"><div class="q">Q32：<code>seed</code> 参数是干什么的？它和 checkpoint 怎么配合？</div><div class="a"><code>seed</code> 表示已经完成的任务结果。DAG 开始时会把 seed 中非 None 的结果写入 results，并降低其后继任务入度。checkpoint 恢复时可以把已完成 task 作为 seed 注入，避免重复跑 LLM。</div></div>
+        <div class="qa"><div class="q">Q33：如果两个任务都修改同一个 Wiki 页面，并且没有依赖关系，会有什么风险？怎么改进？</div><div class="a">风险是并发写冲突或后写覆盖先写。可以在 Plan 阶段合并同页任务，也可以在运行时加页面级锁，或者让 DAG 自动按 <code>wiki_page</code> 建立互斥依赖。</div></div>
+
+        <h3>七、checkpoint / 恢复</h3>
+        <div class="qa"><div class="q">Q34：checkpoint 的 namespace 为什么用 <code>commit_hash</code>？</div><div class="a">commit_hash 能把一次提交对应的工作流状态隔离开，避免不同提交的 Analyze/Plan/Write 结果互相污染。同一个 revision 重跑时又能找到之前留下的断点。</div></div>
+        <div class="qa"><div class="q">Q35：phase 级 checkpoint 和 DAG task 级 checkpoint 有什么区别？</div><div class="a">phase 级 checkpoint 保存整个阶段输出，适合 serial/parallel/pipeline 的阶段恢复。DAG task 级 checkpoint 保存单个任务结果，适合 Write 这种多任务阶段，失败后只重跑未完成任务。</div></div>
+        <div class="qa"><div class="q">Q36：为什么 checkpoint 里还要保存 <code>session_path</code>？</div><div class="a"><code>value</code> 表示已完成结果，<code>session_path</code> 表示子 Agent 的会话文件。若任务中断但有会话记录，可以从 session_path 恢复上下文，而不是完全从头开始。</div></div>
+        <div class="qa"><div class="q">Q37：如果 50 个 Writer 任务执行到第 47 个失败，下次重跑会发生什么？</div><div class="a">已完成的 46 个或 47 个任务会命中 task checkpoint，直接作为 seed 或缓存结果跳过；只有失败和未完成的任务会重新执行，大幅减少 LLM 成本和等待时间。</div></div>
+        <div class="qa"><div class="q">Q38：workflow 成功后为什么要清理 checkpoint？什么情况下会保留？</div><div class="a">成功后清理可以避免旧状态影响后续运行，也减少磁盘垃圾。调试、失败恢复或请求传入 <code>keep_checkpoint</code> 时可以保留，用于分析中间结果。</div></div>
+        <div class="qa"><div class="q">Q39：如果 workflow YAML 改了，但 commit hash 没变，旧 checkpoint 会不会造成错误恢复？</div><div class="a">有这个风险。当前 namespace 主要按 commit 隔离，如果 workflow 逻辑变了但 namespace 不变，可能复用旧阶段结果。改进方式是在 checkpoint meta 中加入 workflow 名称、脚本 hash 或版本，发现不一致就失效。</div></div>
+
+        <h3>八、结构化输出</h3>
+        <div class="qa"><div class="q">Q40：<code>output_schema</code> 是在哪里被转成 JSON Schema 的？</div><div class="a">YAML 工作流先被 AST compiler 解析，<code>output_schema</code> 简写会被编译成标准 JSON Schema，并作为 <code>schema</code> 传给 <code>agent(...)</code>。运行时 <code>WorkflowAgent.run()</code> 根据 schema 注入 <code>structured_output</code> 工具。</div></div>
+        <div class="qa"><div class="q">Q41：Planner 为什么必须走结构化输出？</div><div class="a">Planner 的输出会直接驱动后续 Writer 任务和 DAG 调度，必须机器可读。结构化输出可以保证字段如 <code>wiki_page</code>、<code>section</code>、<code>action</code>、<code>instructions</code> 明确存在，避免解析自由文本。</div></div>
+        <div class="qa"><div class="q">Q42：如果模型没有调用 <code>structured_output</code> 工具怎么办？</div><div class="a">当前 <code>WorkflowAgent.run()</code> 会优先检查 capture；如果没有捕获到结构化输出，就退回取最后 assistant 文本。这说明任务没有满足契约，实际生产中应当把这种情况视为错误或触发重试。</div></div>
+        <div class="qa"><div class="q">Q43：结构化输出能解决所有幻觉问题吗？还需要什么？</div><div class="a">不能。结构化输出只能保证形状稳定，不保证内容真实。还需要 source 约束、文件读取工具、质量检查器、结构断言、LLM Judge 和人工审查来降低事实错误。</div></div>
+        <div class="qa"><div class="q">Q44：<code>capture.value</code> 是怎么从工具调用里返回给 workflow 的？</div><div class="a"><code>create_structured_output_tool()</code> 的 execute 函数会把工具参数写入 <code>capture.value</code> 并设置 <code>capture.called = True</code>。子 Agent prompt 结束后，<code>WorkflowAgent.run()</code> 检查 capture 并直接返回该结构化对象。</div></div>
+
+        <h3>九、并发与异常</h3>
+        <div class="qa"><div class="q">Q45：<code>run_workflow()</code> 里的 semaphore 控制了什么并发？</div><div class="a">它控制同时运行的子 Agent 数量。即使 workflow 里 parallel 或 DAG 同时产生很多任务，进入 <code>_agent()</code> 时也要通过 semaphore，避免过多 LLM 请求导致限流或资源占用过高。</div></div>
+        <div class="qa"><div class="q">Q46：<code>parallel()</code> 和 <code>dag()</code> 都用了 <code>asyncio.gather</code>，两者区别是什么？</div><div class="a"><code>parallel()</code> 只是把一组独立 thunk 一起跑；<code>dag()</code> 需要先校验依赖、检测环、按入度生成 ready 批次，并处理失败依赖和 seed 恢复。DAG 是有依赖约束的并发。</div></div>
+        <div class="qa"><div class="q">Q47：<code>_agent()</code> 捕获异常后为什么返回 <code>None</code>，而不是直接抛出？</div><div class="a">这样单个 Agent 失败不会立刻把整个运行时打崩，DAG/parallel 可以记录失败并继续处理可处理部分。代价是错误可能被结果 None 吞掉，所以需要日志、on_agent_end error 和上层结果检查配合。</div></div>
+        <div class="qa"><div class="q">Q48：这样做会不会掩盖错误？你会怎么设计错误传播？</div><div class="a">会有风险。更稳妥的设计是返回结构化结果，例如 <code>{ok, value, error}</code>，或者区分可恢复错误和致命错误。最终 workflow result 中也应包含失败任务列表，让前端和调用方明确知道不是完全成功。</div></div>
+        <div class="qa"><div class="q">Q49：record / replay 模式下为什么要把 concurrency 降到 1？</div><div class="a">record/replay 通常按调用顺序消费 trace。并发会让 LLM 调用顺序不确定，导致 replay 游标错位。降到 1 能保证记录和回放顺序稳定，便于复现问题。</div></div>
+        <div class="qa"><div class="q">Q50：如果多个 Agent 同时调用工具写文件，怎么避免冲突？</div><div class="a">当前主要依赖 Planner 合并同页任务和 DAG 依赖控制。更强的方案是引入文件级/页面级锁、写前读版本校验、冲突检测和合并策略，或者让调度器按目标文件自动串行化。</div></div>
+
+        <h3>十、可观测性与产品化</h3>
+        <div class="qa"><div class="q">Q51：<code>on_agent_start</code>、<code>on_agent_end</code>、<code>on_phase</code>、<code>on_event</code> 分别对应前端哪些状态？</div><div class="a"><code>on_phase</code> 表示进入 Analyze/Plan/Write 等阶段，<code>on_agent_start/end</code> 表示某个子 Agent 开始和结束，<code>on_event</code> 转发子 Agent 内部文本增量和工具调用事件。前端据此展示进度、日志和工具执行。</div></div>
+        <div class="qa"><div class="q">Q52：如何定位一次 workflow 卡住是 LLM 慢、工具卡住，还是 DAG 依赖没释放？</div><div class="a">先看最后一个 SSE 事件：停在 agent_start 可能是 LLM 或工具慢；有 tool_execution_start 没有 end 可能是工具卡住；DAG 没有新 agent_start 可能是依赖未满足或任务都失败。再结合后端 logs、phase、agent_count 和 checkpoint 文件定位。</div></div>
+        <div class="qa"><div class="q">Q53：<code>/api/activity</code> 为什么需要？它和 <code>_active</code> 字典是什么关系？</div><div class="a"><code>/api/activity</code> 给前端或桌面宠物展示“系统是否忙碌”。<code>run_background()</code> 创建 task 后把 <code>id(task) -> label</code> 写入 <code>_active</code>，任务完成后 done callback 删除，接口读取这个状态。</div></div>
+        <div class="qa"><div class="q">Q54：如果后台任务异常退出，<code>_active</code> 会不会泄漏？</div><div class="a">正常不会，因为 <code>add_done_callback</code> 在任务完成、异常或取消时都会触发，执行 <code>_active.pop(id(t), None)</code>。除非进程直接崩溃，否则活跃状态会被清掉。</div></div>
+        <div class="qa"><div class="q">Q55：当前日志里哪些信息对排查 Agent 问题最有用？</div><div class="a">最有用的是 project、revision、phase、agent label、schema 是否启用、active tools、agent start/end、异常 traceback、workflow result、checkpoint hit 和 session_path。这些能串起一次失败的上下文。</div></div>
+
+        <h3>十一、设计取舍</h3>
+        <div class="qa"><div class="q">Q56：为什么不用 LangChain / Dify / CrewAI 直接做？</div><div class="a">这些框架能快速搭 Agent，但项目核心需求是 VCS diff、Wiki 章节索引、DAG、checkpoint、桌面端和评测闭环的深度集成。自研运行时可以更精确地控制任务结构、恢复策略和工具权限。</div></div>
+        <div class="qa"><div class="q">Q57：为什么用 YAML 描述 workflow，而不是直接写 Python？</div><div class="a">YAML 对用户更友好，适合声明 phase、step、agent、schema 和执行模式。它降低了自定义工作流门槛，也方便做静态校验和 UI 展示。</div></div>
+        <div class="qa"><div class="q">Q58：为什么 YAML 又要编译成 Python AST，而不是解释执行 YAML？</div><div class="a">AST 让运行逻辑可以复用 Python async 能力，同时能统一生成 checkpoint、并发、dag、pipeline 等代码。相比解释器分支判断，AST 生成更接近真实可执行脚本，也便于插入安全检查。</div></div>
+        <div class="qa"><div class="q">Q59：为什么不用数据库存 workflow 状态，而是用 <code>.wiki/checkpoints</code>？</div><div class="a">文件式 checkpoint 简单、透明、便于调试，也跟项目目录绑定。对中小型项目足够。规模更大或需要多进程并发时，可以迁移到 SQLite 或服务端状态存储。</div></div>
+        <div class="qa"><div class="q">Q60：如果项目规模扩大到上千 Wiki 章节，你会怎么优化索引和调度？</div><div class="a">索引层从 JSON 迁移到 SQLite/FTS，支持增量更新和快速查询；调度层增加页面级锁、优先级队列、批量 diff 摘要和 token budget；评测层增加采样和持续质量监控。</div></div>
+
+        <h3>十二、开放追问</h3>
+        <div class="qa"><div class="q">Q61：这个项目里你最满意的技术设计是什么？</div><div class="a">我会讲 DAG + checkpoint + structured_output 的组合。它把 LLM 从自由文本生成器变成可调度、可恢复、可验证的执行单元，体现 Agent 工程化。</div></div>
+        <div class="qa"><div class="q">Q62：你觉得这个项目最大的问题是什么？</div><div class="a">最大问题是并发写和状态一致性还可以更强，例如多个 Writer 修改同一页面、workflow 版本变化后的 checkpoint 失效、LLM Judge 稳定性等，都需要进一步工程化。</div></div>
+        <div class="qa"><div class="q">Q63：如果让你重构 <code>run_workflow()</code>，你会拆成哪些模块？</div><div class="a">我会拆成 parser/meta、runtime context、agent runtime、scheduler(parallel/pipeline/dag)、checkpoint manager、sandbox executor、result/error model。这样测试更独立，也方便替换调度策略。</div></div>
+        <div class="qa"><div class="q">Q64：如果上线给团队使用，你会补哪些监控和测试？</div><div class="a">监控方面补 token、耗时、失败率、模型错误、工具错误、checkpoint 命中率和队列事件。测试方面补 workflow 编译快照、DAG 边界、checkpoint 恢复、SSE 断连、并发写冲突和真实 case eval。</div></div>
+        <div class="qa"><div class="q">Q65：如果模型输出质量下降，你有哪些兜底策略？</div><div class="a">先用结构化输出和 schema 降低格式风险；再用质量检查、LLM Judge 和规则校验发现问题；必要时切换模型、降低并发、增加重试、自检 prompt、人工确认高风险修改，或回滚 Wiki 变更。</div></div>
+      </section>
+      <section id="api" class="section">
+        <h2>12. FastAPI API 接口总览</h2>
+        <p>桌面端后端使用 FastAPI 暴露 REST 和 SSE 接口，统一路由前缀来自 <code>desktop/src/pi_wiki_desktop/api/v1/router.py</code>：<code>APIRouter(prefix="/api")</code>。所以表里的路径都需要加上 <code>/api</code> 前缀。</p>
+
+        <div class="callout">
+          <b>面试讲法：</b>
+          这个后端不是简单 CRUD，而是围绕“项目管理 → 提交读取 → Agent 同步 → 质量检查 → 模型配置 → 定时任务”的桌面 Agent 控制面板。普通接口返回 JSON，长耗时 Agent 任务使用 SSE stream 接口实时推送进度。
+        </div>
+
+        <h3>基础状态接口</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/health</code></td><td><code>health.py</code></td><td>健康检查，确认后端服务可用。</td></tr>
+            <tr><td>GET</td><td><code>/api/config</code></td><td><code>health.py</code></td><td>读取基础配置信息。</td></tr>
+            <tr><td>GET</td><td><code>/api/activity</code></td><td><code>activity.py</code></td><td>返回当前是否有后台 Agent 任务在运行，以及当前任务 label。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>项目与配置</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/projects</code></td><td><code>projects.py</code></td><td>列出所有已配置项目。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects</code></td><td><code>projects.py</code></td><td>新增项目，注册项目名、路径、VCS 类型等配置。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/projects/{name}</code></td><td><code>projects.py</code></td><td>删除项目配置。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/config</code></td><td><code>projects.py</code></td><td>读取单个项目配置。</td></tr>
+            <tr><td>PUT</td><td><code>/api/projects/{name}/config</code></td><td><code>projects.py</code></td><td>更新项目配置。</td></tr>
+            <tr><td>GET</td><td><code>/api/settings</code></td><td><code>settings.py</code></td><td>读取全局设置。</td></tr>
+            <tr><td>PUT</td><td><code>/api/settings</code></td><td><code>settings.py</code></td><td>更新全局设置。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>提交与 Wiki 概览</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/projects/{name}/commits</code></td><td><code>commits.py</code></td><td>读取项目提交列表，用于前端选择待同步 revision。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/commits/{rev}</code></td><td><code>commits.py</code></td><td>读取某次提交详情，包括变更文件和 diff。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/wiki-overview</code></td><td><code>commits.py</code></td><td>读取 Wiki 页面和索引概览，辅助前端展示同步目标。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Agent 同步接口</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/api/projects/{name}/sync/{rev}</code></td><td><code>sync.py</code></td><td>普通同步接口，返回 JSON 结果。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/sync/{rev}/stream</code></td><td><code>sync.py</code></td><td>串行/传统同步的 SSE 流式接口，实时返回 Agent 进度。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/sync/{rev}/resume/stream</code></td><td><code>sync.py</code></td><td>恢复中断同步任务，并用 SSE 返回进度。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/chain-sync/{rev}</code></td><td><code>chain.py</code></td><td>Chain 模式同步，按链式 Agent 顺序执行。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/chain-sync/{rev}/stream</code></td><td><code>chain.py</code></td><td>Chain 模式 SSE 流式同步。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/workflow-sync/{rev}/stream</code></td><td><code>workflow_sync.py</code></td><td>核心 Workflow 模式同步，使用 YAML 工作流、DAG 并行、checkpoint 和子 Agent。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/workflow-failures</code></td><td><code>workflow_sync.py</code></td><td>列出保留 checkpoint 的未完成 workflow 运行。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/projects/{name}/workflow-sync/{rev}/checkpoint</code></td><td><code>workflow_sync.py</code></td><td>删除指定 revision 的 workflow checkpoint。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>生成、质量检查与修复</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/api/projects/{name}/generate</code></td><td><code>generation.py</code></td><td>根据生成计划创建 Wiki 页面，返回 JSON 结果。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/generate/stream</code></td><td><code>generation.py</code></td><td>Wiki 生成的 SSE 流式接口。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/quality-check</code></td><td><code>quality.py</code></td><td>运行质量检查器，返回断链、过期内容、空章节等问题报告。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/quality-fix/stream</code></td><td><code>quality.py</code></td><td>根据质量报告启动自动修复 Agent，并通过 SSE 返回进度。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/quality-fix/rules</code></td><td><code>quality.py</code></td><td>执行规则型质量修复，适合不需要 LLM 的确定性修复。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>模型、过滤规则与定时任务</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/models</code></td><td><code>model_management.py</code></td><td>列出可用模型配置。</td></tr>
+            <tr><td>POST</td><td><code>/api/models</code></td><td><code>model_management.py</code></td><td>新增自定义模型。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/models/{provider}/{model_id}</code></td><td><code>model_management.py</code></td><td>删除指定模型配置。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/filters</code></td><td><code>filters.py</code></td><td>读取提交过滤规则。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/filters</code></td><td><code>filters.py</code></td><td>新增过滤规则，例如按路径、作者、提交信息跳过。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/projects/{name}/filters/{index}</code></td><td><code>filters.py</code></td><td>删除指定过滤规则。</td></tr>
+            <tr><td>PUT</td><td><code>/api/projects/{name}/filters/toggle</code></td><td><code>filters.py</code></td><td>启用或禁用过滤功能。</td></tr>
+            <tr><td>GET</td><td><code>/api/cron/jobs</code></td><td><code>cron.py</code></td><td>列出全局定时任务。</td></tr>
+            <tr><td>POST</td><td><code>/api/cron/jobs</code></td><td><code>cron.py</code></td><td>创建全局定时任务。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/cron/jobs/{job_id}</code></td><td><code>cron.py</code></td><td>删除定时任务。</td></tr>
+            <tr><td>POST</td><td><code>/api/cron/jobs/{job_id}/pause</code></td><td><code>cron.py</code></td><td>暂停定时任务。</td></tr>
+            <tr><td>POST</td><td><code>/api/cron/jobs/{job_id}/resume</code></td><td><code>cron.py</code></td><td>恢复定时任务。</td></tr>
+            <tr><td>GET</td><td><code>/api/projects/{name}/cron/jobs</code></td><td><code>cron.py</code></td><td>列出项目级定时任务。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/cron/jobs</code></td><td><code>cron.py</code></td><td>创建项目级定时任务。</td></tr>
+            <tr><td>DELETE</td><td><code>/api/projects/{name}/cron/jobs/{job_id}</code></td><td><code>cron.py</code></td><td>删除项目级定时任务。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>自动同步</h3>
+        <table>
+          <thead>
+            <tr><th>方法</th><th>路径</th><th>代码文件</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/projects/{name}/auto-sync</code></td><td><code>auto_sync.py</code></td><td>读取项目自动同步配置。</td></tr>
+            <tr><td>PUT</td><td><code>/api/projects/{name}/auto-sync</code></td><td><code>auto_sync.py</code></td><td>更新自动同步配置。</td></tr>
+            <tr><td>POST</td><td><code>/api/projects/{name}/auto-sync/trigger</code></td><td><code>auto_sync.py</code></td><td>手动触发一次自动同步检查或执行。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>接口设计复述模板</h3>
+        <pre><code>GET 接口：读取项目、提交、模型、过滤规则、定时任务等状态
+POST/PUT/DELETE 接口：修改配置或触发任务
+stream 接口：长耗时 Agent 任务，使用 StreamingResponse + asyncio.Queue + SSE
+后台任务：run_background() 使用 asyncio.create_task() 托管执行，并通过 /api/activity 暴露忙碌状态</code></pre>
+      </section>
+
+      <section id="resume" class="section">
+        <h2>13. 简历表达</h2>
+        <h3>项目标题</h3>
+        <p><b>pi-wiki-agent：VCS 驱动的 Wiki 文档同步 Agent 平台</b></p>
+
+        <h3>推荐简历描述</h3>
+        <ul>
+          <li>基于 Python / FastAPI / Vue 3 构建 VCS 驱动的 Wiki 文档同步 Agent，自动分析代码 diff 并更新相关文档章节。</li>
+          <li>设计 Analyze → Plan → Write 多 Agent 工作流，结合结构化输出、工具调用和 DAG 并行调度完成复杂任务拆解与执行。</li>
+          <li>实现 YAML → IR → Python AST 工作流编译器、运行时沙箱和 checkpoint 断点续跑，支持失败恢复、并发控制和用户自定义流程。</li>
+          <li>构建评测体系与桌面可视化界面，支持 pass@k、LLM-as-Judge、SSE 流式进度、多模型配置和质量修复流程。</li>
+        </ul>
+
+        <div class="warning callout">
+          <b>简历和面试注意：</b>公开仓库前检查 `.env`、API Key、个人路径、测试 trace、日志等敏感信息。面试可以展示架构图和 HTML 笔记，但不要暴露真实密钥。
+        </div>
+      </section>
+
+      <section id="prep" class="section">
+        <h2>14. 复习清单</h2>
+        <table>
+          <thead>
+            <tr><th>必须会讲</th><th>自测标准</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>项目一句话定位</td><td>30 秒内说明问题、输入、输出、核心价值。</td></tr>
+            <tr><td>三阶段 Agent 流程</td><td>能解释 Analyze、Plan、Write 各自职责和为什么拆分。</td></tr>
+            <tr><td>反向索引和章节锚点</td><td>能说明为什么不用纯 Markdown 标题和行号。</td></tr>
+            <tr><td>结构化输出</td><td>能说清 schema、工具调用、Planner 输出如何被后续使用。</td></tr>
+            <tr><td>DAG 并行</td><td>能说明并发收益、依赖控制和冲突风险。</td></tr>
+            <tr><td>AST 编译器</td><td>能讲 YAML → IR → AST → Python → Sandbox 的链路。</td></tr>
+            <tr><td>断点续跑</td><td>能举例说明 50 个任务失败后如何只重跑剩余任务。</td></tr>
+            <tr><td>评测框架</td><td>能说清结构断言、pass@k、LLM Judge 的边界。</td></tr>
+            <tr><td>不足和改进</td><td>能主动讲 SQLite 索引、并发写冲突、人工反馈闭环等后续方向。</td></tr>
+          </tbody>
+        </table>
+
+        <div class="purple callout">
+          <b>最后记一句：</b>
+          这个项目最有价值的点是“Agent 工程化”。你要让面试官听出来，你关注的是稳定执行、可观察、可恢复、可评估，而不是把 prompt 写长。
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, securityLevel: "loose", theme: "default" });
+  </script></body>
+</html>
+
+
+
+
